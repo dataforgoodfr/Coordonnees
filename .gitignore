@@ -12,4 +12,7 @@ wheels/
 # Media files
 *.csv
 *.json
-*.xlsx
+
+# Sqlite file
+*.sqlite3
+*.db
