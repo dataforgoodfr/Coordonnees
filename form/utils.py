@@ -66,7 +66,11 @@ def import_form(form, name=None, parent=None):
         schema.fields.create(
             name="parent",  # maybe should be _parent, to review
             class_name="django.db.models.ForeignKey",
-            kwargs={"on_delete": models.CASCADE, "to": parent.name},
+            kwargs={
+                "on_delete": models.CASCADE,
+                "to": parent.name,
+                "related_name": form["name"],
+            },
         )
 
 

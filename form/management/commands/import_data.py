@@ -23,7 +23,7 @@ class Command(BaseCommand):
         sheets_dict = pd.read_excel(options["xlsx_path"], sheet_name=None)
         form_name = options["form_name"]
         for i, (sheet_name, sheet) in enumerate(sheets_dict.items()):
-            print(sheet_name)
+            print(form_name)
             model_name = form_name if i == 0 else f"{form_name}_{sheet_name}"
             schema = ModelSchema.objects.get(name=model_name)
             model = schema.as_model()

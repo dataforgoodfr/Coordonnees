@@ -8,6 +8,8 @@ dependencies = [
     "django>=5.2.8",
     "django-dynamic-model==0.4.0rc0",
     "geoalchemy2>=0.18.1",
+    "geojson>=3.2.0",
     "pandas>=2.3.3",
     "pyxform>=4.1.0",
+    "xyzservices>=2025.11.0",
 ]
