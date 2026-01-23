@@ -4,7 +4,7 @@
   "description": "A set of modules to help with using spatio-temporal data and creating maps",
   "license": "ISC",
   "author": "",
-  "main": "map-plugin.js",
+  "main": "js/map-plugin.js",
   "scripts": {
     "build": "browserify map-plugin.js -o dist/map-plugin.browser.js -t browserify-css",
     "test": "echo \"Error: no test specified\" && exit 1"
