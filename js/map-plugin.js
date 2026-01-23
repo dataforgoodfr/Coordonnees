@@ -72,7 +72,10 @@ function renderTemplate(html, vars) {
   );
 }
 
-export function createMap(target, endpoint = null) {
+export function createMap(
+  target,
+  styleUrl = "https://demotiles.maplibre.org/globe.json",
+) {
   const el =
     typeof target === "string" ? document.querySelector(target) : target;
 
@@ -80,7 +83,7 @@ export function createMap(target, endpoint = null) {
 
   const map = new maplibregl.Map({
     container: el,
-    style: "/style.json",
+    style: styleUrl,
     center: [0, 0],
     zoom: 1,
   });
