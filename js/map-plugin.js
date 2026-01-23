@@ -1,3 +1,5 @@
+const maplibregl = require("maplibre-gl");
+
 class LayerControl {
   constructor(options = {}) {
     this._map = null;
@@ -69,7 +71,7 @@ function renderTemplate(html, vars) {
   );
 }
 
-export function createMap(target, options = {}) {
+export function createMap(target, endpoint = null) {
   const el =
     typeof target === "string" ? document.querySelector(target) : target;
 
@@ -144,10 +146,14 @@ export function createMap(target, options = {}) {
   el.appendChild(root);
 
   function init() {
-    el.dispatchEvent(new CustomEvent("map:ready", { detail: api }));
+    el.dispatchEvent(new CustomEvent("map:ready"));
   }
 
-  const api = {};
+  function getDataForLayer(layerId) {
+    return "hello";
+  }
+
+  const api = { getDataForLayer };
 
   init();
   return api;

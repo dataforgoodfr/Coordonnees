@@ -12,7 +12,6 @@ db.sqlite3
 
 # Media files
 *.csv
-*.json
 
 # Sqlite file
 *.sqlite3
