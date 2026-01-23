@@ -4,8 +4,6 @@
   "description": "A set of modules to help with using spatio-temporal data and creating maps",
   "license": "ISC",
   "author": "",
-  "type": "module",
-  "browser": "dist/map-plugin.browser.js",
   "main": "map-plugin.js",
   "scripts": {
     "build": "browserify map-plugin.js -o dist/map-plugin.browser.js -t browserify-css",
