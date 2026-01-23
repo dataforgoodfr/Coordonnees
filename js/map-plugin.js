@@ -1,4 +1,5 @@
-const maplibregl = require("maplibre-gl");
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 
 class LayerControl {
   constructor(options = {}) {

@@ -6,10 +6,13 @@
   "author": "",
   "main": "js/map-plugin.js",
   "scripts": {
-    "build": "browserify map-plugin.js -o dist/map-plugin.browser.js -t browserify-css",
+    "build": "browserify -t browserify-css map-plugin.js -o dist/map-plugin.browser.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "maplibre-gl": "^5.16.0"
+  },
+  "devDependencies": {
+    "browserify-css": "^0.15.0"
   }
 }
