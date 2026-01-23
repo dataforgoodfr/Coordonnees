@@ -6,8 +6,8 @@
   "author": "",
   "exports": {
     ".": {
-      "import": "./js/index.js",
-      "require": "./js/index.js"
+      "import": "./js/dist/coordo.js",
+      "require": "./js/dist/coordo.js"
     },
     "./coordo.css": "./js/dist/coordo.css"
   }
