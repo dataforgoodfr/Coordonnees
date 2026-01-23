@@ -1,0 +1,11 @@
+[project]
+name = "coordo"
+version = "0.1.0"
+description = "A set of modules to help with using spatio-temporal data and creating maps"
+requires-python = ">=3.12"
+dependencies = [
+    "geojson>=3.2.0",
+    "peewee>=3.19.0",
+    "spatialite>=0.0.3",
+    "xyzservices>=2025.11.0",
+]

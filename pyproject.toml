@@ -13,3 +13,8 @@ dependencies = [
     "pyxform>=4.1.0",
     "xyzservices>=2025.11.0",
 ]
+
+[tool.uv.workspace]
+members = [
+    "python",
+]
