@@ -8,5 +8,8 @@
   "scripts": {
     "build": "browserify map-plugin.js -o dist/map-plugin.browser.js -t browserify-css",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "maplibre-gl": "^5.16.0"
   }
 }
