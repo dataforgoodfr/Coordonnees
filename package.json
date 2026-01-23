@@ -1,18 +1,14 @@
 {
   "name": "coordo",
   "version": "1.0.0",
-  "description": "A set of modules to help with using spatio-temporal data and creating maps",
+  "description": "This file is here only to support direct import for development",
   "license": "ISC",
   "author": "",
-  "main": "js/map-plugin.js",
-  "scripts": {
-    "build": "browserify -t browserify-css map-plugin.js -o dist/map-plugin.browser.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "dependencies": {
-    "maplibre-gl": "^5.16.0"
-  },
-  "devDependencies": {
-    "browserify-css": "^0.15.0"
+  "exports": {
+    ".": {
+      "import": "./js/index.js",
+      "require": "./js/index.js"
+    },
+    "./coordo.css": "./js/dist/coordo.css"
   }
 }

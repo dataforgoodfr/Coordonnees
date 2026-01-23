@@ -20,7 +20,7 @@ pip install git+https://github.com/dataforgoodfr/Coordonnees.git/#subdirectory=p
 
 Javascript
 ```
-npm install https://github.com/dataforgoodfr/Coordonnees.git?subdir=js
+npm install git+https://github.com/dataforgoodfr/Coordonnees.git#master
 ```
 
 # Quick demo

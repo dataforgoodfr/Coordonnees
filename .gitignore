@@ -1,21 +1,2 @@
-# Python
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-
-# Javascript
-node_modules/
-
-# Virtual environments
 .venv
-db.sqlite3
-
-# Media files
-*.csv
-
-# Sqlite file
 *.sqlite3
-*.db
