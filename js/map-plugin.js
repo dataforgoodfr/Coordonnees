@@ -137,11 +137,6 @@ export function createMap(target, endpoint = null) {
     });
   });
 
-  let state = {
-    center: options.center || [0, 0],
-    zoom: options.zoom || 1,
-  };
-
   const root = document.createElement("div");
   el.appendChild(root);
 
