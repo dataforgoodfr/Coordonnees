@@ -5,7 +5,15 @@ description = "A set of modules to help with using spatio-temporal data and crea
 requires-python = ">=3.12"
 dependencies = [
     "geojson>=3.2.0",
+    "pandas>=3.0.0",
     "peewee>=3.19.0",
+    "pyxform>=4.2.0",
     "spatialite>=0.0.3",
     "xyzservices>=2025.11.0",
+]
+
+[dependency-groups]
+dev = [
+    "jsonschema-typed>=0.8.1",
+    "ts2python>=0.8.2",
 ]

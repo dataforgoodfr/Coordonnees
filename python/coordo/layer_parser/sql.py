@@ -1,20 +1,17 @@
 from geojson import Feature, FeatureCollection, Point
+from peewee import fn
 
 from .base import LayerParser
 
 AGG_MAP = {
-    "count": lambda field: Count(field or "id"),
-    "centroid": lambda field: Centroid(Collect(field)),
+    "count": lambda field: fn.count(field or "id"),
+    "centroid": lambda field: fn.centroid(fn.collect(field)),
 }
 
 
 class SQLParser(LayerParser):
     def parse(self, config):
-        models = [
-            schema.as_model()
-            for schema in ModelSchema.objects.filter(name__startswith=config["table"])
-        ]
-        model = models[0]
+        tables =
 
         transform = config["transform"][0]
         annotations = {}
