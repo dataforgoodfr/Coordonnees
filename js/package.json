@@ -5,14 +5,20 @@
   "license": "ISC",
   "author": "",
   "type": "module",
+  "main": "dist/coordo.js",
+  "exports": {
+    ".": {
+      "import": "./dist/coordo.js",
+      "require": "./dist/coordo.js"
+    },
+    "./coordo.css": "./dist/coordo.css"
+  },
   "scripts": {
     "build": "vite build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "dependencies": {
-    "maplibre-gl": "^5.16.0"
-  },
   "devDependencies": {
+    "maplibre-gl": "^5.16.0",
     "vite": "^7.3.1"
   }
 }

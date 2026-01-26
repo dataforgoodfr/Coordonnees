@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import TypedDict
+from typing import Mapping, TypedDict
 
-from maplibre_style_spec_v8 import Layer, Source
+from .maplibre_style_spec_v8 import Layer, Source
 
 
 class LayerConfig(TypedDict):
@@ -10,5 +10,5 @@ class LayerConfig(TypedDict):
 
 class LayerParser(ABC):
     @abstractmethod
-    def parse(self, config) -> tuple[dict[str, Source], Layer]:
+    def parse(self, config) -> tuple[Mapping[str, Source], Layer]:
         pass

@@ -1,6 +1,9 @@
+from coordo.layer_parser.sql import SQLParser
+
 from .maplibre_style_spec_v8 import Layer, Source, Style
 from .openmaptiles import OpenMapTilesParser
-from .sql import SQLParser
+
+# from .sql import SQLParser
 from .xyzservices import XYZServicesParser
 
 

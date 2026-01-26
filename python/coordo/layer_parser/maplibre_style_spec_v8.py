@@ -1,4 +1,5 @@
-# Not all definitions have been imported, please add them when needed
+# Not all definitions have been imported from common/maplibre-style-spec-v8.ts
+# Please add them when needed
 
 from typing import (
     Any,
@@ -136,7 +137,7 @@ ExpressionSpecification = (
     | Tuple[
         Literal["get"],
         Union[str, "ExpressionSpecification"],
-        #NotRequired["ExpressionSpecification"],
+        # NotRequired["ExpressionSpecification"],
     ]
     | Tuple[Literal["global-state"], str]
     | Tuple[
@@ -543,7 +544,7 @@ class RasterSource(TypedDict):
     tileSize: NotRequired[float]
     scheme: NotRequired[Union[Literal["xyz"], Literal["tms"]]]
     attribution: NotRequired[str]
-    promoteId: Union[dict[str, str], NotRequired[str]]
+    promoteId: NotRequired[str | dict[str, str]]
     volatile: NotRequired[bool]
 
 
@@ -628,17 +629,21 @@ class GeoJSONSource(TypedDict):
 # ImageSourceSpecification;
 
 
-class FillLayer(TypedDict, total=False):
-    id: str
-    type: Literal["fill"]
-    metadata: NotRequired[Any]
-    source: str
-    source_layer: NotRequired[str]
-    minzoom: NotRequired[int]
-    maxzoom: NotRequired[int]
-    filter: NotRequired[FilterSpecification]
-    layout: NotRequired[Dict[str, Any]],
-    paint: NotRequired[Dict[str, Any]],
+FillLayer = TypedDict(
+    "FillLayer",
+    {
+        "id": str,
+        "type": Literal["fill"],
+        "metadata": NotRequired[Any],
+        "source": str,
+        "source-layer": NotRequired[str],
+        "minzoom": NotRequired[int],
+        "maxzoom": NotRequired[int],
+        "filter": NotRequired[FilterSpecification],
+        "layout": NotRequired[Dict[str, Any]],
+        "paint": NotRequired[Dict[str, Any]],
+    },
+)
 
 
 LineLayer = TypedDict(
@@ -674,28 +679,65 @@ SymbolLayer = TypedDict(
     },
 )
 
+RasterPaint = TypedDict(
+    "RasterPaint",
+    {
+        "raster-opacity": NotRequired[PropertyValueSpecification[float]]
+        # "raster-opacity-transition"?: TransitionSpecification;
+        # "raster-hue-rotate"?: PropertyValueSpecification<number>;
+        # "raster-hue-rotate-transition"?: TransitionSpecification;
+        # "raster-brightness-min"?: PropertyValueSpecification<number>;
+        # "raster-brightness-min-transition"?: TransitionSpecification;
+        # "raster-brightness-max"?: PropertyValueSpecification<number>;
+        # "raster-brightness-max-transition"?: TransitionSpecification;
+        # "raster-saturation"?: PropertyValueSpecification<number>;
+        # "raster-saturation-transition"?: TransitionSpecification;
+        # "raster-contrast"?: PropertyValueSpecification<number>;
+        # "raster-contrast-transition"?: TransitionSpecification;
+        # "raster-resampling"?: PropertyValueSpecification<"linear" | "nearest">;
+        # "raster-fade-duration"?: PropertyValueSpecification<number>;
+    },
+)
+
+RasterLayer = TypedDict(
+    "RasterLayer",
+    {
+        "id": str,
+        "type": Literal["raster"],
+        "metadata": NotRequired[Any],
+        "source": str,
+        "source-layer": NotRequired[str],
+        "minzoom": NotRequired[float],
+        "maxzoom": NotRequired[float],
+        "filter": NotRequired[FilterSpecification],
+        "layout": NotRequired[Dict[str, Any]],
+        "paint": NotRequired[RasterPaint],
+    },
+)
+
 
 Source = VectorSource | RasterSource | RasterDEMSource | GeoJSONSource
-Layer = FillLayer | LineLayer | SymbolLayer
+Layer = FillLayer | LineLayer | SymbolLayer | RasterLayer
+
 
 class Style(TypedDict):
-  version: Literal[8]
-  name: NotRequired[str]
-  metadata: NotRequired[Any]
-  # center?: [number, number];
-  # centerAltitude?: number;
-  # zoom?: number;
-  # bearing?: number;
-  # pitch?: number;
-  # roll?: number;
-  # state?: StateSpecification;
-  # light?: LightSpecification;
-  # sky?: SkySpecification;
-  # projection: NotRequired[ProjectionSpecification]
-  # terrain?: TerrainSpecification;
-  sources: dict[str, Source]
-  # sprite?: SpriteSpecification;
-  # glyphs?: string;
-  # "font-faces"?: FontFacesSpecification;
-  # transition?: TransitionSpecification
-  layers: list[Layer]
+    version: Literal[8]
+    name: NotRequired[str]
+    metadata: NotRequired[Any]
+    # center?: [number, number];
+    # centerAltitude?: number;
+    # zoom?: number;
+    # bearing?: number;
+    # pitch?: number;
+    # roll?: number;
+    # state?: StateSpecification;
+    # light?: LightSpecification;
+    # sky?: SkySpecification;
+    # projection: NotRequired[ProjectionSpecification]
+    # terrain?: TerrainSpecification;
+    sources: dict[str, Source]
+    # sprite?: SpriteSpecification;
+    # glyphs?: string;
+    # "font-faces"?: FontFacesSpecification;
+    # transition?: TransitionSpecification
+    layers: list[Layer]

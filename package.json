@@ -4,11 +4,8 @@
   "description": "This file is here only to support direct import for development",
   "license": "ISC",
   "author": "",
-  "exports": {
-    ".": {
-      "import": "./js/dist/coordo.js",
-      "require": "./js/dist/coordo.js"
-    },
-    "./coordo.css": "./js/dist/coordo.css"
+  "main": "js/index.js",
+  "dependencies": {
+    "maplibre-gl": "^5.16.0"
   }
 }

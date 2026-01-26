@@ -3,13 +3,9 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 import peewee
-from geojson import Point
-from playhouse.sqlite_ext import SqliteExtDatabase
+from playhouse.db_url import connect
+from playhouse.shortcuts import SqliteDatabase
 from pyxform.xls2json import parse_file_to_json
-
-db = SqliteExtDatabase("peewee.sqlite")
-db.connect()
-db.load_extension("mod_spatialite")
 
 METADATA_TYPES = [
     "start",
@@ -105,39 +101,63 @@ PEEWEE_TYPES = {
 }
 
 
-class BaseModel(peewee.Model):
-    class Meta:
-        database = db
-
-
-class KoboTooloboxImporter:
-    def import_xlsform(self, xlsform_path):
+class KoboToolboxImporter:
+    def __init__(self, xlsform_path):
         form = parse_file_to_json(xlsform_path)
-        self.models = defaultdict(dict)
-        self._import_form(form)
-        db.create_tables(
-            [type(model, (BaseModel,), fields) for model, fields in self.models.items()]
-        )
+        self._parse_form(form)
 
-    def import_form_data(xlsform_path, xlsx_path):
+    def create_tables(self, db_url):
+        db = connect(db_url)
+        db.load_extension("mod_spatialite")
+
+        class BaseModel(peewee.Model):
+            class Meta:
+                database = db
+
+        self.tables = []
+        for model, fields in self.models.items():
+            if "parent" in fields:
+                parent_table_name = fields["parent"][1]["model"]
+                fields["parent"][1]["model"] = next(
+                    table
+                    for table in self.tables
+                    if table._meta.table_name == parent_table_name
+                )
+            self.tables.append(
+                type(
+                    model,
+                    (BaseModel,),
+                    {name: field[0](**field[1]) for name, field in fields.items()},
+                )
+            )
+        db.drop_tables(self.tables)
+        db.create_tables(self.tables)
+
+    def import_data(self, db_url, xlsx_path):
+        db = connect(db_url)
+        db.load_extension("mod_spatialite")
         sheets_dict = pd.read_excel(xlsx_path, sheet_name=None)
+        main_table_name = self.tables[0]._meta.table_name
         for i, (sheet_name, sheet) in enumerate(sheets_dict.items()):
-            model_name = schema_name if i == 0 else f"{schema_name}_{sheet_name}"
-            # schema = ModelSchema.objects.get(name=model_name)
-            # model = schema.as_model()
-            # model.objects.all().delete()
-            sheet = sheet.rename(columns={"_parent_index": "parent"})
-            sheet = sheet.set_index("_index")
+            table_name = (
+                main_table_name if i == 0 else f"{main_table_name}_{sheet_name}"
+            )
+            model = next(
+                table
+                for table in self.tables
+                if table._meta.table_name == table_name.lower()
+            )
+            sheet = sheet.rename(columns={"_index": "id", "_parent_index": "parent"})
             fields = []
-            for field in schema.fields.all():
-                if field.name in sheet.columns:
-                    if field.class_name.split(".")[-1] == "PointField":
-                        sheet[field.name] = (
-                            sheet[field.name]
+            for name, field in model._meta.fields.items():
+                if name in sheet.columns:
+                    if isinstance(field, PointField):
+                        sheet[name] = (
+                            sheet[name]
                             .fillna("")
                             .apply(
                                 lambda coords: (
-                                    Point([float(c) for c in coords.split(" ")[:3]])
+                                    [float(c) for c in coords.split(" ")[:3]]
                                     if coords
                                     else None
                                 )
@@ -149,36 +169,38 @@ class KoboTooloboxImporter:
                     print(f"Field {field.name} not found in data")
             sheet = sheet[fields]
             # sheet.columns = [slugify(col).replace("-", "_") for col in sheet.columns]
-            sheet = sheet.rename(columns={"parent": "parent_id"})
+            # sheet = sheet.rename(columns={"parent": "parent_id"})
             sheet = sheet.replace({np.nan: None})
             records = [
                 record | {"id": id} for id, record in sheet.to_dict("index").items()
             ]
-            # model.objects.bulk_create(model(**record) for record in records)
+            model.insert_many(records).execute()
 
-    def _import_form(self, form, model=None, parent=None):
+    def _parse_form(self, form, model=None, parent=None):
         if not model:
-            model = form["id_string"]
-        self._import_questions(form["children"], model)
+            model = form["id_string"].lower()
+            self.models = defaultdict(dict)
+            self.choices = []
+        self._parse_questions(form["children"], model)
         if parent:
-            self.models[model]["parent"] = peewee.DeferredForeignKey(
-                model,
-                on_delete="CASCADE",
+            self.models[model]["parent"] = (
+                peewee.ForeignKeyField,
+                dict(model=parent, on_delete="CASCADE", backref=form["name"]),
             )
 
-    def _import_questions(self, questions, model):
+    def _parse_questions(self, questions, model):
         for question in questions:
             qtype = question["type"]
             if qtype in METADATA_TYPES + IGNORE_TYPES:
                 print("Skipping :", qtype)
                 continue
             if qtype == "group":
-                self._import_questions(question["children"], model)
+                self._parse_questions(question["children"], model)
                 continue
             if qtype == "repeat":
-                self._import_form(
+                self._parse_form(
                     question,
-                    model=f"{model}_{question["name"]}",
+                    model=f"{model}_{question['name']}",
                     parent=model,
                 )
                 continue
@@ -188,9 +210,21 @@ class KoboTooloboxImporter:
                 bind = question["bind"]
                 if "required" in bind:
                     kwargs["null"] = bind["required"] != "yes"
-            # if "choices" in question:
-            #     kwargs["choices"] = [
-            #         (choice["name"], choice["label"]) for choice in question["choices"]
-            #     ]
+            if "choices" in question:
+                self.choices.extend(
+                    [
+                        (question["name"], choice["name"], choice["label"])
+                        for choice in question["choices"]
+                    ]
+                )
             if qtype in PEEWEE_TYPES:
-                self.models[model][question["name"]] = PEEWEE_TYPES[qtype](**kwargs)
+                self.models[model][question["name"]] = (PEEWEE_TYPES[qtype], kwargs)
+
+
+if __name__ == "__main__":
+    path = "../data/20250213_Inventaire_ID_QuestionnaireK.xlsx"
+    importer = KoboToolboxImporter(path)
+    importer.create_tables("sqlite:///coordo.sqlite")
+    importer.import_data(
+        "sqlite:///coordo.sqlite", "../data/20251017_Inventaire_ID_Donnees.xlsx"
+    )

@@ -27,16 +27,13 @@
     {
       "id": "placettes",
       "type": "sql",
-      "table": "inventaire_ID",
-      "transform": [
-        {
-          "groupby": ["cod"],
-          "aggregate": [
-            { "op": "count", "as": "count" },
-            { "op": "centroid", "field": "gps", "as": "center" }
-          ]
-        }
-      ],
+      "table": "inventaire_id",
+      "groupby": ["cod"],
+      "fields": {
+        "gps": "centroid gps",
+        "richesse": "count unique ind.ess_arb",
+        "hauteur dominante": "avg ind.haut where ind.haut > percentile(ind.haut, 80)"
+      },
       "popup": {
         "trigger": "click",
         "html": "<h1>Placette {{ cod }}</h1>{{ count }} réponses"

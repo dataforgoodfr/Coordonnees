@@ -25,7 +25,12 @@ npm install git+https://github.com/dataforgoodfr/Coordonnees.git#master
 
 # Quick demo
 
-TODO: write demo commands with the new repo structure
+For development or to see an example of an app using both the Python and Javascript packages, you can run
+
+```
+cd demo
+uv run manage.py runserver
+```
 
 In order to show the results of this script, you can use the Dbeaver tool and check the tables whose name start with inventaire_id_xx :
 https://dbeaver.io/download/#requirements

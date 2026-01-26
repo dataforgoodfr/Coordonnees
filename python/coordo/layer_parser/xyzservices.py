@@ -1,22 +1,24 @@
 import xyzservices.providers as providers
 
+from coordo.layer_parser.maplibre_style_spec_v8 import RasterLayer, RasterSource, Source
+
 from .base import LayerParser
 
 
 class XYZServicesParser(LayerParser):
-    def parse(self, layer):
+    def parse(self, config):
         provider = providers
-        for part in layer["provider"].split("."):
+        for part in config["provider"].split("."):
             provider = getattr(provider, part)
-        source = {
-            provider.name: {
-                "type": "raster",
-                "tiles": [provider.build_url()],
-            }
-        }
-        layer = {
-            "id": layer["id"],
+        source_name = str(provider.name)
+        source: RasterSource = {
             "type": "raster",
-            "source": provider.name,
+            "tiles": [provider.build_url()],
         }
-        return source, layer
+        source_dict = {source_name: source}
+        layer: RasterLayer = {
+            "id": config["id"],
+            "type": "raster",
+            "source": source_name,
+        }
+        return source_dict, layer

@@ -1,5 +1,9 @@
+import geopandas as gpd
 from geojson import Feature, FeatureCollection, Point
 from peewee import fn
+from playhouse.db_url import connect
+from playhouse.reflection import generate_models
+from playhouse.shortcuts import model_to_dict
 
 from .base import LayerParser
 
@@ -11,25 +15,22 @@ AGG_MAP = {
 
 class SQLParser(LayerParser):
     def parse(self, config):
-        tables =
+        db = connect("sqlite:///coordo.sqlite")
+        tables = generate_models(db)
+        table = tables[config["table"]]
+        rows = [model_to_dict(ins, backrefs=True) for ins in table.select()]
+        print(rows)
+        exit()
+        df = gpd.GeoDataFrame(rows)
+        group_df = df.groupby(config["groupby"])
+        group_df.apply(lambda x: print(x))
 
-        transform = config["transform"][0]
-        annotations = {}
-        for agg in transform["aggregate"]:
-            op = agg["op"]
-            as_ = agg["as"]
-            field = agg.get("field")
-            if op not in AGG_MAP:
-                raise ValueError(f"Unsupported aggregate op: {op}")
-            annotations[as_] = AGG_MAP[op](field)
+        for field, formula in config["fields"].items():
+            print(formula)
+            parts = formula.split(" ")
+            op = parts[0]
 
-        rows = model.objects.values(*transform["groupby"]).annotate(**annotations)
-
-        geom_key = None
-        for key, value in rows[0].items():
-            if isinstance(value, GEOSGeometry):
-                geom_key = key
-                break
+        exit()
 
         if geom_key is None:
             raise ValueError("No geometry field found after aggregation")
