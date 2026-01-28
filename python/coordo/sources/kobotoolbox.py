@@ -1,11 +1,14 @@
 from collections import defaultdict
 
+import geopandas as gpd
 import numpy as np
 import pandas as pd
 import peewee
 from playhouse.db_url import connect
-from playhouse.shortcuts import SqliteDatabase
+from playhouse.shortcuts import model_to_dict
 from pyxform.xls2json import parse_file_to_json
+from shapely import from_wkt, to_wkt
+from shapely.geometry import Point
 
 METADATA_TYPES = [
     "start",
@@ -56,20 +59,20 @@ IGNORE_TYPES = [
 # }
 
 
-class PointField(peewee.Field):
+class GeometryField(peewee.Field):
+    field_type = "GEOMETRY"
+
+    def db_value(self, value: Point):
+        if value is not None:
+            return to_wkt(value)
+
+    def python_value(self, value) -> Point | None:
+        if value is not None:
+            return from_wkt(value)
+
+
+class PointField(GeometryField):
     field_type = "POINT"
-
-    def db_value(self, value):
-        if value is not None:
-            return f"POINT({value[0]} {value[1]})"
-        return None
-
-    def python_value(self, value):
-        if value is not None:
-            point_str = value.split("(")[1].split(")")[0]
-            x, y = map(float, point_str.split())
-            return (x, y)
-        return None
 
 
 PEEWEE_TYPES = {
@@ -101,18 +104,17 @@ PEEWEE_TYPES = {
 }
 
 
-class KoboToolboxImporter:
-    def __init__(self, xlsform_path):
+class KoboToolboxSource:
+    def __init__(self, xlsform_path, db_url):
         form = parse_file_to_json(xlsform_path)
         self._parse_form(form)
 
-    def create_tables(self, db_url):
-        db = connect(db_url)
-        db.load_extension("mod_spatialite")
+        self.db = connect(db_url)
+        self.db.load_extension("mod_spatialite")
 
         class BaseModel(peewee.Model):
             class Meta:
-                database = db
+                database = self.db
 
         self.tables = []
         for model, fields in self.models.items():
@@ -130,13 +132,13 @@ class KoboToolboxImporter:
                     {name: field[0](**field[1]) for name, field in fields.items()},
                 )
             )
-        db.drop_tables(self.tables)
-        db.create_tables(self.tables)
 
-    def import_data(self, db_url, xlsx_path):
-        db = connect(db_url)
-        db.load_extension("mod_spatialite")
-        sheets_dict = pd.read_excel(xlsx_path, sheet_name=None)
+    def create_tables(self):
+        self.db.drop_tables(self.tables)
+        self.db.create_tables(self.tables)
+
+    def import_data(self, data_path):
+        sheets_dict = pd.read_excel(data_path, sheet_name=None)
         main_table_name = self.tables[0]._meta.table_name
         for i, (sheet_name, sheet) in enumerate(sheets_dict.items()):
             table_name = (
@@ -157,7 +159,7 @@ class KoboToolboxImporter:
                             .fillna("")
                             .apply(
                                 lambda coords: (
-                                    [float(c) for c in coords.split(" ")[:3]]
+                                    Point([float(c) for c in coords.split(" ")[:3]])
                                     if coords
                                     else None
                                 )
@@ -175,6 +177,16 @@ class KoboToolboxImporter:
                 record | {"id": id} for id, record in sheet.to_dict("index").items()
             ]
             model.insert_many(records).execute()
+
+    def get_data(self):
+        main_table = self.tables[0]
+        rows = [model_to_dict(ins, backrefs=True) for ins in main_table.select()]
+        geom_col = next(
+            name
+            for name, field in main_table._meta.fields.items()
+            if isinstance(field, GeometryField)
+        )
+        return gpd.GeoDataFrame(rows, geometry=geom_col)
 
     def _parse_form(self, form, model=None, parent=None):
         if not model:
@@ -219,12 +231,3 @@ class KoboToolboxImporter:
                 )
             if qtype in PEEWEE_TYPES:
                 self.models[model][question["name"]] = (PEEWEE_TYPES[qtype], kwargs)
-
-
-if __name__ == "__main__":
-    path = "../data/20250213_Inventaire_ID_QuestionnaireK.xlsx"
-    importer = KoboToolboxImporter(path)
-    importer.create_tables("sqlite:///coordo.sqlite")
-    importer.import_data(
-        "sqlite:///coordo.sqlite", "../data/20251017_Inventaire_ID_Donnees.xlsx"
-    )

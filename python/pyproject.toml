@@ -2,20 +2,15 @@
 name = "coordo"
 version = "0.1.0"
 description = "A set of modules to help with using spatio-temporal data and creating maps"
-requires-python = ">=3.11, <3.12"
+requires-python = ">=3.10"
 dependencies = [
     "geojson>=3.2.0",
     "geopandas>=1.1.2",
+    "lark>=1.3.1",
     "pandas>=2.0.0,<3",
     "peewee>=3.19.0",
-    "pykx>=2.3.0",
     "pyxform>=4.2.0",
+    "shapely>=2.1.2",
     "spatialite>=0.0.3",
     "xyzservices>=2025.11.0",
-]
-
-[dependency-groups]
-dev = [
-    "jsonschema-typed>=0.8.1",
-    "ts2python>=0.8.2",
 ]

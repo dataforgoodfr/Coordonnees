@@ -2,14 +2,15 @@ import json
 from pathlib import Path
 
 from coordo.layer_parser import to_maplibre
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
+from django.shortcuts import render
 
 
 def index(request):
-    return HttpResponse(b"Hello World")
+    return render(request, "cartasso/index.html")
 
 
-config = json.load(Path("config.json").open())
+config = json.load(Path("data/config.json").open())
 
 
 def style_json(request):

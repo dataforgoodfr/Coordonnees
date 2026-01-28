@@ -1,17 +1,25 @@
-#  Context
-
+#  Coordonnées
 
 #  Dependencies
 
 You will need the following dependencies in order to use SpatialLite : 
 
+Ubuntu / Debian
 ```
 sudo apt-get install gdal-bin libgdal-dev libsqlite3-mod-spatialite
 ```
 
-# Importing 
+# Repo structure
 
-This package is divided in a Python and a Javascript module, since it is still in really early stage it is not published on package registries, but you can install it directly via the following commands 
+This package aims at greatly simplifying the manipulation and transformation of geospatial data and the creation of interactive maps from data sources. It is based on 2 inter-dependent modules that are made to work together :
+
+The **js** folder contains the Javascript part of the project, it is basically a wrapper around MapLibre, which offers a simplified API for JS developers and add some fonctionalities (popups, hovering, events).
+
+The **python** folder contains the Python part of the project, it is capable of parsing a config format (TODO: define the JSON schema of the config) and automatically pulling data from sources and generating an augmented MapLibre Style Spec file, which can be used by the Javascript module.
+
+# Install from other projects
+
+This repo is still in very early stage so it is not yet published on registries, but you can still install the Python and Javascript packages with the following commands for testing
 
 Python
 ```
@@ -32,5 +40,4 @@ cd demo
 uv run manage.py runserver
 ```
 
-In order to show the results of this script, you can use the Dbeaver tool and check the tables whose name start with inventaire_id_xx :
-https://dbeaver.io/download/#requirements
+In order to read SQLite files, we recommend using [DBeaver](https://dbeaver.io/download/#requirements)

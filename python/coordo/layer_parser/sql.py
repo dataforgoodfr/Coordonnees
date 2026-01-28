@@ -1,34 +1,57 @@
-import geopandas as gpd
+import pandas as pd
 from geojson import Feature, FeatureCollection, Point
-from peewee import fn
-from playhouse.db_url import connect
-from playhouse.reflection import generate_models
-from playhouse.shortcuts import model_to_dict
+
+from coordo.sources.kobotoolbox import KoboToolboxSource
 
 from .base import LayerParser
 
-AGG_MAP = {
-    "count": lambda field: fn.count(field or "id"),
-    "centroid": lambda field: fn.centroid(fn.collect(field)),
+FUNC_MAP = {
+    "avg": lambda x: x.mean(),
+    "unique": lambda x: x.unique(),
+    "centroid": lambda x: x.centroid,
+    "count": lambda x: len(x),
 }
 
 
 class SQLParser(LayerParser):
     def parse(self, config):
-        db = connect("sqlite:///coordo.sqlite")
-        tables = generate_models(db)
-        table = tables[config["table"]]
-        rows = [model_to_dict(ins, backrefs=True) for ins in table.select()]
-        print(rows)
-        exit()
-        df = gpd.GeoDataFrame(rows)
-        group_df = df.groupby(config["groupby"])
-        group_df.apply(lambda x: print(x))
+        gdf = KoboToolboxSource(
+            "../data/20250213_Inventaire_ID_QuestionnaireK.xlsx",
+            "sqlite:///coordo.sqlite",
+        ).get_data()
+        group_df = gdf.groupby(config["groupby"])
 
         for field, formula in config["fields"].items():
             print(formula)
-            parts = formula.split(" ")
-            op = parts[0]
+            funcs = []
+            col: str | None
+            where: str | None = None
+            part_it = iter(formula.split(" "))
+            for part in part_it:
+                if part in FUNC_MAP:
+                    funcs.append(FUNC_MAP[part])
+                elif part == "where":
+                    where = list(part_it)
+                else:
+                    col = part
+
+            print(where)
+
+            explode: str | None = None
+            if "." in col:
+                explode, col = col.split(".")
+
+            def apply(df):
+                if explode:
+                    df = pd.json_normalize(df[explode].explode())
+                if where:
+                    df = df.query(where)
+                df = df[col]
+                for func in reversed(funcs):
+                    df = func(df)
+                return df
+
+            print(group_df.apply(apply))
 
         exit()
 
