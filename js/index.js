@@ -74,7 +74,7 @@ function renderTemplate(html, vars) {
 
 export function createMap(
   target,
-  styleUrl = "https://demotiles.maplibre.org/globe.json",
+  styleUrl = "https://demotiles.maplibre.org/styles/osm-bright-gl-style/style.json",
 ) {
   const el =
     typeof target === "string" ? document.querySelector(target) : target;

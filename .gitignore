@@ -1,2 +1,4 @@
 .venv
 *.sqlite3
+node_modules/*
+package-lock.json
