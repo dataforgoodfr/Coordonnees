@@ -1,0 +1,24 @@
+{
+  "name": "coordo",
+  "version": "1.0.0",
+  "description": "A set of modules to help with using spatio-temporal data and creating maps",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "dist/coordo.js",
+  "exports": {
+    ".": {
+      "import": "./dist/coordo.js",
+      "require": "./dist/coordo.js"
+    },
+    "./coordo.css": "./dist/coordo.css"
+  },
+  "scripts": {
+    "build": "vite build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "maplibre-gl": "^5.16.0",
+    "vite": "^7.3.1"
+  }
+}
