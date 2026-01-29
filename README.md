@@ -17,6 +17,15 @@ The **js** folder contains the Javascript part of the project, it is basically a
 
 The **python** folder contains the Python part of the project, it is capable of parsing a config format (TODO: define the JSON schema of the config) and automatically pulling data from sources and generating an augmented MapLibre Style Spec file, which can be used by the Javascript module.
 
+The **demo** folder show an example of how you could use those packages to build a geospatial platform. You can run the following commands to get started :
+
+```
+uv run manage.py import_test_data
+uv run manage.py runserver
+```
+
+This is also useful for debugging, the python coordo lib is in editable mode so any modification the the python folder wille be taken into account in demo folder. For the js side you need to run `make build-js` to sync the modification to the demo folder.
+
 # Install from other projects
 
 This repo is still in very early stage so it is not yet published on registries, but you can still install the Python and Javascript packages with the following commands for testing

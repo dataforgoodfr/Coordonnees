@@ -10,8 +10,9 @@ def index(request):
     return render(request, "cartasso/index.html")
 
 
-config = json.load(Path("data/config.json").open())
+config_path = Path("data/config.json")
 
 
 def style_json(request):
+    config = json.load(config_path.open())
     return JsonResponse(to_maplibre(config))

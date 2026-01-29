@@ -1,5 +1,6 @@
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import "./index.css";
 
 class LayerControl {
   constructor(options = {}) {

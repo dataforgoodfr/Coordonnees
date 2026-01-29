@@ -105,8 +105,8 @@ PEEWEE_TYPES = {
 
 
 class KoboToolboxSource:
-    def __init__(self, xlsform_path, db_url):
-        form = parse_file_to_json(xlsform_path)
+    def __init__(self, xlsform, db_url):
+        form = parse_file_to_json(xlsform)
         self._parse_form(form)
 
         self.db = connect(db_url)

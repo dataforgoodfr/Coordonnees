@@ -17,7 +17,6 @@ class XYZServicesParser(LayerParser):
         }
         source_dict = {source_name: source}
         layer: RasterLayer = {
-            "id": config["id"],
             "type": "raster",
             "source": source_name,
         }

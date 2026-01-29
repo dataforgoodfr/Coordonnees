@@ -65,7 +65,6 @@ class OpenMapTilesParser(LayerParser):
         layer: Layer
         if config["layer"] == "boundary":
             layer = {
-                "id": config["id"],
                 "type": "line",
                 "source": "openmaptiles",
                 "source-layer": config["layer"],
@@ -79,7 +78,6 @@ class OpenMapTilesParser(LayerParser):
             }
         else:
             layer = {
-                "id": config["id"],
                 "type": "line",
                 "source": "openmaptiles",
                 "source-layer": config["layer"],

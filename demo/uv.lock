@@ -31,7 +31,7 @@ wheels = [
 [[package]]
 name = "coordo"
 version = "0.1.0"
-source = { directory = "../python" }
+source = { editable = "../python" }
 dependencies = [
     { name = "geojson" },
     { name = "geopandas" },
@@ -77,7 +77,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "coordo", directory = "../python" },
+    { name = "coordo", editable = "../python" },
     { name = "django", specifier = ">=6.0.1" },
 ]
 

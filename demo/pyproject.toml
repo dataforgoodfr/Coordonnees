@@ -10,4 +10,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-coordo = { path = "../python" }
+coordo = { path = "../python", editable = true }
+
+[tool.uv]
+config-settings = { editable_mode = "compat" }

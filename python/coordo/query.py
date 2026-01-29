@@ -1,6 +1,5 @@
 import functools
 
-import geopandas as gpd
 import pandas as pd
 from lark import Lark, Transformer
 
@@ -23,7 +22,7 @@ grammar = r"""
 parser = Lark(grammar)
 
 
-class QueryTransformer(Transformer):
+class PandasTransformer(Transformer):
     def __init__(self, df):
         self.df = df
 
@@ -107,20 +106,15 @@ queries = {
     "dominant height": "avg ind.haut where ind.haut > percentile(ind.haut, 80)",
 }
 
-gdf = KoboToolboxSource(
-    "../data/20250213_Inventaire_ID_QuestionnaireK.xlsx",
-    "sqlite:///coordo.sqlite",
-).get_data()
-group_df = gdf.groupby(["cod"])
 
+def apply_queries(df, queries):
 
-def apply(df):
-    out = []
-    for query in queries.values():
-        ast = parser.parse(query)
-        transformer = QueryTransformer(df)
-        out.append(transformer.transform(ast))
-    return pd.Series(out, queries.keys())
+    def apply(df):
+        out = []
+        transformer = PandasTransformer(df)
+        for query in queries.values():
+            ast = parser.parse(query)
+            out.append(transformer.transform(ast))
+        return pd.Series(out, queries.keys())
 
-
-print(type(group_df.apply(apply)))
+    return df.apply(apply)
