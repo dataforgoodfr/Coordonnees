@@ -1,19 +1,2 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-
-# Virtual environments
 .venv
-db.sqlite3
-
-# Media files
-*.csv
-*.json
-
-# Sqlite file
 *.sqlite3
-*.db
