@@ -1,15 +1,27 @@
-import maplibregl from "maplibre-gl";
+import maplibregl, { ControlPosition, LayerSpecification, Map, MapLayerEventType } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./index.css";
 
-class LayerControl {
-  constructor(options = {}) {
-    this._map = null;
-    this._container = null;
-    this._panel = null;
+type StyleMetaData = {
+  controls: Array<{
+    type: string,
+    position: ControlPosition
+  }>
+}
+type LayerMetadata = {
+  popup: {
+    trigger: string;
+    html: string;
   }
+}
 
-  onAdd(map) {
+class LayerControl {
+  private _map?: Map;
+  private _container?: HTMLElement;
+  private _panel?: HTMLElement;
+  constructor() { }
+
+  onAdd(map: Map) {
     this._map = map;
     this._container = document.createElement("div");
     this._container.className = "maplibregl-ctrl maplibregl-ctrl-group";
@@ -22,19 +34,19 @@ class LayerControl {
     this._container.appendChild(this._panel);
 
     this._container.addEventListener("click", () =>
-      this._panel.classList.toggle("hidden"),
+      this._panel?.classList.toggle("hidden"),
     );
 
     this._panel.addEventListener("click", (e) => e.stopPropagation());
-    this._map.on("click", () => this._panel.classList.toggle("hidden"));
+    this._map?.on("click", () => this._panel?.classList.toggle("hidden"));
 
     return this._container;
   }
 
   _buildLayerList() {
-    const layers = this._map.getStyle().layers;
+    const layers = this._map?.getStyle().layers;
 
-    layers.forEach((layer) => {
+    layers?.forEach((layer: LayerSpecification) => {
       const layerId = layer.id;
 
       const label = document.createElement("label");
@@ -44,10 +56,10 @@ class LayerControl {
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.checked =
-        this._map.getLayoutProperty(layerId, "visibility") !== "none";
+        this._map?.getLayoutProperty(layerId, "visibility") !== "none";
 
       checkbox.addEventListener("change", () => {
-        this._map.setLayoutProperty(
+        this._map?.setLayoutProperty(
           layerId,
           "visibility",
           checkbox.checked ? "visible" : "none",
@@ -57,28 +69,28 @@ class LayerControl {
       label.appendChild(checkbox);
       label.appendChild(document.createTextNode(" " + layerId));
 
-      this._panel.appendChild(label);
+      this._panel?.appendChild(label);
     });
   }
 
   onRemove() {
-    this._container.remove();
-    this._map = null;
+    this._container?.remove();
+    this._map = undefined;
   }
 }
 
-function renderTemplate(html, vars) {
+function renderTemplate(html: string, vars: Record<string, string>) {
   return html.replace(/{{\s*(\w+)\s*}}/g, (_, key) =>
-    key in vars ? vars[key] : "",
+    vars[key] ?? "",
   );
 }
 
 export function createMap(
-  target,
+  target: string | HTMLElement,
   styleUrl = "https://demotiles.maplibre.org/globe.json",
 ) {
   const el =
-    typeof target === "string" ? document.querySelector(target) : target;
+    typeof target === "string" ? document.querySelector(target) as HTMLElement : target;
 
   if (!el) throw new Error("Map target not found");
 
@@ -94,7 +106,7 @@ export function createMap(
     if (controlsAdded) return;
     controlsAdded = true;
     const style = map.getStyle();
-    const controls = style.metadata.controls || [];
+    const controls = (style.metadata as StyleMetaData).controls || [];
 
     controls.forEach((config) => {
       switch (config.type) {
@@ -121,15 +133,18 @@ export function createMap(
 
     const layers = style.layers || [];
 
-    layers.forEach((layer) => {
-      if (layer.metadata?.popup) {
-        map.on(layer.metadata.popup["trigger"], layer.id, (e) => {
-          const coordinates = e.features[0].geometry.coordinates.slice();
-          const properties = e.features[0].properties;
+    layers.forEach((layer: LayerSpecification) => {
+      const metadata = layer.metadata as LayerMetadata
+      if (metadata?.popup) {
+        map.on(metadata.popup["trigger"] as keyof MapLayerEventType, layer.id, (e) => {
+          const geometry = e.features?.[0]?.geometry // coordindate
+          const properties = e.features?.[0]?.properties;
+          // TODO removethis "any"
+          const coordinates = (geometry as any).coordinates.slice()
           // const popup = document.createElement("div");
           new maplibregl.Popup()
             .setLngLat(coordinates)
-            .setHTML(renderTemplate(layer.metadata.popup["html"], properties))
+            .setHTML(renderTemplate(metadata.popup["html"], properties ?? {}))
             .addTo(map);
         });
         map.on("mouseenter", layer.id, () => {
@@ -149,7 +164,7 @@ export function createMap(
     el.dispatchEvent(new CustomEvent("map:ready"));
   }
 
-  function getDataForLayer(layerId) {
+  function getDataForLayer() {
     return "hello";
   }
 
