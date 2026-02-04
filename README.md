@@ -1,42 +1,52 @@
-# Template DataForGood
+#  Coordonnées
 
-This file will become your README and also the index of your
-documentation.
+#  Dependencies
 
-# Contributing
+You will need the following dependencies in order to use SpatialLite : 
 
-
-## Installation
-
-- [Installation de Python](#installation-de-python)
-
-Ce projet utilise [uv](https://docs.astral.sh/uv/) pour la gestion des dépendances Python. Il est préréquis pour l'installation de ce projet.
-
-Une fois installé, il suffit de lancer la commande suivante pour installer la version de Python adéquate, créer un environnement virtuel et installer les dépendances du projet.
-
-```bash
-uv sync
+Ubuntu / Debian
+```
+sudo apt-get install gdal-bin libgdal-dev libsqlite3-mod-spatialite
 ```
 
-A l'usage, si vous utilisez VSCode, l'environnement virtuel sera automatiquement activé lorsque vous ouvrirez le projet. Sinon, il suffit de l'activer manuellement avec la commande suivante :
+# Repo structure
 
-```bash
-source .venv/bin/activate
+This package aims at greatly simplifying the manipulation and transformation of geospatial data and the creation of interactive maps from data sources. It is based on 2 inter-dependent modules that are made to work together :
+
+The **js** folder contains the Javascript part of the project, it is basically a wrapper around MapLibre, which offers a simplified API for JS developers and add some fonctionalities (popups, hovering, events).
+
+The **python** folder contains the Python part of the project, it is capable of parsing a config format (TODO: define the JSON schema of the config) and automatically pulling data from sources and generating an augmented MapLibre Style Spec file, which can be used by the Javascript module.
+
+The **demo** folder show an example of how you could use those packages to build a geospatial platform. You can run the following commands to get started :
+
+```
+uv run manage.py import_test_data
+uv run manage.py runserver
 ```
 
-Ou alors, utilisez la commande `uv run ...` (au lieu de `python ...`) pour lancer un script Python. Par exemple:
+This is also useful for debugging, the python coordo lib is in editable mode so any modification the the python folder wille be taken into account in demo folder. For the js side you need to run `make build-js` to sync the modification to the demo folder.
 
-```bash
-uv run pipelines/run.py run build_database
+# Install from other projects
+
+This repo is still in very early stage so it is not yet published on registries, but you can still install the Python and Javascript packages with the following commands for testing
+
+Python
+```
+pip install git+https://github.com/dataforgoodfr/Coordonnees.git/#subdirectory=python
 ```
 
+Javascript
+```
+npm install git+https://github.com/dataforgoodfr/Coordonnees.git#master
+```
 
-## Lancer les precommit-hook localement
+# Quick demo
 
-[Installer les precommit](https://pre-commit.com/)
+For development or to see an example of an app using both the Python and Javascript packages, you can run
 
-    pre-commit run --all-files
+```
+cd demo
+uv run manage.py runserver
+```
 
-## Utiliser Tox pour tester votre code
-
-    tox -vv
+In order to read SQLite files, we recommend using [DBeaver](https://dbeaver.io/download/#requirements)

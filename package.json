@@ -1,0 +1,11 @@
+{
+  "name": "coordo",
+  "version": "1.0.0",
+  "description": "This file is here only to support direct import for development",
+  "license": "ISC",
+  "author": "",
+  "main": "js/index.js",
+  "dependencies": {
+    "maplibre-gl": "^5.16.0"
+  }
+}
