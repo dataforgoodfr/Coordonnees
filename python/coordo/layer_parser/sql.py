@@ -1,5 +1,3 @@
-from geojson import Feature, FeatureCollection
-
 from coordo.query import apply_queries
 
 from .base import LayerParser
