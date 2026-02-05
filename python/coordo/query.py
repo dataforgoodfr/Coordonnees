@@ -3,8 +3,6 @@ import functools
 import pandas as pd
 from lark import Lark, Transformer
 
-from .sources.kobotoolbox import KoboToolboxSource
-
 grammar = r"""
     start: aggregation
     aggregation: func_name variable ("where" condition)? | func_name aggregation
