@@ -26,3 +26,5 @@ Let's say you made changes on the lib TS in a branch named `feat/my_task`
 ```
 - Run the webapp as mentioned in the Readme.
 - Verify that there are no breaking changes in the app.
+- If any breaking change that can't be solved in your Coordo branch, [create a new Issue](https://github.com/dataforgoodfr/14_Data4Trees/issues).
+- Sync with the Lead Dev
