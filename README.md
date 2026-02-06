@@ -20,6 +20,8 @@ The **python** folder contains the Python part of the project, it is capable of 
 The **demo** folder show an example of how you could use those packages to build a geospatial platform. You can run the following commands to get started :
 
 ```
+cd demo
+uv run manage.py migrate
 uv run manage.py import_test_data
 uv run manage.py runserver
 ```
