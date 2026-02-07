@@ -8,8 +8,7 @@
   "main": "dist/coordo.js",
   "exports": {
     ".": {
-      "import": "./dist/coordo.js",
-      "require": "./dist/coordo.js"
+      "import": "./dist/coordo.js"
     },
     "./coordo.css": "./dist/coordo.css"
   },
