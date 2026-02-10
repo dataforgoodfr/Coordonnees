@@ -1,11 +1,10 @@
 from typing import Literal
 
-from coordo.layer_parser.maplibre_style_spec_v8 import (
+from .base import LayerConfig, LayerParser
+from .maplibre_style_spec_v8 import (
     Layer,
     Source,
 )
-
-from .base import LayerConfig, LayerParser
 
 SOURCE_ID = "openmaptiles"
 SOURCE: Source = {

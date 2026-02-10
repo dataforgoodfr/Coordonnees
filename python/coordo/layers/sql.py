@@ -1,18 +1,12 @@
-from coordo.query import apply_queries
-
 from .base import LayerParser
-
-FUNC_MAP = {
-    "avg": lambda x: x.mean(),
-    "unique": lambda x: x.unique(),
-    "centroid": lambda x: x.centroid,
-    "count": lambda x: len(x),
-}
+from .query import apply_queries
 
 
 class SQLParser(LayerParser):
     def parse(self, config):
         gdf = config["source"].get_data()
+        if "filters" in config:
+            gdf = gdf.query("")
         group_df = gdf.groupby(config["groupby"])
         final_df = apply_queries(group_df, config["aggregate"])
         source = {

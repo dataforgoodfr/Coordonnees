@@ -44,8 +44,6 @@ class PandasTransformer(Transformer):
             return target.mean()
         elif func_name == "unique":
             return target.unique()
-        elif func_name == "percentile":
-            return target.quantile()
         else:
             raise ValueError(f"Unknown function: {func_name}")
 
@@ -96,13 +94,6 @@ class PandasTransformer(Transformer):
 
     def NUMBER(self, token):
         return float(token)
-
-
-queries = {
-    "geometry": "centroid gps",
-    "richness": "count unique ind.ess_arb",
-    "dominant height": "avg ind.haut where ind.haut > percentile(ind.haut, 80)",
-}
 
 
 def apply_queries(df, queries):

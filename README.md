@@ -11,7 +11,7 @@ sudo apt-get install gdal-bin libgdal-dev libsqlite3-mod-spatialite
 
 # Repo structure
 
-This package aims at greatly simplifying the manipulation and transformation of geospatial data and the creation of interactive maps from data sources. It is based on 2 inter-dependent modules that are made to work together :
+This package aims at greatly simplifying the manipulation and transformation of geospatial data and the creation of interactive [map]s from data sources. It is based on 2 inter-dependent modules that are made to work together :
 
 The **js** folder contains the Javascript part of the project, it is basically a wrapper around MapLibre, which offers a simplified API for JS developers and add some fonctionalities (popups, hovering, events).
 

@@ -1,8 +1,7 @@
 import xyzservices.providers as providers
 
-from coordo.layer_parser.maplibre_style_spec_v8 import RasterLayer, RasterSource
-
 from .base import LayerParser
+from .maplibre_style_spec_v8 import RasterLayer, RasterSource
 
 
 class XYZServicesParser(LayerParser):
