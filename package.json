@@ -4,7 +4,7 @@
   "description": "This file is here only to support direct import for development",
   "license": "ISC",
   "author": "",
-  "main": "js/index.js",
+  "main": "coordo-ts/index.ts",
   "dependencies": {
     "maplibre-gl": "^5.16.0"
   }
