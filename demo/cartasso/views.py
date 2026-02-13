@@ -1,16 +1,17 @@
 import json
 from pathlib import Path
 
-from coordo import to_maplibre
+from coordo import ConfigParser
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
+from geojson import Feature, FeatureCollection
+
+parser = ConfigParser("data/config.json")
 
 
 def index(request):
     return render(request, "cartasso/index.html")
-
-
-config_path = Path("data/config.json")
 
 
 def sources_view(request):
@@ -19,5 +20,14 @@ def sources_view(request):
 
 
 def style_json(request):
-    config = json.load(config_path.open())
-    return JsonResponse(to_maplibre(config))
+    return JsonResponse(parser.to_maplibre())
+
+
+@csrf_exempt
+def map_data(request, layer_id):
+    filters = None
+    if request.method == "POST":
+        payload = request.body.decode("utf-8")
+        filters = json.loads(payload)
+    geojson = parser.get_data(layer_id, filters)
+    return JsonResponse(geojson)

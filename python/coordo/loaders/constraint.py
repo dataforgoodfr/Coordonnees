@@ -14,6 +14,9 @@ AND: "and"
 
 
 class RangeTransformer(Transformer):
+    def __init__(self):
+        self.range = {}
+
     def comparison(self, items):
         op, number = items[1], float(items[2])
         match op:
@@ -30,4 +33,5 @@ class RangeTransformer(Transformer):
         return self.range
 
 
-parser = Lark(grammar, parser="lalr", transformer=RangeTransformer())
+def parse_constraint(x):
+    return Lark(grammar, parser="lalr", transformer=RangeTransformer()).parse(x)

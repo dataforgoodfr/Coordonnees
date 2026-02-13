@@ -1,12 +1,14 @@
+from coordo.layers.base import LayerConfig
+
+from .datapackage import DataPackageParser
 from .openmaptiles import OpenMapTilesParser
-from .sql import SQLParser
 from .xyzservices import XYZServicesParser
 
 
-def get_parser(type_):
+def get_parser(type_) -> LayerConfig:
     parsers = {
-        "xyzservices": XYZServicesParser(),
-        "openmaptiles": OpenMapTilesParser(),
-        "sql": SQLParser(),
+        "xyzservices": XYZServicesParser,
+        "openmaptiles": OpenMapTilesParser,
+        "datapackage": DataPackageParser,
     }
     return parsers[type_]

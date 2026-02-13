@@ -573,16 +573,16 @@ class GeoJSONSource(TypedDict):
     maxzoom: NotRequired[float]
     attribution: NotRequired[str]
     buffer: NotRequired[float]
-    filter: FilterSpecification
+    filter: NotRequired[FilterSpecification]
     tolerance: NotRequired[float]
     cluster: NotRequired[bool]
     clusterRadius: NotRequired[float]
     clusterMaxZoom: NotRequired[float]
     clusterMinPoints: NotRequired[float]
-    clusterProperties: Any
+    clusterProperties: NotRequired[Any]
     lineMetrics: NotRequired[bool]
     generateId: NotRequired[bool]
-    promoteId: Union[dict[str, str], NotRequired[str]]
+    promoteId: NotRequired[dict[str, str] | str]
 
 
 # export type VideoSourceSpecification = {
@@ -715,9 +715,53 @@ RasterLayer = TypedDict(
     },
 )
 
+CircleLayer = TypedDict(
+    "CircleLayer",
+    {
+        "id": str,
+        "type": Literal["circle"],
+        "metadata": NotRequired[Any],
+        "source": str,
+        "source-layer": NotRequired[str],
+        "minzoom": NotRequired[float],
+        "maxzoom": NotRequired[float],
+        "filter": NotRequired[FilterSpecification],
+        # "layout": NotRequired[TypedDict(
+        #     "CircleLayout",
+        #     {
+        #         "circle-sort-key": NotRequired[DataDrivenPropertyValueSpecification[float]],
+        #         "visibility": NotRequired[VisibilitySpecification],
+        #     }
+        # )],
+        # "paint": NotRequired[TypedDict(
+        #     "CirclePaint",
+        #     {
+        #         "circle-radius": NotRequired[DataDrivenPropertyValueSpecification[float]],
+        #         "circle-radius-transition": NotRequired[TransitionSpecification],
+        #         "circle-color": NotRequired[DataDrivenPropertyValueSpecification[ColorSpecification]],
+        #         "circle-color-transition": NotRequired[TransitionSpecification],
+        #         "circle-blur": NotRequired[DataDrivenPropertyValueSpecification[float]],
+        #         "circle-blur-transition": NotRequired[TransitionSpecification],
+        #         "circle-opacity": NotRequired[DataDrivenPropertyValueSpecification[float]],
+        #         "circle-opacity-transition": NotRequired[TransitionSpecification],
+        #         "circle-translate": NotRequired[PropertyValueSpecification[Tuple[float, float]]],
+        #         "circle-translate-transition": NotRequired[TransitionSpecification],
+        #         "circle-translate-anchor": NotRequired[PropertyValueSpecification[Literal["map", "viewport"]]],
+        #         "circle-pitch-scale": NotRequired[PropertyValueSpecification[Literal["map", "viewport"]]],
+        #         "circle-pitch-alignment": NotRequired[PropertyValueSpecification[Literal["map", "viewport"]]],
+        #         "circle-stroke-width": NotRequired[DataDrivenPropertyValueSpecification[float]],
+        #         "circle-stroke-width-transition": NotRequired[TransitionSpecification],
+        #         "circle-stroke-color": NotRequired[DataDrivenPropertyValueSpecification[ColorSpecification]],
+        #         "circle-stroke-color-transition": NotRequired[TransitionSpecification],
+        #         "circle-stroke-opacity": NotRequired[DataDrivenPropertyValueSpecification[float]],
+        #         "circle-stroke-opacity-transition": NotRequired[TransitionSpecification],
+        #     }
+        # )],
+    },
+)
 
 Source = VectorSource | RasterSource | RasterDEMSource | GeoJSONSource
-Layer = FillLayer | LineLayer | SymbolLayer | RasterLayer
+Layer = FillLayer | LineLayer | SymbolLayer | RasterLayer | CircleLayer
 
 
 class Style(TypedDict):

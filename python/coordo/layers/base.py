@@ -1,14 +1,22 @@
-from abc import ABC, abstractmethod
-from typing import Mapping, TypedDict
+from abc import abstractmethod
+from typing import Mapping, Optional
+
+from pydantic import BaseModel
+from pygeofilter.ast import AstType
 
 from .maplibre_style_spec_v8 import Layer, Source
 
 
-class LayerConfig(TypedDict):
+class LayerConfig(BaseModel):
     id: str
 
+    @classmethod
+    def from_dict(cls, dic):
+        return cls.model_validate(dic)
 
-class LayerParser(ABC):
     @abstractmethod
-    def parse(self, config) -> tuple[Mapping[str, Source], Layer]:
+    def to_maplibre(self) -> tuple[Mapping[str, Source], Layer]:
         pass
+
+    def get_data(self, filters: Optional[AstType] = None):
+        raise NotImplementedError

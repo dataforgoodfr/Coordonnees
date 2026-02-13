@@ -1,25 +1,33 @@
-import maplibregl, { ControlPosition, LayerSpecification, Map, MapLayerEventType } from "maplibre-gl";
+import maplibregl, {
+  ControlPosition,
+  GeoJSONSource,
+  GeoJSONSourceSpecification,
+  LayerSpecification,
+  Map,
+  MapLayerEventType,
+  StyleSpecification,
+} from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./index.css";
 
 type StyleMetaData = {
   controls: Array<{
-    type: string,
-    position: ControlPosition
-  }>
-}
+    type: string;
+    position: ControlPosition;
+  }>;
+};
 type LayerMetadata = {
   popup: {
     trigger: string;
     html: string;
-  }
-}
+  };
+};
 
 class LayerControl {
   private _map?: Map;
   private _container?: HTMLElement;
   private _panel?: HTMLElement;
-  constructor() { }
+  constructor() {}
 
   onAdd(map: Map) {
     this._map = map;
@@ -80,9 +88,7 @@ class LayerControl {
 }
 
 function renderTemplate(html: string, vars: Record<string, string>) {
-  return html.replace(/{{\s*(\w+)\s*}}/g, (_, key) =>
-    vars[key] ?? "",
-  );
+  return html.replace(/{{\s*(\w+)\s*}}/g, (_, key) => vars[key] ?? "");
 }
 
 export function createMap(
@@ -90,7 +96,9 @@ export function createMap(
   styleUrl = "https://demotiles.maplibre.org/globe.json",
 ) {
   const el =
-    typeof target === "string" ? document.querySelector(target) as HTMLElement : target;
+    typeof target === "string"
+      ? (document.querySelector(target) as HTMLElement)
+      : target;
 
   if (!el) throw new Error("Map target not found");
 
@@ -100,12 +108,13 @@ export function createMap(
     center: [0, 0],
     zoom: 1,
   });
+  let style: StyleSpecification;
 
   let controlsAdded = false;
   map.on("styledata", () => {
     if (controlsAdded) return;
     controlsAdded = true;
-    const style = map.getStyle();
+    style = map.getStyle();
     const controls = (style.metadata as StyleMetaData).controls || [];
 
     controls.forEach((config) => {
@@ -134,19 +143,23 @@ export function createMap(
     const layers = style.layers || [];
 
     layers.forEach((layer: LayerSpecification) => {
-      const metadata = layer.metadata as LayerMetadata
+      const metadata = layer.metadata as LayerMetadata;
       if (metadata?.popup) {
-        map.on(metadata.popup["trigger"] as keyof MapLayerEventType, layer.id, (e) => {
-          const geometry = e.features?.[0]?.geometry // coordindate
-          const properties = e.features?.[0]?.properties;
-          // TODO removethis "any"
-          const coordinates = (geometry as any).coordinates.slice()
-          // const popup = document.createElement("div");
-          new maplibregl.Popup()
-            .setLngLat(coordinates)
-            .setHTML(renderTemplate(metadata.popup["html"], properties ?? {}))
-            .addTo(map);
-        });
+        map.on(
+          metadata.popup["trigger"] as keyof MapLayerEventType,
+          layer.id,
+          (e) => {
+            const geometry = e.features?.[0]?.geometry; // coordindate
+            const properties = e.features?.[0]?.properties;
+            // TODO removethis "any"
+            const coordinates = (geometry as any).coordinates.slice();
+            // const popup = document.createElement("div");
+            new maplibregl.Popup()
+              .setLngLat(coordinates)
+              .setHTML(renderTemplate(metadata.popup["html"], properties ?? {}))
+              .addTo(map);
+          },
+        );
         map.on("mouseenter", layer.id, () => {
           map.getCanvas().style.cursor = "pointer";
         });
@@ -164,11 +177,26 @@ export function createMap(
     el.dispatchEvent(new CustomEvent("map:ready"));
   }
 
-  function getDataForLayer() {
-    return "hello";
+  async function setFilters(layer_id: string, filters: any) {
+    const layer = map.getLayer(layer_id);
+    if (layer == undefined) {
+      throw new Error(`Layer ${layer_id} doesn't exist.`);
+    }
+    let dataUrl = layer.metadata?.url as string | undefined;
+    if (!dataUrl) {
+      throw new Error(`Layer ${layer.id} can't be filtered.`);
+    }
+    const source = map.getSource(layer?.source)!;
+    const res = await fetch(dataUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(filters),
+    });
+    const data = await res.json();
+    (source as GeoJSONSource).setData(data);
   }
 
-  const api = { getDataForLayer };
+  const api = { mapInstance: map, setFilters };
 
   init();
   return api;

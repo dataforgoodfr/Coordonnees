@@ -5,6 +5,7 @@ export default defineConfig({
     lib: {
       entry: "index.ts",
       name: "coordo",
+      formats: ["es", "iife"],
     },
     rollupOptions: {
       external: ["maplibre-gl"],

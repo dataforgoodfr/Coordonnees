@@ -1,6 +1,6 @@
-from typing import Literal
+from typing import Any, Literal, Optional
 
-from .base import LayerConfig, LayerParser
+from .base import LayerConfig
 from .maplibre_style_spec_v8 import (
     Layer,
     Source,
@@ -53,39 +53,23 @@ PLACE_LAYER = {
 BOUNDARY_LAYER = {"type": "line"}
 
 
-class OpenMapTilesLayerConfig(LayerConfig):
+class OpenMapTilesParser(LayerConfig):
     type: Literal["openmaptiles"]
     layer: str
-    filters: dict[str, str]
+    filters: Optional[dict[str, Any]] = None
 
-
-class OpenMapTilesParser(LayerParser):
-    def parse(self, config: OpenMapTilesLayerConfig):
-        layer: Layer
-        if config["layer"] == "boundary":
-            layer = {
-                "type": "line",
-                "source": "openmaptiles",
-                "source-layer": config["layer"],
-                "filter": (
-                    "all",
-                    *(
-                        ("==", ("get", key), value)
-                        for key, value in config["filters"].items()
-                    ),
-                ),
-            }
+    def to_maplibre(self):
+        layer = {
+            "id": self.id,
+            "source": "openmaptiles",
+            "source-layer": self.layer,
+            "filter": (
+                "all",
+                *(("==", ("get", key), value) for key, value in self.filters.items()),
+            ),
+        }
+        if self.layer == "boundary":
+            layer.update(BOUNDARY_LAYER)
         else:
-            layer = {
-                "type": "line",
-                "source": "openmaptiles",
-                "source-layer": config["layer"],
-                "filter": (
-                    "all",
-                    *(
-                        ("==", ("get", key), value)
-                        for key, value in config["filters"].items()
-                    ),
-                ),
-            }
+            layer.update(PLACE_LAYER)
         return {SOURCE_ID: SOURCE}, layer

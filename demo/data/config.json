@@ -1,33 +1,29 @@
 {
-  "layers": [
-    {
-      "id": "satellite",
+  "layers": {
+    "satellite": {
       "type": "xyzservices",
       "provider": "Esri.WorldImagery"
     },
-    {
-      "id": "villages",
+    "villages": {
       "type": "openmaptiles",
       "layer": "place",
       "filters": { "class": "village" }
     },
-    {
-      "id": "towns",
+    "towns": {
       "type": "openmaptiles",
       "layer": "place",
       "filters": { "class": "town" }
     },
-    {
-      "id": "boundaries",
+    "boundaries": {
       "type": "openmaptiles",
       "layer": "boundary",
       "filters": { "admin_level": 2 },
       "style": { "paint": { "line-color": "hsl(248,7%,66%)" } }
     },
-    {
-      "id": "placettes",
-      "type": "sql",
-      "source": "inventaire_id",
+    "placettes": {
+      "type": "datapackage",
+      "path": "../catalog/inventaire_id",
+      "resource": "inventaire_id",
       "groupby": ["cod"],
       "aggregate": {
         "geometry": "centroid gps",
@@ -39,7 +35,7 @@
         "html": "<h1>Placette {{ cod }}</h1>Richesse: {{ richness }}<br>Hauteur dominante: {{ dominant_height }}<br>Structure du sol: "
       }
     }
-  ],
+  },
   "controls": [
     {
       "type": "compass",
