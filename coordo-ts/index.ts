@@ -177,7 +177,7 @@ export function createMap(
     el.dispatchEvent(new CustomEvent("map:ready"));
   }
 
-  async function setFilters(layer_id: string, filters: any) {
+  async function setLayerFilters(layer_id: string, filters: any) {
     const layer = map.getLayer(layer_id);
     if (layer == undefined) {
       throw new Error(`Layer ${layer_id} doesn't exist.`);
@@ -196,8 +196,24 @@ export function createMap(
     (source as GeoJSONSource).setData(data);
   }
 
-  const api = { mapInstance: map, setFilters };
+  function hideLayer(layerId: string) {
+    map.setLayoutProperty(layerId, "visibility", "none");
+  }
+
+  function showLayer(layerId: string) {
+    map.setLayoutProperty(layerId, "visibility", "visible");
+  }
+
+  function getLayerMetadata(layerId: string) {
+    return map.getLayer(layerId)?.metadata;
+  }
 
   init();
-  return api;
+  return {
+    mapInstance: map,
+    hideLayer,
+    showLayer,
+    setLayerFilters,
+    getLayerMetadata,
+  };
 }

@@ -1,11 +1,10 @@
 import json
 from pathlib import Path
 
-from coordo import ConfigParser
+from coordo.config import ConfigParser
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from geojson import Feature, FeatureCollection
 
 parser = ConfigParser("data/config.json")
 

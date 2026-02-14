@@ -1,10 +1,7 @@
 from typing import Any, Literal, Optional
 
 from .base import LayerConfig
-from .maplibre_style_spec_v8 import (
-    Layer,
-    Source,
-)
+from .maplibre_style_spec_v8 import Source
 
 SOURCE_ID = "openmaptiles"
 SOURCE: Source = {

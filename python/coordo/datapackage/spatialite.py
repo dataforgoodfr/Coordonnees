@@ -11,12 +11,14 @@ from sqlalchemy.orm import (
     DeclarativeMeta,
     Mapper,
     Session,
+    aliased,
     declarative_base,
     relationship,
     sessionmaker,
 )
 from sqlalchemy.types import TypeEngine
-from sqlalchemy_serializer import SerializerMixin
+
+from coordo.datapackage.aggregate import parse
 
 from .datapackage import DataPackage
 
@@ -43,9 +45,11 @@ SA_FIELDS: Mapping[str, TypeEngine] = {
 
 os.environ["SPATIALITE_LIBRARY_PATH"] = "mod_spatialite"
 
-# It is assumed here that all geometries are in 4326, so it returns
-# valid geojson but this will need an update if we want other CRS
-SERIALIZE_TYPES = ((ga.WKBElement, lambda geom: to_shape(geom).__geo_interface__),)
+
+def convert_geom(elem):
+    if isinstance(elem, ga.WKBElement):
+        elem = to_shape(elem).__geo_interface__
+    return elem
 
 
 @DataPackage.register("sqlite")
@@ -65,7 +69,7 @@ class SpatialitePackage(DataPackage):
             self._generate_tables()
         return self._tables
 
-    def _generate_tables(self):
+    def _generate_tables(self, ignore_constraints: list[str] = []):
         Base = declarative_base()
 
         table_fields = {}
@@ -80,7 +84,10 @@ class SpatialitePackage(DataPackage):
                 kwargs = {}
                 if field.constraints:
                     for constraint, value in field.constraints.model_dump().items():
-                        if constraint == "required":
+                        if (
+                            constraint == "required"
+                            and constraint not in ignore_constraints
+                        ):
                             kwargs.update(nullable=not value)
                 if field.name in primaryKeys:
                     kwargs.update(primary_key=True)
@@ -102,11 +109,10 @@ class SpatialitePackage(DataPackage):
         for table_name, fields in table_fields.items():
             tables[table_name] = type(
                 table_name,
-                (Base, SerializerMixin),
+                (Base,),
                 {
                     **fields,
                     "__tablename__": table_name,
-                    "serialize_types": SERIALIZE_TYPES,
                 },
             )
 
@@ -120,12 +126,13 @@ class SpatialitePackage(DataPackage):
             plugins=["geoalchemy2"],
         )
 
-    def write_schema(self, path: Path):
+    def write_schema(self, path: Path, ignore_constraints: list[str] = []):
         assert (
             len(set(resource.path for resource in self.resources)) == 1
         ), "Can't have resources in multiple databases"
         super().write_schema(path)
         engine = self._get_engine()
+        self._generate_tables(ignore_constraints)
         self.base.metadata.drop_all(engine)
         self.base.metadata.create_all(engine)
 
@@ -135,32 +142,69 @@ class SpatialitePackage(DataPackage):
         session.bulk_insert_mappings(self.tables[resource_name], it)
         session.commit()
 
-    def read_data(self, resource_name: str, filters=None):
+    def read_data(
+        self,
+        resource_name: str,
+        filter=None,
+        groupby=[],
+        aggregate={},
+    ):
         table = self.tables[resource_name]
+        field_map = {
+            field.name: getattr(table, field.name) for field in inspect(table).columns
+        }
         with Session(self._get_engine()) as sess:
             query = sa.select(table)
-            if filters:
-                mapping = {
-                    field.name: getattr(table, field.name)
-                    for field in inspect(table).columns
-                }
-                filter = to_filter(filters, mapping)
-                query = query.filter(filter)
-        return (row.to_dict() for row in sess.scalars(query))
+            if filter:
+                query = query.filter(to_filter(filter, field_map))
+            cols = []
+            if groupby:
+                group_cols = [field_map[f] for f in groupby]
+                query = query.group_by(*group_cols)
+                cols.extend(group_cols)
+            if aggregate:
+                agg_cols = []
+                for alias, agg in aggregate.items():
+                    group_ids = None
+                    if groupby:
+                        inner = aliased(table)
+                        group_ids = (
+                            sa.select(inner.id)
+                            .where(
+                                sa.and_(
+                                    *(
+                                        getattr(inner, col) == getattr(table, col)
+                                        for col in groupby
+                                    )
+                                )
+                            )
+                            .correlate(table)
+                        )
+                    agg_query = parse(agg, table, group_ids)
+                    agg_cols.append(agg_query.label(alias))
+                cols.extend(agg_cols)
+                query = query.with_only_columns(*cols)
+                print(query)
+        return (
+            {k: convert_geom(v) for k, v in row._mapping.items()}
+            for row in sess.execute(query)
+        )
 
 
 if __name__ == "__main__":
-    from pygeofilter.parsers.cql2_json import parse
+    from pygeofilter.parsers.cql2_json import parse as parse_agg
 
     source = SpatialitePackage.from_path(
         "../demo/catalog/inventaire_id/datapackage.json"
     )
     it = source.read_data(
         "inventaire_id",
-        parse(
-            {
-                "op": "=",
-                "args": [{"property": "cod"}, 3],
-            }
-        ),
+        groupby=["for"],
+        aggregate={
+            # "geom": "centroid(gps)",
+            "ind_count": "count(ind)",
+            "richness": "count(unique(ind.ess_arb))",
+            "dominant": "average(ind.haut) where ind.haut > average(ind.haut)",
+        },
     )
+    print(list(it))

@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 import numpy as np
 import pandas as pd
 from geoalchemy2.shape import from_shape
+from lark import Lark, Transformer
 from pyxform.xls2json import parse_file_to_json
 from shapely.geometry import Point
 
@@ -17,7 +18,47 @@ from coordo.datapackage.datapackage import (
     Schema,
 )
 from coordo.datapackage.spatialite import SpatialitePackage
-from coordo.loaders.constraint import parse_constraint
+
+CONSTRAINT_GRAMMAR = r"""
+start: comparison | comparison AND comparison
+comparison: DOT OP NUMBER
+DOT: "."
+OP: "<=" | ">=" | "<" | ">"
+AND: "and"
+%import common.NUMBER
+%import common.WS
+%ignore WS
+"""
+
+
+class RangeTransformer(Transformer):
+    def __init__(self):
+        self.range = {}
+
+    def comparison(self, items):
+        op, number = items[1], float(items[2])
+        match op:
+            case ">=":
+                return {"minimum": number}
+            case "<=":
+                return {"maximum": number}
+            case ">":
+                return {"exclusiveMinimum": number}
+            case "<":
+                return {"exclusiveMaximum": number}
+
+    def start(self, items):
+        if len(items) == 1:
+            return items[0]
+        else:
+            return {**items[0], **items[1]}
+
+
+def parse_constraint(x) -> dict:
+    return Lark(
+        CONSTRAINT_GRAMMAR, parser="lalr", transformer=RangeTransformer()
+    ).parse(x)
+
 
 METADATA_TYPES = [
     "start",
@@ -79,7 +120,9 @@ class KoboToolboxLoader:
         self.package = SpatialitePackage(name=name, resources=[])
         main_resource = self._create_resource(name)
         self._parse_form(form, main_resource)
-        self.package.write_schema(Path(catalog_path) / name)
+        self.package.write_schema(
+            Path(catalog_path) / name, ignore_constraints=["required"]
+        )
         sheets_dict = pd.read_excel(xlsdata, sheet_name=None)
         for i, (sheet_name, sheet) in enumerate(sheets_dict.items()):
             table_name = self.package.name if i == 0 else sheet_name.lower()
@@ -159,11 +202,13 @@ class KoboToolboxLoader:
                 field = Field(name=question["name"], type=DP_FIELDS[qtype])
                 if "label" in question:
                     field.title = question["label"]
-                constraints = dict(required=False)
+                constraints: dict[str, Any] = dict(required=False)
+                if field.type == "integer":
+                    constraints.update(minimum=0)
                 if "bind" in question:
                     bind = question["bind"]
                     if "required" in bind:
-                        constraints.update(required=bind["required"] == "yes")
+                        constraints.update(required=bind["required"] == "true")
                     if "constraint" in bind:
                         constraint = parse_constraint(bind["constraint"])
                         constraints.update(constraint)
@@ -173,7 +218,6 @@ class KoboToolboxLoader:
                         Category(value=choice["name"], label=choice["label"])
                         for choice in question["choices"]
                     ]
-
                 resource.schema.fields.append(field)
 
 

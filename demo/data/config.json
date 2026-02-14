@@ -26,9 +26,9 @@
       "resource": "inventaire_id",
       "groupby": ["cod"],
       "aggregate": {
-        "geometry": "centroid gps",
-        "richness": "count unique ind.ess_arb",
-        "dominant_height": "avg ind.haut where ind.haut > percentile(ind.haut, 80)"
+        "geometry": "centroid(gps)",
+        "richness": "count(unique(ind.ess_arb))",
+        "dominant_height": "average(ind.haut where ind.haut > percentile(ind.haut, 80))"
       },
       "popup": {
         "trigger": "click",

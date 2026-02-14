@@ -1,8 +1,8 @@
 from abc import abstractmethod
-from typing import Mapping, Optional
+from typing import Mapping
 
 from pydantic import BaseModel
-from pygeofilter.ast import AstType
+from pygeofilter.ast import AstType as Filter
 
 from .maplibre_style_spec_v8 import Layer, Source
 
@@ -18,5 +18,5 @@ class LayerConfig(BaseModel):
     def to_maplibre(self) -> tuple[Mapping[str, Source], Layer]:
         pass
 
-    def get_data(self, filters: Optional[AstType] = None):
+    def get_data(self, filter: Filter | None = None):
         raise NotImplementedError

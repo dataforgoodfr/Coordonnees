@@ -5,6 +5,7 @@ from typing import ClassVar, Iterable, Optional
 
 from pydantic import BaseModel
 from pydantic import Field as PydanticField
+from pygeofilter.ast import AstType as Filter
 
 
 class Source(BaseModel):
@@ -148,6 +149,9 @@ class DataPackage(BaseModel):
     def from_dict(cls, dic: dict):
         return cls.model_validate(dic)
 
+    def get_resource(self, name: str):
+        return next(resource for resource in self.resources if resource.name == name)
+
     def write_schema(self, path: Path):
         if not path.exists():
             path.mkdir()
@@ -163,6 +167,12 @@ class DataPackage(BaseModel):
             raise Exception("You can't write to an unsaved datapackage.")
 
     @abstractmethod
-    def read_data(self, resource_name: str, filters=None) -> Iterable[dict]:
+    def read_data(
+        self,
+        resource_name: str,
+        filter: Filter | None = None,
+        groupby: list[str] | None = None,
+        aggregate: dict[str, str] | None = None,
+    ) -> Iterable[dict]:
         if not self._path:
             raise Exception("You can't read an unsaved datapackage.")
