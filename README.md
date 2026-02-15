@@ -26,6 +26,33 @@ uv run manage.py runserver
 
 This is also useful for debugging, the python coordo lib is in editable mode so any modification the the python folder wille be taken into account in demo folder. For the js side you need to run `make build-js` to sync the modification to the demo folder.
 
+#  Docker image
+
+In case you cannot or do not want to install the system-wide dependencies, you can use the provided Dockerfile to build a Docker image containing:
+* gdal-bin 
+* libgdal-dev 
+* libsqlite3-mod-spatialite
+* uv
+
+Build the Docker image using:
+
+```
+docker build -t coord .
+```
+
+Then launch an interactive shell in the Docker container using:
+
+```
+docker run --rm -it -v $(pwd):/app -p 8000:8000 coord
+```
+
+Inside the container, you must use 0.0.0.0 instead of 127.0.0.1:
+
+```
+cd demo
+uv run manage.py runserver 0.0.0.0:8000
+```
+
 # Install from other projects
 
 This repo is still in very early stage so it is not yet published on registries, but you can still install the Python and Javascript packages with the following commands for testing
