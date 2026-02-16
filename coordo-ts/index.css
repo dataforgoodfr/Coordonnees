@@ -1,14 +1,14 @@
 .maplibregl-ctrl-layer {
-    position: absolute;
-    top: 100%;
-    margin-top: 10px;
-    padding: 5px;
+  position: absolute;
+  top: 100%;
+  margin-top: 10px;
+  padding: 5px;
 }
 
 .maplibregl-ctrl-top-right .maplibregl-ctrl-layer {
-    right: 0;
+  right: 0;
 }
 
 .hidden {
-    display: none;
+  display: none;
 }

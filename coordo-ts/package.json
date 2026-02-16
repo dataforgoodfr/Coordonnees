@@ -13,16 +13,29 @@
     "./coordo.css": "./dist/coordo.css"
   },
   "scripts": {
-    "build": "tsc --noEmit && vite build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc -b && vite build",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "check:code": "npm run compile && npm run format:check && npm run lint",
+    "compile": "tsc -b",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "lint": "eslint ./",
+    "lint:fix": "eslint ./ --fix"
   },
   "peerDependencies": {
     "maplibre-gl": "^5.16.0"
   },
   "devDependencies": {
+    "@eslint/json": "^1.0.0",
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/node": "^25.2.0",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "jiti": "^2.6.1",
     "maplibre-gl": "^5.16.0",
+    "prettier": "3.8.1",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.54.0",
     "vite": "^7.3.1"
   }
 }
