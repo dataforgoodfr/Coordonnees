@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -21,7 +22,7 @@ from coordo.datapackage.spatialite import SpatialitePackage
 
 CONSTRAINT_GRAMMAR = r"""
 start: comparison | comparison AND comparison
-comparison: DOT OP NUMBER
+comparison: DOT OP NUMBER (AND comparison)*
 DOT: "."
 OP: "<=" | ">=" | "<" | ">"
 AND: "and"
@@ -110,7 +111,13 @@ DP_FIELDS = {
 }
 
 
-PRIMARY_KEY = "id"
+PRIMARY_KEY = "_id"
+
+
+def stringify(obj):
+    if isinstance(obj, str):
+        return obj
+    return json.dumps(obj)
 
 
 class KoboToolboxLoader:
@@ -121,14 +128,28 @@ class KoboToolboxLoader:
         main_resource = self._create_resource(name)
         self._parse_form(form, main_resource)
         self.package.write_schema(
-            Path(catalog_path) / name, ignore_constraints=["required"]
+            Path(catalog_path) / name,
         )
-        sheets_dict = pd.read_excel(xlsdata, sheet_name=None)
+        if xlsdata.endswith(".xlsx"):
+            sheets_dict = pd.read_excel(xlsdata, sheet_name=None)
+        elif xlsdata.endswith(".csv"):
+            # I think this encoding is not the one from Kobo we should verify
+            sheets_dict = {
+                "data": pd.read_csv(
+                    xlsdata, sep=";", encoding="windows-1252", decimal=","
+                )
+            }
+        else:
+            raise ValueError(f"Unsupported file format: {xlsdata}")
         for i, (sheet_name, sheet) in enumerate(sheets_dict.items()):
             table_name = self.package.name if i == 0 else sheet_name.lower()
             resource = next(r for r in self.package.resources if r.name == table_name)
-            sheet = sheet.rename(
-                columns={"_index": PRIMARY_KEY, "_parent_index": "parent_id"}
+            sheet = (
+                sheet.rename(
+                    columns={"_parent_index": "parent_id"},
+                )
+                .replace(np.nan, 0)
+                .fillna("")
             )
             fields = []
             for field in resource.schema.fields:
@@ -151,9 +172,13 @@ class KoboToolboxLoader:
                             )
                         )
 
-                    fields.append(field.name)
                 else:
-                    print(f"Field {field.name} not found in data")
+                    print(
+                        f"Field {field.name} not found in data. Filling with empty values"
+                    )
+                    sheet[field.name] = ""
+                fields.append(field.name)
+
             sheet = sheet[fields]
             sheet = sheet.replace({np.nan: None})
             self.package.write_data(resource.name, sheet.to_dict("index").values())
@@ -201,12 +226,13 @@ class KoboToolboxLoader:
             if qtype in DP_FIELDS:
                 field = Field(name=question["name"], type=DP_FIELDS[qtype])
                 if "label" in question:
-                    field.title = question["label"]
+                    field.title = stringify(question["label"])
                 constraints: dict[str, Any] = dict(required=False)
                 if field.type == "integer":
                     constraints.update(minimum=0)
                 if "bind" in question:
                     bind = question["bind"]
+                    print(bind)
                     if "required" in bind:
                         constraints.update(required=bind["required"] == "true")
                     if "constraint" in bind:
@@ -215,15 +241,20 @@ class KoboToolboxLoader:
                 field.constraints = Constraints.model_validate(constraints)
                 if "choices" in question:
                     field.categories = [
-                        Category(value=choice["name"], label=choice["label"])
+                        Category(value=choice["name"], label=stringify(choice["label"]))
                         for choice in question["choices"]
                     ]
                 resource.schema.fields.append(field)
 
 
 if __name__ == "__main__":
+    # KoboToolboxLoader().load(
+    #     "../demo/catalog",
+    #     "../demo/data/20250213_Inventaire_ID_QuestionnaireK.xlsx",
+    #     "../demo/data/20251017_Inventaire_ID_Donnees.xlsx",
+    # )
     KoboToolboxLoader().load(
         "../demo/catalog",
-        "../demo/data/20250213_Inventaire_ID_QuestionnaireK.xlsx",
-        "../demo/data/20251017_Inventaire_ID_Donnees.xlsx",
+        "../demo/data/20240808_EnqueteMenage_CDF_QuestionnaireK.xlsx",
+        "../demo/data/20241007_EnqueteMenage_CDF_Donnees.csv",
     )

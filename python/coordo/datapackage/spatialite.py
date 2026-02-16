@@ -1,21 +1,24 @@
+import json
 import os
 from pathlib import Path
 from typing import Iterable, Mapping
 
 import geoalchemy2 as ga
 import sqlalchemy as sa
+import sqlite_sqlean
 from geoalchemy2.shape import to_shape
+from marshmallow.fields import Decimal
 from pygeofilter.backends.sqlalchemy import to_filter
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import (
     DeclarativeMeta,
     Mapper,
     Session,
-    aliased,
     declarative_base,
     relationship,
     sessionmaker,
 )
+from sqlalchemy.sql import visitors
 from sqlalchemy.types import TypeEngine
 
 from coordo.datapackage.aggregate import parse
@@ -121,10 +124,17 @@ class SpatialitePackage(DataPackage):
 
     def _get_engine(self):
         db_path = self._path / self.resources[0].path
-        return sa.create_engine(
+        engine = sa.create_engine(
             f"sqlite:///{db_path}",
             plugins=["geoalchemy2"],
         )
+
+        @sa.event.listens_for(engine, "connect")
+        def load_sqlean_stats(dbapi_connection, connection_record):
+            dbapi_connection.enable_load_extension(True)
+            sqlite_sqlean.load(dbapi_connection, "stats")
+
+        return engine
 
     def write_schema(self, path: Path, ignore_constraints: list[str] = []):
         assert (
@@ -158,33 +168,55 @@ class SpatialitePackage(DataPackage):
             if filter:
                 query = query.filter(to_filter(filter, field_map))
             cols = []
-            if groupby:
-                group_cols = [field_map[f] for f in groupby]
-                query = query.group_by(*group_cols)
-                cols.extend(group_cols)
+            group_cols = {col: field_map[col] for col in groupby}
+            query = query.group_by(*group_cols.values())
+            cols.extend(group_cols.values())
             if aggregate:
                 agg_cols = []
+                joins = set()
+                subqueries = []
                 for alias, agg in aggregate.items():
-                    group_ids = None
-                    if groupby:
-                        inner = aliased(table)
-                        group_ids = (
-                            sa.select(inner.id)
-                            .where(
-                                sa.and_(
-                                    *(
-                                        getattr(inner, col) == getattr(table, col)
-                                        for col in groupby
-                                    )
-                                )
-                            )
-                            .correlate(table)
-                        )
-                    agg_query = parse(agg, table, group_ids)
+                    agg_query, agg_joins, agg_subqueries = parse(agg, table)
                     agg_cols.append(agg_query.label(alias))
-                cols.extend(agg_cols)
-                query = query.with_only_columns(*cols)
+                    joins.update(agg_joins)
+                    for subq in agg_subqueries:
+                        if any(q.compare(subq) for q in subqueries):
+                            continue
+                        subqueries.append(subq)
+                query = query.with_only_columns(
+                    *group_cols.values(),
+                    *agg_cols,
+                )
+                for join in joins:
+                    query = query.join(join, isouter=True)
+                if subqueries:
+                    subquery = sa.select(
+                        *group_cols.values(),
+                        *subqueries,
+                    ).group_by(*group_cols)
+                    for join in joins:
+                        subquery = subquery.join(join, isouter=True)
+                    subquery = subquery.subquery()
+
+                    def replacer(node):
+                        for subq in subqueries:
+                            # There is something an error I can't manage to resolve...
+                            try:
+                                if subq.compare(node):
+                                    return subquery.c[subq.name]
+                            except:
+                                pass
+
+                    query = visitors.replacement_traverse(query, {}, replacer)
+                    query = query.join(
+                        subquery,
+                        sa.and_(
+                            col == getattr(subquery.c, col_name)
+                            for col_name, col in group_cols.items()
+                        ),
+                    )
                 print(query)
+
         return (
             {k: convert_geom(v) for k, v in row._mapping.items()}
             for row in sess.execute(query)
@@ -197,14 +229,32 @@ if __name__ == "__main__":
     source = SpatialitePackage.from_path(
         "../demo/catalog/inventaire_id/datapackage.json"
     )
+    # it = source.read_data(
+    #     "inventaire_id",
+    #     groupby=["for", "cod"],
+    #     aggregate={
+    #         # "geom": "centroid(gps)",
+    #         "richness": "count(ind.ess_arb)",
+    #         "dominant_height": "avg(ind.haut if ind.haut > percentile(ind.haut, 80))",
+    #         "soil_structure": "(ep1*not1 + ep2*not2 + ep3*not3 + ep4*not4 + ep5*not5) / 250",
+    #         "count1": "sum(tsbf_001.tax1_tsbf)",
+    #     },
+    # )
+    source = SpatialitePackage.from_path(
+        "../demo/catalog/enquete_menage_cdf/datapackage.json"
+    )
     it = source.read_data(
-        "inventaire_id",
-        groupby=["for"],
+        "enquete_menage_cdf",
+        groupby=["admi2"],
         aggregate={
-            # "geom": "centroid(gps)",
-            "ind_count": "count(ind)",
-            "richness": "count(unique(ind.ess_arb))",
-            "dominant": "average(ind.haut) where ind.haut > average(ind.haut)",
+            "bois_coll_count": "count(1 if 'bois_coll' in ener else 0) / count(ener) * 100.0",
+            "dech_veg_count": "count(1 if 'dech_veg' in ener else 0) / count(ener) * 100.0",
+            "conso": "sum((feu_qte * 1 * feu_jrs + char_qte * 1 * char_jrs) / hab * 12 / 600)",
         },
     )
-    print(list(it))
+
+    def decimal_default(obj):
+        if isinstance(obj, Decimal):
+            return float(obj)  # or str(obj) if you want exact string
+
+    print(json.dumps(list(it), indent=2, default=decimal_default))

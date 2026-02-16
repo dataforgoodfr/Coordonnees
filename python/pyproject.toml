@@ -17,5 +17,6 @@ dependencies = [
     "shapely>=2.1.2",
     "spatialite>=0.0.3",
     "sqlalchemy-serializer>=1.6.2",
+    "sqlite-sqlean>=0.1",
     "xyzservices>=2025.11.0",
 ]

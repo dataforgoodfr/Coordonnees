@@ -73,6 +73,7 @@ dependencies = [
     { name = "shapely" },
     { name = "spatialite" },
     { name = "sqlalchemy-serializer" },
+    { name = "sqlite-sqlean" },
     { name = "xyzservices" },
 ]
 
@@ -91,6 +92,7 @@ requires-dist = [
     { name = "shapely", specifier = ">=2.1.2" },
     { name = "spatialite", specifier = ">=0.0.3" },
     { name = "sqlalchemy-serializer", specifier = ">=1.6.2" },
+    { name = "sqlite-sqlean", specifier = ">=0.1" },
     { name = "xyzservices", specifier = ">=2025.11.0" },
 ]
 
@@ -1374,6 +1376,17 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d1/55/be299fe9fdfbc6fd73e7d9db1ef0f17cf0bc5212eec3393701a9405cc632/sqlalchemy_serializer-1.6.2.tar.gz", hash = "sha256:b35b5dd9ab18c0a29799c14d016b9e1c55935e1815fcd4c4d110b22abd53ab39", size = 42799, upload-time = "2026-01-13T09:49:45.955Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fc/63/b3ae31feb05aad19cc7e230c7f3534ed319a95df862c2f229248264855b8/sqlalchemy_serializer-1.6.2-py3-none-any.whl", hash = "sha256:f19cd29e7a41d5e011d47d15f6bc72b3cb22d7e69608b5a702096c27999e9730", size = 17483, upload-time = "2026-01-13T09:49:44.901Z" },
+]
+
+[[package]]
+name = "sqlite-sqlean"
+version = "0.1"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/30/c3/4104844b6c32a7d0d05c4906ba2673b7c3137e15ffcfa4d6ebc411a84140/sqlite_sqlean-0.1-py3-none-macosx_10_6_x86_64.whl", hash = "sha256:f57f440138d4b33c050d71da5cc1963e5d915e572a58ff2b4f546dc77c7cc867", size = 430243, upload-time = "2023-02-13T19:48:08.873Z" },
+    { url = "https://files.pythonhosted.org/packages/16/7f/8d9ab996c5389c7b941d100e6ecc7c96c8497f4d8883025de3f046b8d901/sqlite_sqlean-0.1-py3-none-macosx_11_0_arm64.whl", hash = "sha256:cd8db5f5fad5012009962c0e11a16d9db37e7c48da6d3635eb752c01877d9e35", size = 242513, upload-time = "2023-02-13T19:48:12.504Z" },
+    { url = "https://files.pythonhosted.org/packages/46/50/567588191c6bb09d7163ba8262afcd570d564d1f2a04437581a56b8ef9ca/sqlite_sqlean-0.1-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux1_x86_64.whl", hash = "sha256:59d905ffdc226ffc67a5a82ba7806b526bb5b121543b970cda7212a1c2e8060f", size = 287289, upload-time = "2023-02-13T19:48:14.705Z" },
+    { url = "https://files.pythonhosted.org/packages/95/92/3a0c429669438c8dd742da5020024ea4193df7bdaceb2cccaa8bd30e94c0/sqlite_sqlean-0.1-py3-none-win_amd64.whl", hash = "sha256:1b4cd39bb762361ff3624908f3397319198bb076aaa6e9a29db097fee6818982", size = 252470, upload-time = "2023-02-13T19:48:17.98Z" },
 ]
 
 [[package]]
