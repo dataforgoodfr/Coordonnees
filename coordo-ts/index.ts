@@ -3,6 +3,7 @@ import type {
   ControlPosition,
   LayerSpecification,
   MapLayerEventType,
+  StyleSpecification,
 } from "maplibre-gl";
 
 import "./index.css";
@@ -91,7 +92,9 @@ function renderTemplate(html: string, vars: Record<string, string>) {
 
 export function createMap(
   target: string | HTMLElement,
-  styleUrl = "https://demotiles.maplibre.org/globe.json",
+  styleUrl:
+    | StyleSpecification
+    | string = "https://demotiles.maplibre.org/globe.json",
 ) {
   const el =
     typeof target === "string"
