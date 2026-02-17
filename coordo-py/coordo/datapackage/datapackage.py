@@ -3,13 +3,11 @@ import warnings
 from abc import abstractmethod
 from pathlib import Path
 from typing import (
-    Annotated,
     ClassVar,
     Generic,
     Iterable,
     Literal,
     Optional,
-    TypedDict,
     TypeVar,
 )
 
