@@ -1,7 +1,7 @@
 from typing import Any, Literal, Optional
 
-from .base import LayerConfig
-from .maplibre_style_spec_v8 import Source
+from ..maplibre_style_spec_v8 import Source
+from .base import BaseConfig
 
 SOURCE_ID = "openmaptiles"
 SOURCE: Source = {
@@ -50,12 +50,12 @@ PLACE_LAYER = {
 BOUNDARY_LAYER = {"type": "line"}
 
 
-class OpenMapTilesParser(LayerConfig):
+class OpenMapTilesLayer(BaseConfig):
     type: Literal["openmaptiles"]
     layer: str
     filters: Optional[dict[str, Any]] = None
 
-    def to_maplibre(self):
+    def to_maplibre(self, base_path):
         layer = {
             "id": self.id,
             "source": "openmaptiles",

@@ -569,9 +569,9 @@ class RasterDEMSource(TypedDict):
 
 class GeoJSONSource(TypedDict):
     type: Literal["geojson"]
-    data: Union[GeoJSON, str]
+    data: GeoJSON | str
     maxzoom: NotRequired[float]
-    attribution: NotRequired[str]
+    attribution: NotRequired[str | None]
     buffer: NotRequired[float]
     filter: NotRequired[FilterSpecification]
     tolerance: NotRequired[float]

@@ -1,5 +1,9 @@
+from dataclasses import dataclass, field
+
 from lark import Lark, Transformer
 from pygeofilter.ast import AstType, Node
+from pygeofilter.backends.evaluator import Evaluator, handle
+from sqlalchemy import Float, Function, case, cast, func, text
 
 GRAMMAR = r"""
     ?start: expr
@@ -44,9 +48,6 @@ GRAMMAR = r"""
     %ignore WS
 """
 parser = Lark(GRAMMAR)
-
-
-from dataclasses import dataclass, field
 
 
 @dataclass
@@ -99,7 +100,7 @@ class Conditional(Node):
     else_: Node | None = None
 
     def get_sub_nodes(self) -> list[AstType]:
-        if self.else_:
+        if self.else_ is not None:
             return [self.expr, self.if_, self.else_]
         return [self.expr, self.if_]
 
@@ -134,10 +135,6 @@ class AggregateTransformer(Transformer):
 
     def QUOTED(self, token):
         return token.value
-
-
-from pygeofilter.backends.evaluator import Evaluator, handle
-from sqlalchemy import Float, Function, case, cast, func, select, text
 
 
 class SQLCompiler(Evaluator):

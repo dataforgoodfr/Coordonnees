@@ -1,12 +1,12 @@
 import json
 from pathlib import Path
 
-from coordo.config import ConfigParser
+from coordo.config import MapConfig
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 
-parser = ConfigParser("data/config.json")
+parser = MapConfig.from_file("data/config.json")
 
 
 def index(request):

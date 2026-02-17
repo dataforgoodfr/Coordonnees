@@ -224,8 +224,6 @@ class SpatialitePackage(DataPackage):
 
 
 if __name__ == "__main__":
-    from pygeofilter.parsers.cql2_json import parse as parse_agg
-
     source = SpatialitePackage.from_path(
         "../demo/catalog/inventaire_id/datapackage.json"
     )
@@ -247,14 +245,14 @@ if __name__ == "__main__":
         "enquete_menage_cdf",
         groupby=["admi2"],
         aggregate={
-            "bois_coll_count": "count(1 if 'bois_coll' in ener else 0) / count(ener) * 100.0",
-            "dech_veg_count": "count(1 if 'dech_veg' in ener else 0) / count(ener) * 100.0",
+            "bois_coll_count": "avg(1 if 'bois_coll' in ener else 0) * 100",
+            "dech_veg_count": "avg(1 if 'dech_veg' in ener else 0) * 100",
             "conso": "sum((feu_qte * 1 * feu_jrs + char_qte * 1 * char_jrs) / hab * 12 / 600)",
         },
     )
 
     def decimal_default(obj):
         if isinstance(obj, Decimal):
-            return float(obj)  # or str(obj) if you want exact string
+            return float(obj)
 
     print(json.dumps(list(it), indent=2, default=decimal_default))

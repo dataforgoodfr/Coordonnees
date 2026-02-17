@@ -1,7 +1,6 @@
 import maplibregl, {
   ControlPosition,
   GeoJSONSource,
-  GeoJSONSourceSpecification,
   LayerSpecification,
   Map,
   MapLayerEventType,
@@ -17,10 +16,11 @@ type StyleMetaData = {
   }>;
 };
 type LayerMetadata = {
-  popup: {
+  popup?: {
     trigger: string;
     html: string;
   };
+  url?: string;
 };
 
 class LayerControl {
@@ -101,6 +101,9 @@ export function createMap(
       : target;
 
   if (!el) throw new Error("Map target not found");
+  const baseUrl = styleUrl.startsWith("http")
+    ? new URL(styleUrl).origin
+    : window.location.href;
 
   const map = new maplibregl.Map({
     container: el,
@@ -144,7 +147,7 @@ export function createMap(
 
     layers.forEach((layer: LayerSpecification) => {
       const metadata = layer.metadata as LayerMetadata;
-      if (metadata?.popup) {
+      if (metadata?.popup != undefined) {
         map.on(
           metadata.popup["trigger"] as keyof MapLayerEventType,
           layer.id,
@@ -156,7 +159,9 @@ export function createMap(
             // const popup = document.createElement("div");
             new maplibregl.Popup()
               .setLngLat(coordinates)
-              .setHTML(renderTemplate(metadata.popup["html"], properties ?? {}))
+              .setHTML(
+                renderTemplate(metadata.popup!["html"], properties ?? {}),
+              )
               .addTo(map);
           },
         );
@@ -182,9 +187,12 @@ export function createMap(
     if (layer == undefined) {
       throw new Error(`Layer ${layer_id} doesn't exist.`);
     }
-    let dataUrl = layer.metadata?.url as string | undefined;
+    let dataUrl = (layer.metadata as LayerMetadata).url;
     if (!dataUrl) {
       throw new Error(`Layer ${layer.id} can't be filtered.`);
+    }
+    if (!dataUrl.startsWith("http")) {
+      dataUrl = new URL(dataUrl, baseUrl).toString();
     }
     const source = map.getSource(layer?.source)!;
     const res = await fetch(dataUrl, {

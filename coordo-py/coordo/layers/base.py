@@ -1,13 +1,14 @@
 from abc import abstractmethod
+from pathlib import Path
 from typing import Mapping
 
 from pydantic import BaseModel
 from pygeofilter.ast import AstType as Filter
 
-from .maplibre_style_spec_v8 import Layer, Source
+from ..maplibre_style_spec_v8 import Layer, Source
 
 
-class LayerConfig(BaseModel):
+class BaseConfig(BaseModel):
     id: str
 
     @classmethod
@@ -15,7 +16,7 @@ class LayerConfig(BaseModel):
         return cls.model_validate(dic)
 
     @abstractmethod
-    def to_maplibre(self) -> tuple[Mapping[str, Source], Layer]:
+    def to_maplibre(self, base_path: Path) -> tuple[Mapping[str, Source], Layer]:
         pass
 
     def get_data(self, filter: Filter | None = None):
