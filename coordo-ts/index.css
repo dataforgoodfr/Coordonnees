@@ -12,3 +12,14 @@
 .hidden {
     display: none;
 }
+
+.maplibregl-popup-content {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+.maplibregl-popup-tip {
+    display: none;
+}

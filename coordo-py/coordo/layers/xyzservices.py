@@ -10,7 +10,7 @@ class XYZServicesLayer(BaseConfig):
     type: Literal["xyzservices"]
     provider: str
 
-    def to_maplibre(self, base_path):
+    def to_maplibre(self, base_path=None):
         provider = providers
         for part in self.provider.split("."):
             provider = getattr(provider, part)

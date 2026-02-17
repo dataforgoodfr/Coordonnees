@@ -29,7 +29,7 @@ class MapConfig(BaseModel):
         return self
 
     def _get_layer(self, layer_id: str):
-        layer = next((l for l in self.layers if l.id == layer_id), None)
+        layer = next((la for la in self.layers if la.id == layer_id), None)
         if layer is None:
             raise ValueError(f"Layer with id {layer_id} not found")
         return layer
@@ -37,20 +37,15 @@ class MapConfig(BaseModel):
     def get_data(self, layer_id: str, json_filters=None) -> FeatureCollection:
         layer = self._get_layer(layer_id)
         filters = parse_cql2(json_filters) if json_filters else None
-        return parser.get_data(filters)
+        return layer.get_data(base_path=self._base_path, filter=filters)
 
-    def to_maplibre(self) -> Style:
+    def to_maplibre(self, base_url: str | None = None) -> Style:
+        context = {"base_path": self._base_path, "base_url": base_url}
         map_sources: dict[str, Source] = {}
         map_layers: list[Layer] = []
         for layer in self.layers:
-            sources, layer_kwargs = layer.to_maplibre(self._base_path)
+            sources, layer = layer.to_maplibre(context)
             map_sources.update(sources)
-            if "popup" in layer:
-                layer_kwargs["metadata"].update({"popup": layer["popup"]})
-            layer: Layer = {
-                "id": id,
-                **layer_kwargs,
-            }
             map_layers.append(layer)
         metadata = {}
         if self.controls:

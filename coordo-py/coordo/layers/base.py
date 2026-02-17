@@ -16,8 +16,10 @@ class BaseConfig(BaseModel):
         return cls.model_validate(dic)
 
     @abstractmethod
-    def to_maplibre(self, base_path: Path) -> tuple[Mapping[str, Source], Layer]:
+    def to_maplibre(
+        self, context: dict | None = None
+    ) -> tuple[Mapping[str, Source], Layer]:
         pass
 
-    def get_data(self, filter: Filter | None = None):
+    def get_data(self, *, base_path: Path, filter: Filter | None = None):
         raise NotImplementedError

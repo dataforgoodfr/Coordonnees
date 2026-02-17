@@ -8,10 +8,7 @@ from sqlalchemy import Float, Function, case, cast, func, text
 GRAMMAR = r"""
     ?start: expr
 
-    ?expr: conditional
-
-    ?conditional: sum
-        | sum "if" comparison ("else" sum)?
+    ?expr: sum ("if" comparison ("else" expr)? )?
 
     ?sum: sum SUM term -> op
         | term
@@ -37,7 +34,7 @@ GRAMMAR = r"""
 
     variable: CNAME ("." CNAME)?
 
-    comparison: expr OP expr
+    comparison: sum OP sum
 
     OP: ">" | "<" | "=" | "!=" | ">=" | "<=" | "in"
     QUOTED: /([\"\'])(.*)([\"\'])/
@@ -89,20 +86,22 @@ class Comparison(BinaryOp):
 
 @dataclass
 class Query(Node):
-    if_: Node | None = None
+
     else_: Node | None = None
 
 
 @dataclass
 class Conditional(Node):
     expr: Node
-    if_: Node
+    if_: Node | None = None
     else_: Node | None = None
 
     def get_sub_nodes(self) -> list[AstType]:
-        if self.else_ is not None:
-            return [self.expr, self.if_, self.else_]
-        return [self.expr, self.if_]
+        if self.if_ is not None:
+            if self.else_ is not None:
+                return [self.expr, self.if_, self.else_]
+            return [self.expr, self.if_]
+        return [self.expr]
 
 
 class AggregateTransformer(Transformer):
@@ -112,7 +111,7 @@ class AggregateTransformer(Transformer):
     def op(self, children):
         return Arithmetic(*children)
 
-    def conditional(self, children):
+    def expr(self, children):
         return Conditional(*children)
 
     def comparison(self, children):
@@ -209,7 +208,6 @@ class SQLCompiler(Evaluator):
 
 def parse(text: str, model):
     expr = Lark(GRAMMAR, parser="lalr", transformer=AggregateTransformer()).parse(text)
-    print(expr)
     compiler = SQLCompiler(model)
     query = compiler.evaluate(expr)
     return query, compiler.joins, compiler.subqueries

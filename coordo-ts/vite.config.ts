@@ -7,13 +7,5 @@ export default defineConfig({
       name: "coordo",
       formats: ["es", "iife"],
     },
-    rollupOptions: {
-      external: ["maplibre-gl"],
-      output: {
-        globals: {
-          "maplibre-gl": "maplibregl",
-        },
-      },
-    },
   },
 });

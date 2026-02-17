@@ -1,7 +1,7 @@
 import os
 
 import typer
-from flask import send_from_directory
+from flask import request, send_from_directory
 
 from . import loaders
 from .config import MapConfig
@@ -14,9 +14,8 @@ def serve(config_file: str):
     from flask import Flask, jsonify
 
     app = Flask(__name__)
-    parser = MapConfig.from_file(config_file)
-
     static_dir = os.path.join(os.path.dirname(__file__), "static")
+    parser = MapConfig.from_file(config_file)
 
     @app.route("/")
     def home():
@@ -25,8 +24,6 @@ def serve(config_file: str):
         <html>
           <head>
             <title>Coordo</title>
-            <script src="https://unpkg.com/maplibre-gl@5.16.0/dist/maplibre-gl.js"></script>
-            <link href="https://unpkg.com/maplibre-gl@5.16.0/dist/maplibre-gl.css" rel="stylesheet" />
             <link href="/static/coordo.css" rel="stylesheet" />
             <script src="/static/coordo.iife.js"></script>
           </head>
@@ -37,12 +34,15 @@ def serve(config_file: str):
             map = coordo.createMap("#map", "style.json");
           </script>
         </html>
-
         """
 
     @app.route("/style.json")
     def style():
-        return jsonify(parser.to_maplibre())
+        return jsonify(parser.to_maplibre("/layers"))
+
+    @app.route("/layers/<path:layer_id>", methods=["POST"])
+    def layer_data(layer_id):
+        return parser.get_data(layer_id, request.get_json())
 
     @app.route("/static/<path:filename>")
     def static_files(filename):

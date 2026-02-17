@@ -215,8 +215,6 @@ class SpatialitePackage(DataPackage):
                             for col_name, col in group_cols.items()
                         ),
                     )
-                print(query)
-
         return (
             {k: convert_geom(v) for k, v in row._mapping.items()}
             for row in sess.execute(query)

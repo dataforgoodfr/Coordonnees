@@ -1,6 +1,6 @@
 from typing import Any, Literal, Optional
 
-from ..maplibre_style_spec_v8 import Source
+from ..maplibre_style_spec_v8 import Layer, Source
 from .base import BaseConfig
 
 SOURCE_ID = "openmaptiles"
@@ -55,8 +55,8 @@ class OpenMapTilesLayer(BaseConfig):
     layer: str
     filters: Optional[dict[str, Any]] = None
 
-    def to_maplibre(self, base_path):
-        layer = {
+    def to_maplibre(self, base_path=None):
+        layer: Layer = {
             "id": self.id,
             "source": "openmaptiles",
             "source-layer": self.layer,
