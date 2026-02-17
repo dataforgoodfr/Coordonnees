@@ -204,7 +204,7 @@ class SpatialitePackage(DataPackage):
                             try:
                                 if subq.compare(node):
                                     return subquery.c[subq.name]
-                            except:
+                            except Exception:
                                 pass
 
                     query = visitors.replacement_traverse(query, {}, replacer)
