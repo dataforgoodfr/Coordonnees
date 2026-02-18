@@ -1,14 +1,18 @@
+from typing import Literal
+
 import xyzservices.providers as providers
 
-from coordo.layer_parser.maplibre_style_spec_v8 import RasterLayer, RasterSource
+from ..maplibre_style_spec_v8 import RasterLayer, RasterSource
+from .base import BaseConfig
 
-from .base import LayerParser
 
+class XYZServicesLayer(BaseConfig):
+    type: Literal["xyzservices"]
+    provider: str
 
-class XYZServicesParser(LayerParser):
-    def parse(self, config):
+    def to_maplibre(self, base_path=None):
         provider = providers
-        for part in config["provider"].split("."):
+        for part in self.provider.split("."):
             provider = getattr(provider, part)
         source_name = str(provider.name)
         source: RasterSource = {
@@ -17,6 +21,7 @@ class XYZServicesParser(LayerParser):
         }
         source_dict = {source_name: source}
         layer: RasterLayer = {
+            "id": self.id,
             "type": "raster",
             "source": source_name,
         }

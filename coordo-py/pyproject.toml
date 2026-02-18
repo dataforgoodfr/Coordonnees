@@ -4,13 +4,25 @@ version = "0.1.0"
 description = "A set of modules to help with using spatio-temporal data and creating maps"
 requires-python = ">=3.10"
 dependencies = [
+    "dataclasses-json>=0.6.7",
+    "flask>=3.1.2",
+    "geoalchemy2>=0.18.1",
     "geojson>=3.2.0",
     "geopandas>=1.1.2",
+    "jsonschema>=4.26.0",
     "lark>=1.3.1",
     "pandas>=2.0.0,<3",
-    "peewee>=3.19.0",
+    "pydantic>=2.12.5",
+    "pydantic-cli>=10.0.0",
+    "pygeofilter>=0.3.3",
     "pyxform>=4.2.0",
     "shapely>=2.1.2",
     "spatialite>=0.0.3",
+    "sqlalchemy-serializer>=1.6.2",
+    "sqlite-sqlean>=0.1",
+    "typer>=0.24.0",
     "xyzservices>=2025.11.0",
 ]
+
+[project.scripts]
+coordo = "coordo.cli:app"

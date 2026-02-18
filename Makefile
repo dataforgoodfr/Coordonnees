@@ -1,6 +1,4 @@
-node_modules:
-    npm install
-
-build-js: node_modules
-    cd js && npm run build
-	cd demo && uv run manage.py collectstatic
+build:
+	cd coordo-ts && npm run build
+	mkdir coordo-py/coordo/static/
+	cp -r coordo-ts/dist/* coordo-py/coordo/static/
