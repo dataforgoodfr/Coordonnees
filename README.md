@@ -40,6 +40,7 @@ Install
 ```
 uv venv
 uv pip install -e coordo-py
+make build
 ```
 
 Import data into catalog
