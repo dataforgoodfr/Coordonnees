@@ -160,6 +160,8 @@ export function createMap(
         );
       }
     });
+
+    init();
   });
 
   function init() {
@@ -250,7 +252,6 @@ export function createMap(
     popupRemovers[layerId] = removeListeners;
   }
 
-  init();
   return {
     mapInstance: map,
     hideLayer,
