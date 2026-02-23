@@ -1,18 +1,11 @@
-import json
 import os
-from pathlib import Path
-from typing import Iterable, Mapping
+from typing import Iterable, List, Mapping
 
-import geoalchemy2 as ga
 import sqlalchemy as sa
 import sqlite_sqlean
-from geoalchemy2.shape import to_shape
-from marshmallow.fields import Decimal
 from pygeofilter.backends.sqlalchemy import to_filter
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import (
-    DeclarativeMeta,
-    Mapper,
     Session,
     declarative_base,
     relationship,
@@ -21,9 +14,8 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql import visitors
 from sqlalchemy.types import TypeEngine
 
-from coordo.datapackage.aggregate import parse
-
-from .datapackage import DataPackage
+from .aggregate import parse
+from .datapackage import Resource
 
 SA_FIELDS: Mapping[str, TypeEngine] = {
     "integer": sa.Integer(),
@@ -38,9 +30,9 @@ SA_FIELDS: Mapping[str, TypeEngine] = {
     "rank": sa.String(),
     # Geojson is encoded as a generic geometry but we could maybe do
     # better in the future by scanning the data, idk
-    "geojson": ga.Geometry(srid=4326),
-    "geopoint": ga.Geometry(geometry_type="POINT", srid=4326),
-    "start-geopoint": ga.Geometry(geometry_type="POINT", srid=4326),
+    # "geojson": ga.Geometry(srid=4326),
+    # "geopoint": ga.Geometry(geometry_type="POINT", srid=4326),
+    # "start-geopoint": ga.Geometry(geometry_type="POINT", srid=4326),
     "date": sa.Date(),
     "time": sa.Time(),
     "datetime": sa.DateTime(),
@@ -55,30 +47,15 @@ def convert_geom(elem):
     return elem
 
 
-@DataPackage.register("sqlite")
-class SpatialitePackage(DataPackage):
-    _base: DeclarativeMeta | None = None
-    _tables: dict[str, Mapper] | None = None
-
-    @property
-    def base(self) -> DeclarativeMeta:
-        if self._base is None:
-            self._generate_tables()
-        return self._base  # type: ignore
-
-    @property
-    def tables(self) -> dict[str, Mapper]:
-        if self._tables is None:
-            self._generate_tables()
-        return self._tables
-
-    def _generate_tables(self, ignore_constraints: list[str] = []):
+class SpatialiteSource:
+    def from_resources(self, resources: List[Resource]):
         Base = declarative_base()
 
         table_fields = {}
-        for resource in reversed(self.resources):
+        for resource in reversed(resources):
             fields = {}
-            schema = resource.schema
+            schema = resource.get_schema()
+            assert schema is not None
             primaryKeys = []
             if schema.primaryKey:
                 pk = schema.primaryKey
@@ -87,10 +64,7 @@ class SpatialitePackage(DataPackage):
                 kwargs = {}
                 if field.constraints:
                     for constraint, value in field.constraints.model_dump().items():
-                        if (
-                            constraint == "required"
-                            and constraint not in ignore_constraints
-                        ):
+                        if constraint == "required":
                             kwargs.update(nullable=not value)
                 if field.name in primaryKeys:
                     kwargs.update(primary_key=True)
@@ -98,7 +72,7 @@ class SpatialitePackage(DataPackage):
                     SA_FIELDS[field.type or "string"], **kwargs
                 )
             if schema.foreignKeys:
-                for fk in resource.schema.foreignKeys:
+                for fk in schema.foreignKeys:
                     parent_table = fk.reference.resource
                     fields[fk.fields[0]] = sa.Column(
                         sa.ForeignKey(f"{parent_table}.{fk.reference.fields[0]}")
@@ -123,10 +97,18 @@ class SpatialitePackage(DataPackage):
         self._base = Base
 
     def _get_engine(self):
-        db_path = self._path / self.resources[0].path
+        paths = []
+        for resource in self.resources:
+            assert isinstance(
+                resource.path, str
+            ), "Resource with multiple paths not supported"
+            paths.append(resource.path)
+        db_path = os.path.join(
+            self.get_basepath(),
+            self.resources[0].path,
+        )
         engine = sa.create_engine(
             f"sqlite:///{db_path}",
-            plugins=["geoalchemy2"],
         )
 
         @sa.event.listens_for(engine, "connect")
@@ -136,11 +118,8 @@ class SpatialitePackage(DataPackage):
 
         return engine
 
-    def write_schema(self, path: Path, ignore_constraints: list[str] = []):
-        assert (
-            len(set(resource.path for resource in self.resources)) == 1
-        ), "Can't have resources in multiple databases"
-        super().write_schema(path)
+    def to_path(self, path: str, *, format=None, ignore_constraints: list[str] = []):
+        super().to_path(path, format=format)
         engine = self._get_engine()
         self._generate_tables(ignore_constraints)
         self.base.metadata.drop_all(engine)
@@ -167,10 +146,12 @@ class SpatialitePackage(DataPackage):
             query = sa.select(table)
             if filter:
                 query = query.filter(to_filter(filter, field_map))
-            cols = []
-            group_cols = {col: field_map[col] for col in groupby}
-            query = query.group_by(*group_cols.values())
-            cols.extend(group_cols.values())
+            group_cols = {
+                pk.name: field_map[pk.name] for pk in inspect(table).primary_key
+            }
+            if groupby:
+                group_cols = {col: field_map[col] for col in groupby}
+                query = query.group_by(*group_cols.values())
             if aggregate:
                 agg_cols = []
                 joins = set()
@@ -193,7 +174,7 @@ class SpatialitePackage(DataPackage):
                     subquery = sa.select(
                         *group_cols.values(),
                         *subqueries,
-                    ).group_by(*group_cols)
+                    ).group_by(*group_cols.values())
                     for join in joins:
                         subquery = subquery.join(join, isouter=True)
                     subquery = subquery.subquery()
@@ -211,10 +192,13 @@ class SpatialitePackage(DataPackage):
                     query = query.join(
                         subquery,
                         sa.and_(
-                            col == getattr(subquery.c, col_name)
-                            for col_name, col in group_cols.items()
+                            *(
+                                col == getattr(subquery.c, col_name)
+                                for col_name, col in group_cols.items()
+                            )
                         ),
                     )
+            print(query)
         return (
             {k: convert_geom(v) for k, v in row._mapping.items()}
             for row in sess.execute(query)
@@ -222,32 +206,33 @@ class SpatialitePackage(DataPackage):
 
 
 if __name__ == "__main__":
-    source = SpatialitePackage.from_path(
-        "../demo/catalog/inventaire_id/datapackage.json"
-    )
-    # it = source.read_data(
-    #     "inventaire_id",
-    #     groupby=["for", "cod"],
-    #     aggregate={
-    #         # "geom": "centroid(gps)",
-    #         "richness": "count(ind.ess_arb)",
-    #         "dominant_height": "avg(ind.haut if ind.haut > percentile(ind.haut, 80))",
-    #         "soil_structure": "(ep1*not1 + ep2*not2 + ep3*not3 + ep4*not4 + ep5*not5) / 250",
-    #         "count1": "sum(tsbf_001.tax1_tsbf)",
-    #     },
-    # )
-    source = SpatialitePackage.from_path(
-        "../demo/catalog/enquete_menage_cdf/datapackage.json"
-    )
+    import json
+    from decimal import Decimal
+
+    source = SpatialitePackage.from_path("../catalog/inventaire_id/datapackage.json")
     it = source.read_data(
-        "enquete_menage_cdf",
-        groupby=["admi2"],
+        "inventaire_id",
+        groupby=["for"],
         aggregate={
-            "bois_coll_count": "avg(1 if 'bois_coll' in ener else 0) * 100",
-            "dech_veg_count": "avg(1 if 'dech_veg' in ener else 0) * 100",
-            "conso": "sum((feu_qte * 1 * feu_jrs + char_qte * 1 * char_jrs) / hab * 12 / 600)",
+            "geom": "centroid(gps)",
+            "count": "count(_id)",
+            "richness": "count(unique(ind.ess_arb))",
+            "dominant_height": "avg(ind.haut if ind.haut >= percentile(ind.haut, 80))",
+            "soil_structure": "avg((ep1*not1 + ep2*not2 + ep3*not3 + ep4*not4 + ep5*not5) / 250)",
         },
     )
+    # source = SpatialitePackage.from_path(
+    #     "../demo/catalog/enquete_menage_cdf/datapackage.json"
+    # )
+    # it = source.read_data(
+    #     "enquete_menage_cdf",
+    #     groupby=["admi2"],
+    #     aggregate={
+    #         "bois_coll_count": "avg(1 if 'bois_coll' in ener else 0) * 100",
+    #         "dech_veg_count": "avg(1 if 'dech_veg' in ener else 0) * 100",
+    #         "conso": "sum((feu_qte * 1 * feu_jrs + char_qte * 1 * char_jrs) / hab * 12 / 600)",
+    #     },
+    # )
 
     def decimal_default(obj):
         if isinstance(obj, Decimal):

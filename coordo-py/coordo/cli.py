@@ -1,21 +1,29 @@
-import os
+from pathlib import Path
 
 import typer
-from flask import request, send_from_directory
 
-from . import loaders
-from .config import MapConfig
+from coordo import loaders
+from coordo.datapackage import DataPackage
+
+from .map import Map
 
 app = typer.Typer()
+options = {}
+static_dir = Path(__file__).parent / "static"
+
+
+@app.callback()
+def global_options(
+    catalog: Path = typer.Option(Path("./catalog"), help="Root catalog folder")
+):
+    options["catalog"] = catalog
 
 
 @app.command()
 def serve(config_file: str):
-    from flask import Flask, jsonify
+    from flask import Flask, request, send_from_directory
 
     app = Flask(__name__)
-    static_dir = os.path.join(os.path.dirname(__file__), "static")
-    parser = MapConfig.from_file(config_file)
 
     @app.route("/")
     def home():
@@ -31,18 +39,20 @@ def serve(config_file: str):
             <div id="map" style="height: 100dvh"></div>
           </body>
           <script>
-            map = coordo.createMap("#map", "style.json");
+            map = coordo.createMap("#map", "/maps/style.json");
           </script>
         </html>
         """
 
-    @app.route("/style.json")
-    def style():
-        return jsonify(parser.to_maplibre("/layers"))
+    map = Map.from_file(config_file)
 
-    @app.route("/layers/<path:layer_id>", methods=["POST"])
-    def layer_data(layer_id):
-        return parser.get_data(layer_id, request.get_json())
+    @app.route("/maps/<path:path>", methods=["GET", "POST"])
+    def maps(path: str):
+        return map.handle_request(
+            request.method,
+            path,
+            request.get_json(silent=True),
+        )
 
     @app.route("/static/<path:filename>")
     def static_files(filename):
@@ -53,10 +63,38 @@ def serve(config_file: str):
 
 load = typer.Typer()
 
-for name in loaders.__all__:
-    module = getattr(loaders, name)
 
-    cmd_name = name.replace("_", "-")
-    load.command(name=cmd_name)(module.load)
+@load.command()
+def kobotoolbox(
+    xlsform: Path,
+    xlsdata: Path,
+    package: Path = typer.Option(help="Path to the package directory"),
+):
+    if package.exists():
+        assert package.is_dir(), f"{package} is not a directory"
+    else:
+        package.mkdir(parents=True)
+    package = package / "datapackage.json"
+    if package.exists():
+        dp = DataPackage.from_path(package)
+        ok = typer.confirm(f"A package already exists at {package}. Continue ?")
+        if not ok:
+            raise typer.Abort()
+        print(f"Loading package from {package}")
+    else:
+        print(f"Creating new package at {package}")
+        dp = DataPackage(name=package.name, basepath=package.parent)
+    loaders.kobotoolbox.load(dp, xlsform, xlsdata)
+    dp.save()
+
+
+@load.command()
+def file(
+    path: Path,
+    package: Path = typer.Option(help="Path to the package directory"),
+    # encoding: str = typer.Option(help="Encoding for text files"),
+):
+    loaders.file.load(path)
+
 
 app.add_typer(load, name="load")

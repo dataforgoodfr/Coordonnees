@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ package.name }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+  </head>
+
+  <body>
+    <main class="container">
+      <header>
+        <h1>{{ package.title or package.name }}</h1>
+        {% if package.description %}
+        <p>{{ package.description }}</p>
+        {% endif %}
+      </header>
+
+      <section>
+        <h3>Metadata</h3>
+        <table>
+          <tbody>
+            {% for key, value in package.model_dump().items() %} {% if key not in ["resources",
+            "profile"] and value %}
+            <tr>
+              <th>{{ key }}</th>
+              <td>
+                {% if value is iterable and value is not string %}
+                <pre>{{ value | tojson(indent=2) }}</pre>
+                {% else %} {{ value }} {% endif %}
+              </td>
+            </tr>
+            {% endif %} {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h3>Resources</h3>
+        {% for resource in package.resources %}
+        <article>
+          <header>{{ resource.title or resource.name }}</header>
+          <b>Properties</b>
+          <table>
+            <tbody>
+              {% for key, value in resource.model_dump().items() %}
+              <!---->
+              {% if key not in ["schema", "profile"] and value %}
+              <tr>
+                <th>{{ key }}</th>
+                <td>
+                  {% if value is iterable and value is not string %}
+                  <pre>{{ value | tojson(indent=2) }}</pre>
+                  {% else %} {{ value }} {% endif %}
+                </td>
+              </tr>
+              {% endif %} {% endfor %}
+              <!---->
+            </tbody>
+          </table>
+          {% if resource.schema %}
+          <details>
+            <summary><b>Schema</b></summary>
+            <div>
+              {% if resource.schema.primaryKey %}
+              <p>
+                <strong>Primary keys:</strong>
+                {{ resource.schema.primaryKey }}
+              </p>
+              {% endif %}
+              <!----->
+              {% if resource.schema.foreignKeys %}
+              <h5>Foreign Keys</h5>
+              <ul>
+                {% for fk in resource.schema.foreignKeys %}
+                <li>{{ fk.fields }} → {{ fk.reference.resource }}{{ fk.reference.fields }}</li>
+                {% endfor %}
+              </ul>
+              {% endif %}
+
+              <h5>Fields</h5>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Constraints</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for field in resource.schema.fields %}
+                  <tr>
+                    <td>{{ field.name }}</td>
+                    <td>{{ field.type }}</td>
+                    <td>{{ field.description or "" }}</td>
+                    <td>
+                      {% if field.constraints %}
+                      <ul>
+                        {% for key, value in field.constraints.model_dump().items() %}
+                        <li>
+                          <strong>{{ key }}:</strong>
+                          {{ value }}
+                        </li>
+                        {% endfor %}
+                      </ul>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </details>
+          {% endif %}
+        </article>
+        {% else %}
+        <p>No resources defined.</p>
+        {% endfor %}
+      </section>
+    </main>
+  </body>
+</html>

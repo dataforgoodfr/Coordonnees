@@ -1,0 +1,16 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Olympic Park",
+        "zone": 1
+      },
+      "geometry": {
+        "coordinates": [12, 13],
+        "type": "Point"
+      }
+    }
+  ]
+}

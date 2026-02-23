@@ -2,8 +2,8 @@ from typing import Literal
 
 import xyzservices.providers as providers
 
-from ..maplibre_style_spec_v8 import RasterLayer, RasterSource
 from .base import BaseConfig
+from .maplibre_style_spec_v8 import RasterLayer, RasterSource
 
 
 class XYZServicesLayer(BaseConfig):

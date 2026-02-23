@@ -17,6 +17,39 @@ The **js** folder contains the Javascript part of the project, it is basically a
 
 The **python** folder contains the Python part of the project, it is capable of parsing a config format (TODO: define the JSON schema of the config) and automatically pulling data from sources and generating an augmented MapLibre Style Spec file, which can be used by the Javascript module.
 
+# Python API
+
+## Datapackages
+
+TODO
+
+## Map server
+
+You can integrate coordo into any Python web framework 
+
+```
+from coordo.map import Map
+
+map = Map.from_file(config_file)
+```
+
+### Flask
+
+```
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route("/maps/<path:path>")
+    def maps(path: str):
+        return jsonify(
+            map.handle_request(
+                path,
+                request.method,
+                request.get_json(),
+            )
+        )
+```
 
 # Install from other projects
 
