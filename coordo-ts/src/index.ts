@@ -1,12 +1,12 @@
 import maplibregl, {
-  ControlPosition,
-  GeoJSONSource,
-  LayerSpecification,
-  Map,
-  MapLayerEventType,
-  MapLayerMouseEvent,
-  MapLayerTouchEvent,
-  StyleSpecification,
+  type ControlPosition,
+  type GeoJSONSource,
+  type LayerSpecification,
+  type Map as MapLibreMap,
+  type MapLayerEventType,
+  type MapLayerMouseEvent,
+  type MapLayerTouchEvent,
+  type StyleSpecification,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./index.css";
@@ -26,12 +26,12 @@ type LayerMetadata = {
 };
 
 class LayerControl {
-  private _map?: Map;
+  private _map?: MapLibreMap;
   private _container?: HTMLElement;
   private _panel?: HTMLElement;
   constructor() {}
 
-  onAdd(map: Map) {
+  onAdd(map: MapLibreMap) {
     this._map = map;
     this._container = document.createElement("div");
     this._container.className = "maplibregl-ctrl maplibregl-ctrl-group";
@@ -107,7 +107,7 @@ export function createMap(
     ? new URL(styleUrl).origin
     : window.location.href;
 
-  const map = new maplibregl.Map({
+  const mapObject = new maplibregl.Map({
     container: el,
     style: styleUrl,
     center: [0, 0],
@@ -116,31 +116,31 @@ export function createMap(
   let style: StyleSpecification;
 
   let controlsAdded = false;
-  map.on("styledata", () => {
+  mapObject.on("styledata", () => {
     if (controlsAdded) return;
     controlsAdded = true;
-    style = map.getStyle();
+    style = mapObject.getStyle();
     const controls = (style.metadata as StyleMetaData).controls || [];
 
     controls.forEach((config) => {
       switch (config.type) {
         case "compass":
-          map.addControl(
+          mapObject.addControl(
             new maplibregl.NavigationControl({ showZoom: false }),
             config.position,
           );
           break;
         case "zoom":
-          map.addControl(
+          mapObject.addControl(
             new maplibregl.NavigationControl({ showCompass: false }),
             config.position,
           );
           break;
         case "layer":
-          map.addControl(new LayerControl(), config.position);
+          mapObject.addControl(new LayerControl(), config.position);
           break;
         case "scale":
-          map.addControl(new maplibregl.ScaleControl(), config.position);
+          mapObject.addControl(new maplibregl.ScaleControl(), config.position);
           break;
       }
     });
@@ -149,13 +149,16 @@ export function createMap(
 
     layers.forEach((layer: LayerSpecification) => {
       const metadata = layer.metadata as LayerMetadata;
-      if (metadata?.popup != undefined) {
+      if (metadata?.popup !== undefined) {
         setLayerPopup(
           layer.id,
           metadata.popup.trigger as keyof MapLayerEventType,
           (props: Record<string, string>) =>
-            metadata.popup!.html
-              ? renderTemplate(metadata.popup!.html!, props)
+            metadata.popup?.html
+              ? renderTemplate(
+                  metadata.popup?.html ?? "<h1>Undefined</h1>",
+                  props,
+                )
               : JSON.stringify(props, null, 2),
         );
       }
@@ -169,8 +172,8 @@ export function createMap(
   }
 
   async function setLayerFilters(layerId: string, filters: any) {
-    const layer = map.getLayer(layerId);
-    if (layer == undefined) {
+    const layer = mapObject.getLayer(layerId);
+    if (layer === undefined) {
       throw new Error(`Layer ${layerId} doesn't exist.`);
     }
     let dataUrl = (layer.metadata as LayerMetadata).url;
@@ -180,7 +183,7 @@ export function createMap(
     if (!dataUrl.startsWith("http")) {
       dataUrl = new URL(dataUrl, baseUrl).toString();
     }
-    const source = map.getSource(layer?.source)!;
+    const source = mapObject.getSource(layer?.source)!;
     const res = await fetch(dataUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -191,15 +194,15 @@ export function createMap(
   }
 
   function hideLayer(layerId: string) {
-    map.setLayoutProperty(layerId, "visibility", "none");
+    mapObject.setLayoutProperty(layerId, "visibility", "none");
   }
 
   function showLayer(layerId: string) {
-    map.setLayoutProperty(layerId, "visibility", "visible");
+    mapObject.setLayoutProperty(layerId, "visibility", "visible");
   }
 
   function getLayerMetadata(layerId: string) {
-    return map.getLayer(layerId)?.metadata;
+    return mapObject.getLayer(layerId)?.metadata;
   }
 
   const popupRemovers: { [key: string]: () => void } = {};
@@ -212,9 +215,7 @@ export function createMap(
       popupRemovers[layerId]?.();
       delete popupRemovers[layerId];
     }
-    const onTrigger = (
-      ev: (MapLayerMouseEvent | MapLayerTouchEvent) & Object,
-    ) => {
+    const onTrigger = (ev: MapLayerMouseEvent | MapLayerTouchEvent) => {
       const geometry = ev.features?.[0]?.geometry;
       const properties = ev.features?.[0]?.properties;
       if (geometry && properties) {
@@ -222,38 +223,38 @@ export function createMap(
         const coordinates = (geometry as any).coordinates.slice();
         const popup = new maplibregl.Popup().setLngLat(coordinates);
         const content = callback(properties);
-        if (typeof content == "string") {
+        if (typeof content === "string") {
           popup.setHTML(content);
         } else {
           popup.setDOMContent(content);
         }
-        popup.addTo(map);
+        popup.addTo(mapObject);
       }
     };
     const onMouseEnter = () => {
-      map.getCanvas().style.cursor = "pointer";
+      mapObject.getCanvas().style.cursor = "pointer";
     };
     const onMouseLeave = () => {
-      map.getCanvas().style.cursor = "";
+      mapObject.getCanvas().style.cursor = "";
     };
 
-    map.on(trigger, layerId, onTrigger);
+    mapObject.on(trigger, layerId, onTrigger);
     if (trigger.includes("click")) {
-      map.on("mouseenter", layerId, onMouseEnter);
-      map.on("mouseleave", layerId, onMouseLeave);
+      mapObject.on("mouseenter", layerId, onMouseEnter);
+      mapObject.on("mouseleave", layerId, onMouseLeave);
     }
     const removeListeners = () => {
-      map.off(trigger, layerId, onTrigger);
+      mapObject.off(trigger, layerId, onTrigger);
       if (trigger.includes("click")) {
-        map.off("mouseenter", layerId, onMouseEnter);
-        map.off("mouseleave", layerId, onMouseLeave);
+        mapObject.off("mouseenter", layerId, onMouseEnter);
+        mapObject.off("mouseleave", layerId, onMouseLeave);
       }
     };
     popupRemovers[layerId] = removeListeners;
   }
 
   return {
-    mapInstance: map,
+    mapInstance: mapObject,
     hideLayer,
     showLayer,
     setLayerFilters,
