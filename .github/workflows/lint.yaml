@@ -10,6 +10,5 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-          cache: 'yarn'
       - run: cd coordo-ts && npm ci
       - run: cd coordo-ts && npm run lint
