@@ -8,23 +8,6 @@
           "options": {
             "groups": [
               ["builtin", "external"],
-              ["^@radix-ui/(.*)$"],
-              ["^@/(.*)$"],
-              ["^@app/(.*)$"],
-              ["^@pages"],
-              ["^@pages/(.*)$"],
-              ["^@widgets"],
-              ["^@widgets/(.*)$"],
-              ["^@features"],
-              ["^@features/(.*)$"],
-              ["^@shared"],
-              ["^@shared/(.*)$"],
-              ["^@libs"],
-              ["^@libs/(.*)$"],
-              ["^@i18n"],
-              ["^@i18n/(.*)$"],
-              ["^@ui"],
-              ["^@ui/(.*)$"],
               ["parent", "sibling", "index"]
             ]
           }

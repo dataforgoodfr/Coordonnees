@@ -29,7 +29,7 @@ class LayerControl {
   private _map?: MapLibreMap;
   private _container?: HTMLElement;
   private _panel?: HTMLElement;
-  constructor() {}
+  constructor() { }
 
   onAdd(map: MapLibreMap) {
     this._map = map;
@@ -107,7 +107,7 @@ export function createMap(
     ? new URL(styleUrl).origin
     : window.location.href;
 
-  const mapObject = new maplibregl.Map({
+  const map = new maplibregl.Map({
     container: el,
     style: styleUrl,
     center: [0, 0],
@@ -116,31 +116,31 @@ export function createMap(
   let style: StyleSpecification;
 
   let controlsAdded = false;
-  mapObject.on("styledata", () => {
+  map.on("styledata", () => {
     if (controlsAdded) return;
     controlsAdded = true;
-    style = mapObject.getStyle();
+    style = map.getStyle();
     const controls = (style.metadata as StyleMetaData).controls || [];
 
     controls.forEach((config) => {
       switch (config.type) {
         case "compass":
-          mapObject.addControl(
+          map.addControl(
             new maplibregl.NavigationControl({ showZoom: false }),
             config.position,
           );
           break;
         case "zoom":
-          mapObject.addControl(
+          map.addControl(
             new maplibregl.NavigationControl({ showCompass: false }),
             config.position,
           );
           break;
         case "layer":
-          mapObject.addControl(new LayerControl(), config.position);
+          map.addControl(new LayerControl(), config.position);
           break;
         case "scale":
-          mapObject.addControl(new maplibregl.ScaleControl(), config.position);
+          map.addControl(new maplibregl.ScaleControl(), config.position);
           break;
       }
     });
@@ -156,9 +156,9 @@ export function createMap(
           (props: Record<string, string>) =>
             metadata.popup?.html
               ? renderTemplate(
-                  metadata.popup?.html ?? "<h1>Undefined</h1>",
-                  props,
-                )
+                metadata.popup?.html ?? "<h1>Undefined</h1>",
+                props,
+              )
               : JSON.stringify(props, null, 2),
         );
       }
@@ -172,7 +172,7 @@ export function createMap(
   }
 
   async function setLayerFilters(layerId: string, filters: any) {
-    const layer = mapObject.getLayer(layerId);
+    const layer = map.getLayer(layerId);
     if (layer === undefined) {
       throw new Error(`Layer ${layerId} doesn't exist.`);
     }
@@ -183,7 +183,7 @@ export function createMap(
     if (!dataUrl.startsWith("http")) {
       dataUrl = new URL(dataUrl, baseUrl).toString();
     }
-    const source = mapObject.getSource(layer?.source)!;
+    const source = map.getSource(layer?.source)!;
     const res = await fetch(dataUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -194,15 +194,15 @@ export function createMap(
   }
 
   function hideLayer(layerId: string) {
-    mapObject.setLayoutProperty(layerId, "visibility", "none");
+    map.setLayoutProperty(layerId, "visibility", "none");
   }
 
   function showLayer(layerId: string) {
-    mapObject.setLayoutProperty(layerId, "visibility", "visible");
+    map.setLayoutProperty(layerId, "visibility", "visible");
   }
 
   function getLayerMetadata(layerId: string) {
-    return mapObject.getLayer(layerId)?.metadata;
+    return map.getLayer(layerId)?.metadata;
   }
 
   const popupRemovers: { [key: string]: () => void } = {};
@@ -228,33 +228,33 @@ export function createMap(
         } else {
           popup.setDOMContent(content);
         }
-        popup.addTo(mapObject);
+        popup.addTo(map);
       }
     };
     const onMouseEnter = () => {
-      mapObject.getCanvas().style.cursor = "pointer";
+      map.getCanvas().style.cursor = "pointer";
     };
     const onMouseLeave = () => {
-      mapObject.getCanvas().style.cursor = "";
+      map.getCanvas().style.cursor = "";
     };
 
-    mapObject.on(trigger, layerId, onTrigger);
+    map.on(trigger, layerId, onTrigger);
     if (trigger.includes("click")) {
-      mapObject.on("mouseenter", layerId, onMouseEnter);
-      mapObject.on("mouseleave", layerId, onMouseLeave);
+      map.on("mouseenter", layerId, onMouseEnter);
+      map.on("mouseleave", layerId, onMouseLeave);
     }
     const removeListeners = () => {
-      mapObject.off(trigger, layerId, onTrigger);
+      map.off(trigger, layerId, onTrigger);
       if (trigger.includes("click")) {
-        mapObject.off("mouseenter", layerId, onMouseEnter);
-        mapObject.off("mouseleave", layerId, onMouseLeave);
+        map.off("mouseenter", layerId, onMouseEnter);
+        map.off("mouseleave", layerId, onMouseLeave);
       }
     };
     popupRemovers[layerId] = removeListeners;
   }
 
   return {
-    mapInstance: mapObject,
+    mapInstance: map,
     hideLayer,
     showLayer,
     setLayerFilters,
