@@ -2,7 +2,7 @@ import maplibregl, {
   type ControlPosition,
   type GeoJSONSource,
   type LayerSpecification,
-  type Map,
+  type Map as MapLibreMap,
   type MapLayerEventType,
   type MapLayerMouseEvent,
   type MapLayerTouchEvent,
@@ -26,12 +26,12 @@ type LayerMetadata = {
 };
 
 class LayerControl {
-  private _map?: Map;
+  private _map?: MapLibreMap;
   private _container?: HTMLElement;
   private _panel?: HTMLElement;
   constructor() {}
 
-  onAdd(map: Map) {
+  onAdd(map: MapLibreMap) {
     this._map = map;
     this._container = document.createElement("div");
     this._container.className = "maplibregl-ctrl maplibregl-ctrl-group";
