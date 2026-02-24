@@ -12,6 +12,7 @@
     },
     "./coordo.css": "./dist/coordo.css"
   },
+  "packageManager": "npm@11.10.1",
   "scripts": {
     "compile": "tsc -b",
     "build": "tsc --noEmit && vite build",
