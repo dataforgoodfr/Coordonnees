@@ -29,7 +29,7 @@ class LayerControl {
   private _map?: MapLibreMap;
   private _container?: HTMLElement;
   private _panel?: HTMLElement;
-  constructor() { }
+  constructor() {}
 
   onAdd(map: MapLibreMap) {
     this._map = map;
@@ -156,9 +156,9 @@ export function createMap(
           (props: Record<string, string>) =>
             metadata.popup?.html
               ? renderTemplate(
-                metadata.popup?.html ?? "<h1>Undefined</h1>",
-                props,
-              )
+                  metadata.popup?.html ?? "<h1>Undefined</h1>",
+                  props,
+                )
               : JSON.stringify(props, null, 2),
         );
       }
@@ -183,7 +183,7 @@ export function createMap(
     if (!dataUrl.startsWith("http")) {
       dataUrl = new URL(dataUrl, baseUrl).toString();
     }
-    const source = map.getSource(layer?.source)!;
+    const source = map.getSource(layer?.source);
     const res = await fetch(dataUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
