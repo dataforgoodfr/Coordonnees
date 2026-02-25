@@ -223,7 +223,7 @@ export function createMap(
         const popup = new maplibregl.Popup().setLngLat(coordinates);
         const content = callback(properties);
         if (typeof content == "string") {
-          popup.setText(content);
+          popup.setHTML(content);
         } else {
           popup.setDOMContent(content);
         }
