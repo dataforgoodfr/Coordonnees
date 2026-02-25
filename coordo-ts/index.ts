@@ -24,6 +24,17 @@ type LayerMetadata = {
   };
   url?: string;
 };
+type MapOptions = {
+  zoom?: number;
+  /**
+   * [longitude, latitude]
+   */
+  center?: [number, number];
+};
+const DEFAULT_MAP_OPTIONS: MapOptions = {
+  zoom: 1,
+  center: [0, 0],
+};
 
 class LayerControl {
   private _map?: Map;
@@ -96,6 +107,7 @@ function renderTemplate(html: string, vars: Record<string, string>) {
 export function createMap(
   target: string | HTMLElement,
   styleUrl = "https://demotiles.maplibre.org/globe.json",
+  options?: Partial<MapOptions>,
 ) {
   const el =
     typeof target === "string"
@@ -107,11 +119,13 @@ export function createMap(
     ? new URL(styleUrl).origin
     : window.location.href;
 
+  const mergedOptions = { ...DEFAULT_MAP_OPTIONS, ...options };
+
   const map = new maplibregl.Map({
     container: el,
     style: styleUrl,
-    center: [0, 0],
-    zoom: 1,
+    center: mergedOptions.center,
+    zoom: mergedOptions.zoom,
   });
   let style: StyleSpecification;
 
@@ -252,6 +266,14 @@ export function createMap(
     popupRemovers[layerId] = removeListeners;
   }
 
+  function getZoom() {
+    return map.getZoom();
+  }
+
+  function getCenter() {
+    return map.getCenter().toArray();
+  }
+
   return {
     mapInstance: map,
     hideLayer,
@@ -259,5 +281,7 @@ export function createMap(
     setLayerFilters,
     getLayerMetadata,
     setLayerPopup,
+    getZoom,
+    getCenter,
   };
 }
