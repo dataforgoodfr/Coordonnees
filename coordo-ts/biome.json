@@ -7,8 +7,15 @@
           "level": "on",
           "options": {
             "groups": [
-              ["builtin", "external"],
-              ["parent", "sibling", "index"]
+              [
+                "builtin",
+                "external"
+              ],
+              [
+                "parent",
+                "sibling",
+                "index"
+              ]
             ]
           }
         },
@@ -20,12 +27,9 @@
       }
     },
     "enabled": true,
-    "includes": ["!package.json"]
-  },
-  "css": {
-    "parser": {
-      "tailwindDirectives": true
-    }
+    "includes": [
+      "!package.json"
+    ]
   },
   "files": {
     "ignoreUnknown": false
@@ -59,23 +63,19 @@
     "enabled": true,
     "rules": {
       "a11y": "info",
-      "complexity": {
-        "noExcessiveLinesPerFunction": "off"
-      },
+      "complexity": "on",
       "correctness": {
-        "useImportExtensions": "off"
+        "useQwikValidLexicalScope": "warn"
       },
-      "nursery": "off",
+      "nursery": {
+        "useExplicitType": "warn"
+      },
       "performance": {
         "noBarrelFile": "off"
       },
       "recommended": true,
-      "security": {
-        "noDangerouslySetInnerHtml": "info"
-      },
-      "style": {
-        "useConsistentArrowReturn": "off"
-      },
+      "security": "on",
+      "style": "on",
       "suspicious": {
         "noConsole": "info"
       }
