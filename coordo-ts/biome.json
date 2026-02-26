@@ -1,0 +1,87 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "groups": [
+              [
+                "builtin",
+                "external"
+              ],
+              [
+                "parent",
+                "sibling",
+                "index"
+              ]
+            ]
+          }
+        },
+        "recommended": true,
+        "useSortedAttributes": "on",
+        "useSortedInterfaceMembers": "on",
+        "useSortedKeys": "on",
+        "useSortedProperties": "on"
+      }
+    },
+    "enabled": true,
+    "includes": [
+      "!package.json"
+    ]
+  },
+  "files": {
+    "ignoreUnknown": false
+  },
+  "formatter": {
+    "attributePosition": "multiline",
+    "bracketSpacing": true,
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 80
+  },
+  "javascript": {
+    "formatter": {
+      "arrowParentheses": "always",
+      "bracketSameLine": false,
+      "bracketSpacing": true,
+      "jsxQuoteStyle": "double",
+      "quoteProperties": "asNeeded",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "json": {
+    "formatter": {
+      "trailingCommas": "none"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "a11y": "info",
+      "complexity": "on",
+      "correctness": {
+        "useQwikValidLexicalScope": "warn"
+      },
+      "nursery": {
+        "useExplicitType": "warn"
+      },
+      "performance": {
+        "noBarrelFile": "off"
+      },
+      "recommended": true,
+      "security": "on",
+      "style": "on",
+      "suspicious": {
+        "noConsole": "info"
+      }
+    }
+  },
+  "vcs": {
+    "enabled": false
+  }
+}

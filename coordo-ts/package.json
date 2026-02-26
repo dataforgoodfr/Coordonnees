@@ -12,14 +12,25 @@
     },
     "./coordo.css": "./dist/coordo.css"
   },
+  "packageManager": "npm@11.10.1",
   "scripts": {
+    "compile": "tsc -b",
     "build": "tsc --noEmit && vite build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "check:code": "npm run compile && npm run format:check && npm run lint",
+    "fix:code": "npm run format && npm run lint:fix",
+    "format": "biome format ./src --write",
+    "format:check": "biome format ./src",
+    "lint": "biome lint --diagnostic-level=warn ./src",
+    "lint:error": "biome lint --diagnostic-level=error ./src",
+    "lint:all": "biome lint ./src",
+    "lint:fix": "biome lint --diagnostic-level=warn --write ./src"
   },
   "peerDependencies": {
     "maplibre-gl": "^5.16.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.4",
     "@types/node": "^25.2.0",
     "maplibre-gl": "^5.16.0",
     "typescript": "^5.9.3",
