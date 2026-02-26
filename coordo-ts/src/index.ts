@@ -24,14 +24,8 @@ type LayerMetadata = {
   };
   url?: string;
 };
-type MapOptions = {
-  zoom?: number;
-  /**
-   * [longitude, latitude]
-   */
-  center?: [number, number];
-};
-const DEFAULT_MAP_OPTIONS: MapOptions = {
+
+const DEFAULT_MAP_OPTIONS: Partial<maplibregl.MapOptions> = {
   zoom: 1,
   center: [0, 0],
 };
@@ -107,7 +101,7 @@ function renderTemplate(html: string, vars: Record<string, string>) {
 export function createMap(
   target: string | HTMLElement,
   styleUrl = "https://demotiles.maplibre.org/globe.json",
-  options?: Partial<MapOptions>,
+  options?: Partial<maplibregl.MapOptions>,
 ) {
   const el =
     typeof target === "string"
