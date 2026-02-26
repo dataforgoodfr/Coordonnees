@@ -25,6 +25,6 @@
     "baseUrl": ".",
     "outDir": "./dist"
   },
-  "include": ["index.ts", "**/*.ts"],
+  "include": ["src/index.ts", "**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

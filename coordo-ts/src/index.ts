@@ -1,12 +1,12 @@
 import maplibregl, {
-  ControlPosition,
-  GeoJSONSource,
-  LayerSpecification,
-  Map,
-  MapLayerEventType,
-  MapLayerMouseEvent,
-  MapLayerTouchEvent,
-  StyleSpecification,
+  type ControlPosition,
+  type GeoJSONSource,
+  type LayerSpecification,
+  type Map as MapLibreMap,
+  type MapLayerEventType,
+  type MapLayerMouseEvent,
+  type MapLayerTouchEvent,
+  type StyleSpecification,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./index.css";
@@ -37,12 +37,12 @@ const DEFAULT_MAP_OPTIONS: MapOptions = {
 };
 
 class LayerControl {
-  private _map?: Map;
+  private _map?: MapLibreMap;
   private _container?: HTMLElement;
   private _panel?: HTMLElement;
   constructor() {}
 
-  onAdd(map: Map) {
+  onAdd(map: MapLibreMap) {
     this._map = map;
     this._container = document.createElement("div");
     this._container.className = "maplibregl-ctrl maplibregl-ctrl-group";
@@ -163,13 +163,16 @@ export function createMap(
 
     layers.forEach((layer: LayerSpecification) => {
       const metadata = layer.metadata as LayerMetadata;
-      if (metadata?.popup != undefined) {
+      if (metadata?.popup !== undefined) {
         setLayerPopup(
           layer.id,
           metadata.popup.trigger as keyof MapLayerEventType,
           (props: Record<string, string>) =>
-            metadata.popup!.html
-              ? renderTemplate(metadata.popup!.html!, props)
+            metadata.popup?.html
+              ? renderTemplate(
+                  metadata.popup?.html ?? "<h1>Undefined</h1>",
+                  props,
+                )
               : JSON.stringify(props, null, 2),
         );
       }
@@ -184,7 +187,7 @@ export function createMap(
 
   async function setLayerFilters(layerId: string, filters: any) {
     const layer = map.getLayer(layerId);
-    if (layer == undefined) {
+    if (layer === undefined) {
       throw new Error(`Layer ${layerId} doesn't exist.`);
     }
     let dataUrl = (layer.metadata as LayerMetadata).url;
@@ -194,7 +197,7 @@ export function createMap(
     if (!dataUrl.startsWith("http")) {
       dataUrl = new URL(dataUrl, baseUrl).toString();
     }
-    const source = map.getSource(layer?.source)!;
+    const source = map.getSource(layer?.source);
     const res = await fetch(dataUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -226,9 +229,7 @@ export function createMap(
       popupRemovers[layerId]?.();
       delete popupRemovers[layerId];
     }
-    const onTrigger = (
-      ev: (MapLayerMouseEvent | MapLayerTouchEvent) & Object,
-    ) => {
+    const onTrigger = (ev: MapLayerMouseEvent | MapLayerTouchEvent) => {
       const geometry = ev.features?.[0]?.geometry;
       const properties = ev.features?.[0]?.properties;
       if (geometry && properties) {
@@ -236,7 +237,7 @@ export function createMap(
         const coordinates = (geometry as any).coordinates.slice();
         const popup = new maplibregl.Popup().setLngLat(coordinates);
         const content = callback(properties);
-        if (typeof content == "string") {
+        if (typeof content === "string") {
           popup.setHTML(content);
         } else {
           popup.setDOMContent(content);
