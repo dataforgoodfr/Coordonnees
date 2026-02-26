@@ -25,11 +25,11 @@ type LayerMetadata = {
   url?: string;
 };
 type MapOptions = {
-  zoom?: number;
+  zoom: number;
   /**
    * [longitude, latitude]
    */
-  center?: [number, number];
+  center: [number, number];
 };
 const DEFAULT_MAP_OPTIONS: MapOptions = {
   zoom: 1,
