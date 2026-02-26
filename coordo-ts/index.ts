@@ -274,6 +274,10 @@ export function createMap(
     return map.getCenter().toArray();
   }
 
+  function addEventListener(type: keyof maplibregl.MapEventType | string, listener: maplibregl.Listener): maplibregl.Subscription {
+    return map.on(type, listener);
+  }
+
   return {
     mapInstance: map,
     hideLayer,
@@ -283,5 +287,6 @@ export function createMap(
     setLayerPopup,
     getZoom,
     getCenter,
+    addEventListener,
   };
 }
