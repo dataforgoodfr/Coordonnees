@@ -274,7 +274,7 @@ export function createMap(
     return map.getCenter().toArray();
   }
 
-  function addEventListener(type: keyof maplibregl.MapEventType | string, listener: maplibregl.Listener): maplibregl.Subscription {
+  function addEventListener<T extends keyof maplibregl.MapEventType>(type: T, listener: (ev: maplibregl.MapEventType[T] & Object) => void): maplibregl.Subscription {
     return map.on(type, listener);
   }
 
