@@ -6,8 +6,10 @@
   "author": "",
   "type": "module",
   "main": "dist/coordo.js",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/coordo.js"
     },
     "./coordo.css": "./dist/coordo.css"
@@ -15,7 +17,7 @@
   "packageManager": "npm@11.10.1",
   "scripts": {
     "compile": "tsc -b",
-    "build": "tsc --noEmit && vite build",
+    "build": "vite build && tsc --emitDeclarationOnly",
     "test": "echo \"Error: no test specified\" && exit 1",
     "check:code": "npm run compile && npm run format:check && npm run lint",
     "fix:code": "npm run format && npm run lint:fix",
