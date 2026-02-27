@@ -25,6 +25,11 @@ type LayerMetadata = {
   url?: string;
 };
 
+const DEFAULT_MAP_OPTIONS: Partial<maplibregl.MapOptions> = {
+  zoom: 1,
+  center: [0, 0],
+};
+
 class LayerControl {
   private _map?: MapLibreMap;
   private _container?: HTMLElement;
@@ -96,6 +101,7 @@ function renderTemplate(html: string, vars: Record<string, string>) {
 export function createMap(
   target: string | HTMLElement,
   styleUrl = "https://demotiles.maplibre.org/globe.json",
+  options?: Partial<maplibregl.MapOptions>,
 ) {
   const el =
     typeof target === "string"
@@ -107,11 +113,13 @@ export function createMap(
     ? new URL(styleUrl).origin
     : window.location.href;
 
+  const mergedOptions = { ...DEFAULT_MAP_OPTIONS, ...options };
+
   const map = new maplibregl.Map({
     container: el,
     style: styleUrl,
-    center: [0, 0],
-    zoom: 1,
+    center: mergedOptions.center,
+    zoom: mergedOptions.zoom,
   });
   let style: StyleSpecification;
 
@@ -253,6 +261,21 @@ export function createMap(
     popupRemovers[layerId] = removeListeners;
   }
 
+  function getZoom() {
+    return map.getZoom();
+  }
+
+  function getCenter() {
+    return map.getCenter().toArray();
+  }
+
+  function addEventListener<T extends keyof maplibregl.MapEventType>(
+    type: T,
+    listener: (ev: maplibregl.MapEventType[T] & Object) => void,
+  ): maplibregl.Subscription {
+    return map.on(type, listener);
+  }
+
   return {
     mapInstance: map,
     hideLayer,
@@ -260,5 +283,8 @@ export function createMap(
     setLayerFilters,
     getLayerMetadata,
     setLayerPopup,
+    getZoom,
+    getCenter,
+    addEventListener,
   };
 }
