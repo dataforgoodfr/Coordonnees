@@ -293,8 +293,8 @@ if __name__ == "__main__":
     #     },
     # )
 
-    # def decimal_default(obj):
-    #     if isinstance(obj, Decimal):
-    #         return float(obj)
+    def decimal_default(obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
 
     # print(json.dumps(list(it), indent=2, default=decimal_default))
