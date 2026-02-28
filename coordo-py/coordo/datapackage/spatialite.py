@@ -209,7 +209,12 @@ class SpatialitePackage(DataPackage):
                 joins = set()
                 subqueries = []
                 for alias, agg in aggregate.items():
-                    agg_query, agg_joins, agg_subqueries = parse(agg, table)
+                    agg_query, agg_joins, agg_subqueries = parse(agg, table, sess)
+
+                    if isinstance(agg_query, (str, int, float)):
+                        # return eval(agg_query)
+                        raise Exception(f"Query '{agg_query}' is invalid.")
+
                     agg_cols.append(agg_query.label(alias))
                     joins.update(agg_joins)
                     for subq in agg_subqueries:
@@ -263,11 +268,13 @@ if __name__ == "__main__":
         groupby=["for"],
         aggregate={
             # "geom": "centroid(gps)",
-            "richness": "count(ind.ess_arb)",
-            "dominant_height": "avg(ind.haut if ind.haut > percentile(ind.haut, 80))",
-            "soil_structure": "(ep1*not1 + ep2*not2 + ep3*not3 + ep4*not4 + ep5*not5) / 250",
+            # "richness": "count(ind.ess_arb)",
+            # "dominant_height": "avg(ind.haut if ind.haut > percentile(ind.haut, 80))",
+            # "soil_structure": "(ep1*not1 + ep2*not2 + ep3*not3 + ep4*not4 + ep5*not5) / 250",
             # "count1": "sum(tsbf_001.tax1_tsbf)",
-            "math_test": "ln(1)"
+            "shannon_indice": "sum(for $ess in unique(ind.ess_arb) do coalesce( (count_occ(ind.ess_arb, $ess) / count(ind.ess_arb)) * ln(count_occ(ind.ess_arb, $ess) / count(ind.ess_arb)), 0) )",
+            # "math_test": "ln(1)",
+            "count_occ_25": "count_occ(ind.ess_arb, 25)"
         },
     )
 
