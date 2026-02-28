@@ -1,5 +1,6 @@
 import json
 import os
+import math
 from pathlib import Path
 from typing import Iterable, Mapping
 
@@ -134,6 +135,38 @@ class SpatialitePackage(DataPackage):
             dbapi_connection.enable_load_extension(True)
             sqlite_sqlean.load(dbapi_connection, "stats")
 
+        @sa.event.listens_for(engine, "connect")
+        def register_math_functions(dbapi_connection, connection_record):
+
+            # Return null when error occurs 
+            def _safe(fn):
+                def wrapper(*args):
+                    try:
+                        if any(a is None for a in args):
+                            return None
+                        return fn(*args)
+                    except (ValueError, TypeError, OverflowError, ZeroDivisionError):
+                        return None
+                return wrapper
+
+            MATH_1ARG = [
+                "log2", "log10", "log", "exp", "sqrt",
+                "sin", "cos", "tan", "asin", "acos", "atan",
+                "ceil", "floor", "degrees", "radians",
+            ]
+            for name in MATH_1ARG:
+                fn = getattr(math, name, None)
+                if fn:
+                    dbapi_connection.create_function(name, 1, _safe(fn))
+
+            dbapi_connection.create_function("ln", 1, _safe(math.log))
+
+            MATH_2ARG = ["pow", "atan2", "fmod"]
+            for name in MATH_2ARG:
+                fn = getattr(math, name, None)
+                if fn:
+                    dbapi_connection.create_function(name, 2, _safe(fn))
+
         return engine
 
     def write_schema(self, path: Path, ignore_constraints: list[str] = []):
@@ -223,34 +256,38 @@ class SpatialitePackage(DataPackage):
 
 if __name__ == "__main__":
     source = SpatialitePackage.from_path(
-        "../demo/catalog/inventaire_id/datapackage.json"
-    )
-    # it = source.read_data(
-    #     "inventaire_id",
-    #     groupby=["for", "cod"],
-    #     aggregate={
-    #         # "geom": "centroid(gps)",
-    #         "richness": "count(ind.ess_arb)",
-    #         "dominant_height": "avg(ind.haut if ind.haut > percentile(ind.haut, 80))",
-    #         "soil_structure": "(ep1*not1 + ep2*not2 + ep3*not3 + ep4*not4 + ep5*not5) / 250",
-    #         "count1": "sum(tsbf_001.tax1_tsbf)",
-    #     },
-    # )
-    source = SpatialitePackage.from_path(
-        "../demo/catalog/enquete_menage_cdf/datapackage.json"
+        "../catalog/inventaire_id/datapackage.json"
     )
     it = source.read_data(
-        "enquete_menage_cdf",
-        groupby=["admi2"],
+        "inventaire_id",
+        groupby=["for"],
         aggregate={
-            "bois_coll_count": "avg(1 if 'bois_coll' in ener else 0) * 100",
-            "dech_veg_count": "avg(1 if 'dech_veg' in ener else 0) * 100",
-            "conso": "sum((feu_qte * 1 * feu_jrs + char_qte * 1 * char_jrs) / hab * 12 / 600)",
+            # "geom": "centroid(gps)",
+            "richness": "count(ind.ess_arb)",
+            "dominant_height": "avg(ind.haut if ind.haut > percentile(ind.haut, 80))",
+            "soil_structure": "(ep1*not1 + ep2*not2 + ep3*not3 + ep4*not4 + ep5*not5) / 250",
+            # "count1": "sum(tsbf_001.tax1_tsbf)",
+            "math_test": "ln(1)"
         },
     )
 
-    def decimal_default(obj):
-        if isinstance(obj, Decimal):
-            return float(obj)
+    print(json.dumps(list(it), indent=2))
 
-    print(json.dumps(list(it), indent=2, default=decimal_default))
+    # source = SpatialitePackage.from_path(
+    #     "../demo/catalog/enquete_menage_cdf/datapackage.json"
+    # )
+    # it = source.read_data(
+    #     "enquete_menage_cdf",
+    #     groupby=["admi2"],
+    #     aggregate={
+    #         "bois_coll_count": "avg(1 if 'bois_coll' in ener else 0) * 100",
+    #         "dech_veg_count": "avg(1 if 'dech_veg' in ener else 0) * 100",
+    #         "conso": "sum((feu_qte * 1 * feu_jrs + char_qte * 1 * char_jrs) / hab * 12 / 600)",
+    #     },
+    # )
+
+    # def decimal_default(obj):
+    #     if isinstance(obj, Decimal):
+    #         return float(obj)
+
+    # print(json.dumps(list(it), indent=2, default=decimal_default))
