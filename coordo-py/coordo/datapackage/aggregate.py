@@ -3,7 +3,9 @@ from dataclasses import dataclass, field
 from lark import Lark, Transformer
 from pygeofilter.ast import AstType, Node
 from pygeofilter.backends.evaluator import Evaluator, handle
-from sqlalchemy import Float, Function, case, cast, func, text
+from sqlalchemy import Float, Function, case, cast, func, text, select
+from sqlalchemy.orm import Session
+from functools import reduce
 
 GRAMMAR = r"""
     ?start: expr
@@ -24,16 +26,25 @@ GRAMMAR = r"""
            | atom
 
     ?atom: func_call
+         | for_loop
+         | loop_variable
          | variable
          | NUMBER
          | QUOTED
          | "(" expr ")"
+
+    ?for_loop_content: func_call
+                     | variable
+
+    for_loop: "for" loop_variable "in" for_loop_content "do" expr
 
     arg_list: expr ("," expr)*
     func_call: CNAME "(" arg_list ")"
 
     variable: CNAME ("." CNAME)?
 
+    loop_variable: "$" CNAME
+    
     comparison: sum OP sum
 
     OP: ">" | "<" | "=" | "!=" | ">=" | "<=" | "in"
@@ -80,6 +91,21 @@ class Arithmetic(BinaryOp):
 
 
 @dataclass
+class LoopVariable(Node):
+    name: str
+
+
+@dataclass
+class ForLoop(Node):
+    variable: LoopVariable
+    query: Node
+    body: Node
+
+    def get_sub_nodes(self) -> list[AstType]:
+        return [self.query]
+
+
+@dataclass
 class Comparison(BinaryOp):
     pass
 
@@ -123,6 +149,12 @@ class AggregateTransformer(Transformer):
     def func_call(self, children):
         return Func(children[0], children[1])
 
+    def for_loop(self, children):
+        return ForLoop(children[0], children[1], children[2])
+
+    def loop_variable(self, children):
+        return LoopVariable(children[0])
+
     def variable(self, children):
         return Column(children)
 
@@ -137,10 +169,12 @@ class AggregateTransformer(Transformer):
 
 
 class SQLCompiler(Evaluator):
-    def __init__(self, base_model):
+    def __init__(self, base_model, session: Session = None):
         self.base_model = base_model
         self.joins = []
         self.subqueries = []
+        self.session = session
+        self.loop_variables_values = {}
 
     @handle(Arithmetic)
     def arithmetic(self, node, lhs, rhs):
@@ -191,11 +225,52 @@ class SQLCompiler(Evaluator):
 
     @handle(Func)
     def func(self, node, *args):
+        # Handling list type param (= loop inside function)
+        if len(args) == 1 and isinstance(args[0], list):
+            list_arg = args[0]
+
+            if node.name == "sum":
+                if isinstance(list_arg[0], str):
+                    return reduce(lambda a, b: f"{a} + {b}", list_arg)
+
+                return reduce(lambda a, b: a + b, list_arg)
+
+            raise ValueError(f"Function {node.name} cannot handle list.")
+
         if node.name == "centroid":
             return func.ST_Centroid(func.ST_Collect(args[0]))
         if node.name == "unique":
             return args[0].distinct()
+        if node.name == "count_occ":
+            return func.sum(case((args[0] == args[1], 1), else_=0))
+        
         return getattr(func, node.name)(*args)
+    
+    @handle(ForLoop)
+    def for_loop(self, node, query):
+        if self.session is None:
+            raise ValueError(
+                "A database session is required to evaluate for loops. "
+            )
+        
+        values = self.session.execute(select(query)).scalars().all()
+
+        body = []
+
+        for item in values:
+            self.loop_variables_values[node.variable.name] = item
+            item_body = self.evaluate(node.body)
+            body.append(item_body)
+
+        del self.loop_variables_values[node.variable.name]
+
+        return body
+
+    @handle(LoopVariable)
+    def loop_variable(self, node):
+        if node.name not in self.loop_variables_values:
+            raise ValueError(f"Loop variable '{node.name}' not found. Are you inside a for loop?")
+        return self.loop_variables_values[node.name]
 
     @handle(float)
     def float(self, node):
@@ -206,8 +281,8 @@ class SQLCompiler(Evaluator):
         return text(node)
 
 
-def parse(text: str, model):
+def parse(text: str, model, session):
     expr = Lark(GRAMMAR, parser="lalr", transformer=AggregateTransformer()).parse(text)
-    compiler = SQLCompiler(model)
+    compiler = SQLCompiler(model, session)
     query = compiler.evaluate(expr)
     return query, compiler.joins, compiler.subqueries
