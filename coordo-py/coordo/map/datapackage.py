@@ -1,6 +1,7 @@
 from typing import Literal
 
-from geojson.feature import FeatureCollection
+import numpy as np
+from geojson import FeatureCollection
 from geopandas.geodataframe import GeoDataFrame
 from pydantic import BaseModel
 from pygeofilter.ast import And
@@ -59,7 +60,12 @@ class DataPackageLayer(BaseConfig):
         df = package.read_resource(
             self.resource, final_filter, self.groupby, self.aggregate
         )
-        assert isinstance(
-            df, GeoDataFrame
-        ), "You must select geometric columns to add data to the map"
+        assert isinstance(df, GeoDataFrame), "No geometries in the layer output."
+
+        # We convert numpy arrays to python lists so the output
+        # can be dumped to json
+        array_cols = df.select_dtypes(include=np.ndarray, exclude="str").columns
+        if not array_cols.empty:
+            df[array_cols] = df[array_cols].map(np.ndarray.tolist)
+
         return df.to_geo_dict()

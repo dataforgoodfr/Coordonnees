@@ -311,7 +311,8 @@ class DataPackage(BaseModel):
                         )
                     ),
                 )
-        relation = conn.sql(str(query.compile(compile_kwargs={"literal_binds": True})))
+        query_str = str(query.compile(compile_kwargs={"literal_binds": True}))
+        relation = conn.sql(query_str)
         if any(col[1] == "GEOMETRY" for col in relation.description):
             out = gpd.GeoDataFrame.from_arrow(relation)
         else:

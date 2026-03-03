@@ -39,14 +39,14 @@ def serve(config_file: str):
             <div id="map" style="height: 100dvh"></div>
           </body>
           <script>
-            map = coordo.createMap("#map", "/maps/style.json");
+            map = coordo.createMap("#map", "/map/style.json");
           </script>
         </html>
         """
 
     map = Map.from_file(config_file)
 
-    @app.route("/maps/<path:path>", methods=["GET", "POST"])
+    @app.route("/map/<path:path>", methods=["GET", "POST"])
     def maps(path: str):
         return map.handle_request(
             request.method,

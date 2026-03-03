@@ -15,9 +15,8 @@ class BaseConfig(BaseModel):
     def from_dict(cls, dic):
         return cls.model_validate(dic)
 
-    @abstractmethod
     def to_maplibre(self, base_path: Path) -> tuple[Mapping[str, Source], Layer]:
-        pass
+        raise NotImplementedError
 
     def get_data(self, *, base_path: Path, filter: Filter | None = None):
         raise NotImplementedError

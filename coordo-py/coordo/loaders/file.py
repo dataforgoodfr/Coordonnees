@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import duckdb
@@ -30,8 +31,8 @@ def load(dp: DataPackage, path: Path):
     dp.add_resource(
         Resource(
             name=path.stem,
-            path=str(path),
+            path=path.name,
             schema=schema,
         )
     )
-    print(dp)
+    shutil.copy(path, dp.basepath / path.name)
