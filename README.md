@@ -1,45 +1,5 @@
 # Coordonnées
 
-#  System Dependencies
-
-You will need the following dependencies in order to use SpatialLite : SQLite, Spatialite, GDAL.
-
-## Ubuntu / Debian
-
-SQLite should be installed on the system by default.
-
-```
-sudo apt-get install gdal-bin libgdal-dev libsqlite3-mod-spatialite
-```
-
-## MacOS
-
-There should already be a system version of SQLite but in a version that does not support extensions
-which means you will need to install another version. This can be done via Brew.
-
-```
-brew update
-brew install sqlite3
-brew install libspatialite
-brew install spatialite-tools
-brew install gdal
-```
-
-After that you need to make sure that version of SQLite is used by adding it to your `PATH`. If you're using ZSH this can be done with:
-
-```
-echo "export PATH=\"$(brew --prefix)/opt/sqlite/bin:\$PATH\"" >> ~/.zshrc
-```
-
-Finally, SQLite needs to be able to find the Spatialite library installed by Brew. Peewee does not
-seem to use the `SPATIALITE_LIBRARY_PATH` environment variable unfortunately. For running commands
-locally using uv a workaround is to symlink it to the Python install managed by uv.
-
-  * Find the root folder used by uv with `uv python dir`.
-  * Find the version of Python used for this project
-  * Synlink Spatialite with
-    `ln -s $(brew --prefix)/lib/mod_spatialite.dylib $(uv python dir)/<PYTHON_VERSION>/lib/mod_spatialite.dylib`
-
 # Repo structure
 
 This package aims at greatly simplifying the manipulation and transformation of geospatial data and the creation of interactive [map]s from data sources. It is based on 2 inter-dependent modules that are made to work together :
@@ -60,7 +20,7 @@ You can integrate coordo into any Python web framework.
 
 First create the map object :
 
-```
+```py
 from coordo.map import Map
 
 map = Map.from_file(config_file)
@@ -144,8 +104,14 @@ make build
 Import data into catalog
 
 ```
-uv run coordo load kobotoolbox catalog/ data/20250213_Inventaire_ID_QuestionnaireK.xlsx data/20251017_Inventaire_ID_Donnees.xlsx
-uv run coordo load kobotoolbox catalog/ data/20240808_EnqueteMenage_CDF_QuestionnaireK.xlsx data/20241007_EnqueteMenage_CDF_Donnees.csv
+uv run coordo load kobotoolbox --package catalog/inventaire data/20250213_Inventaire_ID_QuestionnaireK.xlsx data/20251017_Inventaire_ID_Donnees.xlsx
+uv run coordo load kobotoolbox --package catalog/enquete data/20240808_EnqueteMenage_CDF_QuestionnaireK.xlsx data/20241007_EnqueteMenage_CDF_Donnees.csv
+```
+
+Adding an external file
+
+```
+uv run coordo load file data/zones.geojson --package catalog/inventaire
 ```
 
 Serve a config file
@@ -153,5 +119,3 @@ Serve a config file
 ```
 uv run coordo serve data/config.json
 ```
-
-In order to read SQLite files, we recommend using [DBeaver](https://dbeaver.io/download/#requirements)
