@@ -16,6 +16,7 @@ type StyleMetaData = {
     position: ControlPosition;
   }>;
 };
+
 type LayerMetadata = {
   popup?: {
     trigger: string;
@@ -107,9 +108,7 @@ export function createMap(
       : target;
 
   if (!el) throw new Error("Map target not found");
-  const baseUrl = styleUrl.startsWith("http")
-    ? new URL(styleUrl).origin
-    : window.location.href;
+  const baseUrl = new URL("./", new URL(styleUrl, window.location.href)).href;
 
   const mergedOptions = { ...DEFAULT_MAP_OPTIONS, ...options };
 
@@ -119,16 +118,17 @@ export function createMap(
     center: mergedOptions.center,
     zoom: mergedOptions.zoom,
   });
-  let style: StyleSpecification;
 
-  let controlsAdded = false;
+  let style: StyleSpecification;
+  let controlsAdded: string[] = [];
   map.on("styledata", () => {
-    if (controlsAdded) return;
-    controlsAdded = true;
     style = map.getStyle();
     const controls = (style.metadata as StyleMetaData).controls || [];
-
     controls.forEach((config) => {
+      if (controlsAdded.includes(config.type)) {
+        return;
+      }
+      controlsAdded.push(config.type);
       switch (config.type) {
         case "compass":
           map.addControl(
@@ -182,14 +182,8 @@ export function createMap(
     if (layer === undefined) {
       throw new Error(`Layer ${layerId} doesn't exist.`);
     }
-    let dataUrl = (layer.metadata as LayerMetadata).url;
-    if (!dataUrl) {
-      throw new Error(`Layer ${layer.id} can't be filtered.`);
-    }
-    if (!dataUrl.startsWith("http")) {
-      dataUrl = new URL(dataUrl, baseUrl).toString();
-    }
-    const source = map.getSource(layer?.source);
+    const dataUrl = new URL(layerId, baseUrl).toString();
+    const source = map.getSource(layer?.source)!;
     const res = await fetch(dataUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

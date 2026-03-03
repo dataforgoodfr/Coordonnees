@@ -27,14 +27,14 @@
     {
       "id": "inventaire",
       "type": "datapackage",
-      "path": "../catalog/inventaire_id",
+      "path": "../catalog/inventaire_id/datapackage.json",
       "resource": "inventaire_id",
       "groupby": ["for"],
       "aggregate": {
-        "geometry": "centroid(gps)",
+        "geom": "centroid(gps)",
         "richness": "count(unique(ind.ess_arb))",
         "dominant_height": "avg(ind.haut if ind.haut > percentile(ind.haut, 80))",
-        "soil_structure": "(ep1*not1 + ep2*not2 + ep3*not3 + ep4*not4 + ep5*not5) / 250"
+        "soil_structure": "avg((ep1*not1 + ep2*not2 + ep3*not3 + ep4*not4 + ep5*not5) / 250)"
       },
       "popup": {
         "trigger": "click"

@@ -1,3 +1,3 @@
-from . import kobotoolbox
+from . import file, kobotoolbox
 
-__all__ = ["kobotoolbox"]
+__all__ = ["kobotoolbox", "file"]

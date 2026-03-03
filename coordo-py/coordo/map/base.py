@@ -5,7 +5,7 @@ from typing import Mapping
 from pydantic import BaseModel
 from pygeofilter.ast import AstType as Filter
 
-from ..maplibre_style_spec_v8 import Layer, Source
+from .maplibre_style_spec_v8 import Layer, Source
 
 
 class BaseConfig(BaseModel):
@@ -17,7 +17,7 @@ class BaseConfig(BaseModel):
 
     @abstractmethod
     def to_maplibre(
-        self, context: dict | None = None
+        self, base_path: Path | None = None
     ) -> tuple[Mapping[str, Source], Layer]:
         pass
 

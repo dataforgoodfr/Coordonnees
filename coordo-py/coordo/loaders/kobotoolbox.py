@@ -1,22 +1,25 @@
 import json
+from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from time import time
+from typing import Any, Dict, List, cast
 
+import geopandas as gpd
 import numpy as np
 import pandas as pd
-from geoalchemy2.shape import from_shape
 from lark import Lark, Transformer
 from pyxform.xls2json import parse_file_to_json
 from shapely.geometry import Point
 
-from coordo.datapackage.datapackage import (
+from coordo.datapackage import (
+    DataPackage,
     Field,
     ForeignKey,
-    Reference,
+    ForeignKeyReference,
     Resource,
     Schema,
 )
-from coordo.datapackage.spatialite import SpatialitePackage
+from coordo.helpers import safe
 
 CONSTRAINT_GRAMMAR = r"""
 ?start: expression
@@ -106,6 +109,15 @@ DP_FIELDS = {
     # "xml-external": None,
 }
 
+DTYPES = {
+    "string": str,
+    "integer": int,
+    "number": float,
+    "date": date,
+    "time": time,
+    "datetime": datetime,
+}
+
 
 PRIMARY_KEY = "_id"
 
@@ -116,27 +128,24 @@ def stringify(obj):
     return json.dumps(obj)
 
 
-def load(catalog_path: str, xlsform: str, xlsdata: str):
-    form = parse_file_to_json(xlsform)
-    name = form["id_string"].lower()
-    package = SpatialitePackage(name=name, resources=[])
+def load(package: DataPackage, xlsform: Path, xlsdata: Path):
+    form = parse_file_to_json(str(xlsform))
+    name = cast(str, form["id_string"].lower())
     main_resource = _create_resource(name)
     _parse_form(package, form, main_resource)
-    package.write_schema(
-        Path(catalog_path) / name,
-    )
-    if xlsdata.endswith(".xlsx"):
+    if xlsdata.suffix == ".xlsx":
         sheets_dict = pd.read_excel(xlsdata, sheet_name=None)
-    elif xlsdata.endswith(".csv"):
+    elif xlsdata.suffix == ".csv":
         # I think this encoding is not the one from Kobo we should verify
         sheets_dict = {
-            "data": pd.read_csv(xlsdata, sep=";", encoding="windows-1252", decimal=",")
+            name: pd.read_csv(xlsdata, sep=";", encoding="windows-1252", decimal=",")
         }
     else:
         raise ValueError(f"Unsupported file format: {xlsdata}")
     for i, (sheet_name, sheet) in enumerate(sheets_dict.items()):
-        table_name = package.name if i == 0 else sheet_name.lower()
+        table_name = main_resource.name if i == 0 else sheet_name.lower()
         resource = next(r for r in package.resources if r.name == table_name)
+        schema = safe(resource, "schema")
         sheet = (
             sheet.rename(
                 columns={"_parent_index": "parent_id"},
@@ -146,24 +155,18 @@ def load(catalog_path: str, xlsform: str, xlsdata: str):
         )
         sheet[PRIMARY_KEY] = sheet.index + 1
         fields = []
-        for field in resource.schema.fields:
+        for field in schema.fields:
             if field.name in sheet.columns:
                 if field.type == "geojson":
-                    sheet[field.name] = (
-                        sheet[field.name]
-                        .fillna("")
-                        .apply(
-                            lambda coords: (
-                                from_shape(
-                                    Point([float(c) for c in coords.split(" ")[:2]]),
-                                    4326,
-                                )
-                                if coords
-                                else None
-                            )
+                    sheet[field.name] = sheet[field.name].apply(
+                        lambda coords: (
+                            Point([float(c) for c in coords.split(" ")[:3]])
+                            if coords
+                            else None
                         )
                     )
-
+                if field.type in DTYPES:
+                    sheet[field.name] = sheet[field.name].astype(DTYPES[field.type])
             else:
                 print(
                     f"Field {field.name} not found in data. Filling with empty values"
@@ -173,27 +176,41 @@ def load(catalog_path: str, xlsform: str, xlsdata: str):
 
         sheet = sheet[fields]
         sheet = sheet.replace({np.nan: None})
-        package.write_data(resource.name, sheet.to_dict("records"))
+        path = Path(package.basepath, table_name + ".parquet")
+        if any(f.type == "geojson" for f in schema.fields):
+            geo_cols = [f.name for f in schema.fields if f.type == "geojson"]
+            gdf = gpd.GeoDataFrame(
+                sheet, geometry=geo_cols[0] if geo_cols else None, crs="EPSG:4326"
+            )
+            gdf.to_parquet(
+                path,
+                schema_version="1.1.0",
+                index=False,
+                write_covering_bbox=True,
+                geometry_encoding="WKB",  # We use this because duckdb can't open geoarrow as geometries
+            )
+        else:
+            sheet.to_parquet(path, index=False)
 
 
 def _create_resource(name) -> Resource:
     return Resource(
         name=name,
-        path="db.sqlite",
-        format="sqlite",
+        path=name + ".parquet",
         schema=Schema(
             fields=[Field(name=PRIMARY_KEY, type="integer")],
-            primaryKey=PRIMARY_KEY,
+            primaryKey=[PRIMARY_KEY],
         ),
     )
 
 
-def _parse_form(pkg, form, resource: Resource):
+def _parse_form(pkg: DataPackage, form, resource: Resource):
     _parse_questions(pkg, form["children"], resource)
-    pkg.resources.append(resource)
+    pkg.add_resource(resource)
 
 
 def _parse_questions(pkg, questions: List[Dict[str, Any]], resource: Resource):
+    schema = safe(resource, "schema")
     for question in questions:
         qtype = question["type"]
         if qtype in METADATA_TYPES + IGNORE_TYPES:
@@ -204,11 +221,12 @@ def _parse_questions(pkg, questions: List[Dict[str, Any]], resource: Resource):
             continue
         if qtype == "repeat":
             child_resource = _create_resource(question["name"].lower())
-            child_resource.schema.fields.append(Field(name="parent_id", type="integer"))
-            child_resource.schema.foreignKeys = [
+            schema = safe(child_resource, "schema")
+            schema.add_field(Field(name="parent_id", type="integer"))
+            schema.foreignKeys = [
                 ForeignKey(
                     fields=["parent_id"],
-                    reference=Reference(
+                    reference=ForeignKeyReference(
                         resource=resource.name,
                         fields=[PRIMARY_KEY],
                     ),
@@ -229,11 +247,11 @@ def _parse_questions(pkg, questions: List[Dict[str, Any]], resource: Resource):
                     constraints["required"] = bind["required"] == "true"
                 if "constraint" in bind:
                     constraint = constraint_parser.parse(bind["constraint"])
-                    constraints.update(constraint)
+                    constraints.update(constraint)  # type: ignore
             kwargs["constraints"] = constraints
             if "choices" in question:
                 kwargs["categories"] = [
                     dict(value=choice["name"], label=stringify(choice["label"]))
                     for choice in question["choices"]
                 ]
-            resource.schema.fields.append(Field(**kwargs))
+            schema.fields.append(Field(**kwargs))

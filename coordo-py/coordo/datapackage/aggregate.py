@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from lark import Lark, Transformer
 from pygeofilter.ast import AstType, Node
 from pygeofilter.backends.evaluator import Evaluator, handle
-from sqlalchemy import Float, Function, case, cast, func, text
+from sqlalchemy import Float, Function, Table, case, cast, func, text
 
 GRAMMAR = r"""
     ?start: expr
@@ -152,16 +152,16 @@ class SQLCompiler(Evaluator):
             case "/":
                 return lhs / cast(rhs, Float)
             case "*":
-                return lhs * rhs
+                return lhs * cast(rhs, Float)
 
     @handle(Column)
     def column(self, node):
         model = self.base_model
         var = None
         for part in node.parts:
-            var = getattr(model, part)
-            if hasattr(var.property, "direction"):
-                model = var.property.mapper.class_
+            var = model[part]
+            if isinstance(var, Table):
+                model = var.c
                 self.joins.append(var)
         return var
 
@@ -192,9 +192,11 @@ class SQLCompiler(Evaluator):
     @handle(Func)
     def func(self, node, *args):
         if node.name == "centroid":
-            return func.ST_Centroid(func.ST_Collect(args[0]))
+            return func.st_centroid(func.st_collect(func.array_agg(args[0])))
         if node.name == "unique":
             return args[0].distinct()
+        if node.name == "percentile":
+            return func.quantile_cont(args[0], args[1] / 100)
         return getattr(func, node.name)(*args)
 
     @handle(float)

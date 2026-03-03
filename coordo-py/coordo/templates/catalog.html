@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Catalog</title>
+  </head>
+  <body>
+    <h1>Catalog</h1>
+    <ul>
+      {% for package in packages %}
+      <li>{{ package.name }} ({{ package.resources|length }} resources)</li>
+      {% else %}
+      <li>No folders found.</li>
+      {% endfor %}
+    </ul>
+  </body>
+</html>
