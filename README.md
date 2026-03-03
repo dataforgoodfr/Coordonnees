@@ -1,4 +1,4 @@
-#  Coordonnées
+# Coordonnées
 
 #  System Dependencies
 
@@ -56,7 +56,9 @@ TODO
 
 ## Map server
 
-You can integrate coordo into any Python web framework 
+You can integrate coordo into any Python web framework.
+
+First create the map object :
 
 ```
 from coordo.map import Map
@@ -64,22 +66,51 @@ from coordo.map import Map
 map = Map.from_file(config_file)
 ```
 
+Then simply use the .handle_request(path, method, data) to integrate it in your server. Here are some examples :
+
 ### Flask
 
-```
+```py
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-@app.route("/maps/<path:path>")
-    def maps(path: str):
-        return jsonify(
-            map.handle_request(
-                path,
-                request.method,
-                request.get_json(),
-            )
+@app.route("/maps/<path:subpath>")
+def maps(subpath: str):
+    return jsonify(
+        map.handle_request(
+            subpath,
+            request.method,
+            request.get_json(),
         )
+    )
+```
+
+### Django
+
+```py
+# views.py
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+@csrf_exempt
+def my_map_view(request, subpath):
+    return JsonResponse(
+        map.handle_request(
+            subpath,
+            request.method,
+            json.loads(request.body),
+        )
+    )
+
+# urls.py
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('map/<path:subpath>/', views.map_view, name='map'),
+]
 ```
 
 # Install from other projects
@@ -87,11 +118,13 @@ app = Flask(__name__)
 This repo is still in very early stage so it is not yet published on registries, but you can still install the Python and Javascript packages with the following commands for testing
 
 Python
+
 ```
 pip install git+https://github.com/dataforgoodfr/Coordonnees.git#subdirectory=python
 ```
 
 Javascript
+
 ```
 npm install git+https://github.com/dataforgoodfr/Coordonnees.git
 ```
@@ -101,6 +134,7 @@ npm install git+https://github.com/dataforgoodfr/Coordonnees.git
 For development or to quickly test the library
 
 Install
+
 ```
 uv venv
 uv pip install -e coordo-py
@@ -108,12 +142,14 @@ make build
 ```
 
 Import data into catalog
+
 ```
 uv run coordo load kobotoolbox catalog/ data/20250213_Inventaire_ID_QuestionnaireK.xlsx data/20251017_Inventaire_ID_Donnees.xlsx
 uv run coordo load kobotoolbox catalog/ data/20240808_EnqueteMenage_CDF_QuestionnaireK.xlsx data/20241007_EnqueteMenage_CDF_Donnees.csv
 ```
 
 Serve a config file
+
 ```
 uv run coordo serve data/config.json
 ```

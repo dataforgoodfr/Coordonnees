@@ -192,11 +192,13 @@ class SQLCompiler(Evaluator):
     @handle(Func)
     def func(self, node, *args):
         if node.name == "centroid":
-            return func.st_centroid(func.st_collect(func.array_agg(args[0])))
+            return func.st_centroid(func.st_collect(func.list(args[0])))
         if node.name == "unique":
             return args[0].distinct()
         if node.name == "percentile":
             return func.quantile_cont(args[0], args[1] / 100)
+        if node.name == "shannon":
+            return func.ln(2) * func.list_entropy(func.list(args[0]))
         return getattr(func, node.name)(*args)
 
     @handle(float)

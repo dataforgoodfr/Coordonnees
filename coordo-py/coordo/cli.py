@@ -70,20 +70,7 @@ def kobotoolbox(
     xlsdata: Path,
     package: Path = typer.Option(help="Path to the package directory"),
 ):
-    if package.exists():
-        assert package.is_dir(), f"{package} is not a directory"
-    else:
-        package.mkdir(parents=True)
-    package = package / "datapackage.json"
-    if package.exists():
-        dp = DataPackage.from_path(package)
-        ok = typer.confirm(f"A package already exists at {package}. Continue ?")
-        if not ok:
-            raise typer.Abort()
-        print(f"Loading package from {package}")
-    else:
-        print(f"Creating new package at {package}")
-        dp = DataPackage(name=package.name, basepath=package.parent)
+    dp = DataPackage.from_path(package)
     loaders.kobotoolbox.load(dp, xlsform, xlsdata)
     dp.save()
 
@@ -92,9 +79,10 @@ def kobotoolbox(
 def file(
     path: Path,
     package: Path = typer.Option(help="Path to the package directory"),
-    # encoding: str = typer.Option(help="Encoding for text files"),
 ):
-    loaders.file.load(path)
+    dp = DataPackage.from_path(package)
+    loaders.file.load(dp, path)
+    dp.save()
 
 
 app.add_typer(load, name="load")

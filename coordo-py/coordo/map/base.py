@@ -16,9 +16,7 @@ class BaseConfig(BaseModel):
         return cls.model_validate(dic)
 
     @abstractmethod
-    def to_maplibre(
-        self, base_path: Path | None = None
-    ) -> tuple[Mapping[str, Source], Layer]:
+    def to_maplibre(self, base_path: Path) -> tuple[Mapping[str, Source], Layer]:
         pass
 
     def get_data(self, *, base_path: Path, filter: Filter | None = None):

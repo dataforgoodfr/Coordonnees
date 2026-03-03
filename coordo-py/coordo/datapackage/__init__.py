@@ -86,15 +86,22 @@ class DataPackage(BaseModel):
     basepath: Path = pydantic.Field(exclude=True)
 
     @classmethod
-    def from_path(cls, path: Path):
+    def from_path(cls, path: Path) -> "DataPackage":
+        if not path.exists():
+            path.mkdir(parents=True)
         if path.is_dir():
             path = path / "datapackage.json"
-        return cls.model_validate(
-            {
-                **json.loads(path.read_text()),
-                "basepath": path.parent,
-            }
-        )
+        if path.exists():
+            print(f"Loading package from {path}")
+            return cls.model_validate(
+                {
+                    **json.loads(path.read_text()),
+                    "basepath": path.parent,
+                }
+            )
+        else:
+            print(f"Creating new package at {path}")
+            return cls(name=path.name, basepath=path.parent)
 
     def save(self):
         for resource in self.resources:
@@ -138,7 +145,7 @@ class DataPackage(BaseModel):
         if not resource.data:
             p = handle_path(resource.path)  # type: ignore
             parsed = self.basepath / p
-            assert parsed.exists(), f"File {p} doesn't exist"
+            assert parsed.exists(), f"File {parsed} doesn't exist"
             if parsed.suffix == ".geojson":
                 # When loading a geojson into duckdb a geom field is automatically
                 # created so we add it there
@@ -179,7 +186,7 @@ class DataPackage(BaseModel):
         filter: Filter | None = None,
         groupby: list[str] | None = None,
         aggregate: dict[str, str] | None = None,
-    ) -> pd.DataFrame | gpd.GeoDataFrame:
+    ) -> pd.DataFrame:
         resource = self.get_resource(name=resource_name)
         schema = safe(resource, "schema")
 

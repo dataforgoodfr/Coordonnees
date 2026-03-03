@@ -1,5 +1,6 @@
 from typing import Literal
 
+from geojson.feature import FeatureCollection
 from geopandas.geodataframe import GeoDataFrame
 from pydantic import BaseModel
 from pygeofilter.ast import And
@@ -7,6 +8,7 @@ from pygeofilter.parsers.cql2_text import parse
 
 from coordo.datapackage import DataPackage
 
+from ..helpers import safe
 from .base import BaseConfig
 from .maplibre_style_spec_v8 import GeoJSONSource, Layer
 
@@ -25,13 +27,14 @@ class DataPackageLayer(BaseConfig):
     aggregate: dict[str, str] | None = None
     popup: Popup | None = None
 
-    def to_maplibre(self, base_path=None):
+    def to_maplibre(self, base_path):
         package = DataPackage.from_path(base_path / self.path)
         resource = package.get_resource(name=self.resource)
         source = GeoJSONSource(type="geojson", data=self.get_data(base_path=base_path))
-        schema = resource.get_schema()
         metadata = {
-            "schema": schema.model_dump(exclude_none=True, warnings="none"),
+            "schema": safe(resource, "schema").model_dump(
+                exclude_none=True, warnings="none"
+            ),
         }
         if self.popup:
             metadata.update(popup=self.popup.model_dump())
@@ -43,7 +46,7 @@ class DataPackageLayer(BaseConfig):
         }
         return {self.id: source}, layer
 
-    def get_data(self, *, base_path, filter=None) -> dict:
+    def get_data(self, *, base_path, filter=None) -> FeatureCollection:
         package = DataPackage.from_path(base_path / self.path)
         final_filter = None
         if self.filter:
