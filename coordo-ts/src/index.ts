@@ -4,12 +4,11 @@ import maplibregl, {
   type LayerSpecification,
   type Map as MapLibreMap,
   type MapLayerEventType,
-  type MapLayerMouseEvent,
-  type MapLayerTouchEvent,
   type StyleSpecification,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./index.css";
+import { makeSetLayerPopup } from "./layers/popup";
 
 type StyleMetaData = {
   controls: Array<{
@@ -158,17 +157,17 @@ export function createMap(
     layers.forEach((layer: LayerSpecification) => {
       const metadata = layer.metadata as LayerMetadata;
       if (metadata?.popup !== undefined) {
-        setLayerPopup(
-          layer.id,
-          metadata.popup.trigger as keyof MapLayerEventType,
-          (props: Record<string, string>) =>
+        setLayerPopup({
+          layerId: layer.id,
+          renderCallback: (props: Record<string, string>) =>
             metadata.popup?.html
               ? renderTemplate(
                   metadata.popup?.html ?? "<h1>Undefined</h1>",
                   props,
                 )
               : JSON.stringify(props, null, 2),
-        );
+          trigger: metadata.popup.trigger as keyof MapLayerEventType,
+        });
       }
     });
 
@@ -213,53 +212,7 @@ export function createMap(
     return map.getLayer(layerId)?.metadata;
   }
 
-  const popupRemovers: { [key: string]: () => void } = {};
-  function setLayerPopup(
-    layerId: string,
-    trigger: keyof MapLayerEventType,
-    callback: (properties: Record<string, string>) => HTMLElement | string,
-  ) {
-    if (layerId in popupRemovers) {
-      popupRemovers[layerId]?.();
-      delete popupRemovers[layerId];
-    }
-    const onTrigger = (ev: MapLayerMouseEvent | MapLayerTouchEvent) => {
-      const geometry = ev.features?.[0]?.geometry;
-      const properties = ev.features?.[0]?.properties;
-      if (geometry && properties) {
-        // TODO removethis "any"
-        const coordinates = (geometry as any).coordinates.slice();
-        const popup = new maplibregl.Popup().setLngLat(coordinates);
-        const content = callback(properties);
-        if (typeof content === "string") {
-          popup.setHTML(content);
-        } else {
-          popup.setDOMContent(content);
-        }
-        popup.addTo(map);
-      }
-    };
-    const onMouseEnter = () => {
-      map.getCanvas().style.cursor = "pointer";
-    };
-    const onMouseLeave = () => {
-      map.getCanvas().style.cursor = "";
-    };
-
-    map.on(trigger, layerId, onTrigger);
-    if (trigger.includes("click")) {
-      map.on("mouseenter", layerId, onMouseEnter);
-      map.on("mouseleave", layerId, onMouseLeave);
-    }
-    const removeListeners = () => {
-      map.off(trigger, layerId, onTrigger);
-      if (trigger.includes("click")) {
-        map.off("mouseenter", layerId, onMouseEnter);
-        map.off("mouseleave", layerId, onMouseLeave);
-      }
-    };
-    popupRemovers[layerId] = removeListeners;
-  }
+  const setLayerPopup = makeSetLayerPopup(map);
 
   function getZoom() {
     return map.getZoom();
