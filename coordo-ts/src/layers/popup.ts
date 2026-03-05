@@ -1,6 +1,6 @@
 import { Popup } from "maplibre-gl";
 import type {
-  Map,
+  Map as MapLibreMap,
   MapLayerEventType,
   PopupOptions,
   MapLayerMouseEvent,
@@ -14,7 +14,7 @@ export type SetLayerPopup<T> = {
   popupConfig?: PopupOptions;
 };
 
-export function makeSetLayerPopup(map: Map) {
+export function makeSetLayerPopup(map: MapLibreMap) {
   /**
    * When setLayerPopup is called for a layer that has already
    * a click listener, we need to remove it before setting the new one
