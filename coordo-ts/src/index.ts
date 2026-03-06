@@ -161,9 +161,9 @@ export function createMap(
           renderCallback: (props: Record<string, string>) =>
             metadata.popup?.html
               ? renderTemplate(
-                metadata.popup?.html ?? "<h1>Undefined</h1>",
-                props,
-              )
+                  metadata.popup?.html ?? "<h1>Undefined</h1>",
+                  props,
+                )
               : JSON.stringify(props, null, 2),
           trigger: metadata.popup.trigger as keyof MapLayerEventType,
         });
