@@ -177,8 +177,8 @@ def load(package: DataPackage, xlsform: Path, xlsdata: Path):
         sheet = sheet[fields]
         sheet = sheet.replace({np.nan: None})
         path = Path(package.basepath, table_name + ".parquet")
-        if any(f.type == "geojson" for f in schema.fields):
-            geo_cols = [f.name for f in schema.fields if f.type == "geojson"]
+        geo_cols = [f.name for f in schema.fields if f.type == "geojson"]
+        if geo_cols:
             gdf = gpd.GeoDataFrame(
                 sheet, geometry=geo_cols[0] if geo_cols else None, crs="EPSG:4326"
             )

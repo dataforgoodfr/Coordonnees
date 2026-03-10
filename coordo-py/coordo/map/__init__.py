@@ -3,26 +3,16 @@ from pathlib import Path
 from typing import Any
 
 from geojson.feature import FeatureCollection
-from pydantic import BaseModel, TypeAdapter
+from pydantic import BaseModel
 from pygeofilter.parsers.cql2_json import parse as parse_cql2
 
-from .datapackage import DataPackageLayer
+from .base import BaseLayerModel
 from .maplibre_style_spec_v8 import Layer, Source, Style
-from .openmaptiles import OpenMapTilesLayer
-from .xyzservices import XYZServicesLayer
-
-LayerUnion = DataPackageLayer | OpenMapTilesLayer | XYZServicesLayer
-
-adapter = TypeAdapter(LayerUnion)
-
-
-def LayerConfig(**kwargs):
-    return adapter.validate_python(kwargs)
 
 
 class Map(BaseModel):
     title: str | None = None
-    layers: list[LayerUnion]
+    layers: list[BaseLayerModel]
     controls: list[Any]
 
     _base_path: Path | None = None
@@ -34,8 +24,10 @@ class Map(BaseModel):
     def handle_request(self, method: str, path: str, json: dict):
         if method.lower() == "get":
             return self.get_maplibre_style()
-        else:
+        elif method.lower() == "post":
             return self.get_layer_data(path, json)
+        else:
+            raise ValueError(f"Method {method.lower()} not supported.")
 
     @classmethod
     def from_file(cls, config_path: str | Path):

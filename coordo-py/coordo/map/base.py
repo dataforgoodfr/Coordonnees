@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from pathlib import Path
 from typing import Mapping
 
@@ -8,7 +7,7 @@ from pygeofilter.ast import AstType as Filter
 from .maplibre_style_spec_v8 import Layer, Source
 
 
-class BaseConfig(BaseModel):
+class BaseLayerModel(BaseModel):
     id: str
 
     @classmethod

@@ -17,7 +17,6 @@ from dplib.models import (
     Source,
 )
 from dplib.models.dialect.dialect import Dialect
-from dplib.models.field.datatypes.geojson import GeojsonField
 from dplib.plugins.sql.models import SqlSchema
 from pydantic import BaseModel, TypeAdapter
 from pygeofilter.ast import AstType as Filter
@@ -146,10 +145,6 @@ class DataPackage(BaseModel):
             p = handle_path(resource.path)  # type: ignore
             parsed = self.basepath / p
             assert parsed.exists(), f"File {parsed} doesn't exist"
-            if parsed.suffix == ".geojson":
-                # When loading a geojson into duckdb a geom field is automatically
-                # created so we add it there
-                safe(resource, "schema").fields.append(GeojsonField(name="geom"))
         return resource
 
     def add_foreignkey(self, resource_name: str, fk: ForeignKey) -> None:
@@ -189,8 +184,13 @@ class DataPackage(BaseModel):
     ) -> pd.DataFrame:
         resource = self.get_resource(name=resource_name)
         schema = safe(resource, "schema")
-
         resources_to_load: List[Resource] = [resource]
+
+        primary_keys = (
+            schema.primaryKey
+            if isinstance(schema.primaryKey, list)
+            else [schema.primaryKey]
+        )
 
         reverse_fks = {}
         for res in self.resources:
@@ -205,9 +205,9 @@ class DataPackage(BaseModel):
                             for from_, to in zip(fk.fields, fk.reference.fields)
                         }
                         resources_to_load.append(res)
+
         fks = []
         for fk in schema.foreignKeys:
-            reverse_fks = {}
             if fk.reference.resource:
                 res = self.get_resource(name=fk.reference.resource)
                 fks.append(res.name)
@@ -216,6 +216,7 @@ class DataPackage(BaseModel):
                 fks.append(resource.name)
 
         conn = duckdb.connect()
+        conn.install_extension("SPATIAL")
         conn.load_extension("SPATIAL")
         conn.sql("CALL register_geoarrow_extensions()")
 
@@ -237,7 +238,9 @@ class DataPackage(BaseModel):
                     conn.execute(
                         f'CREATE TABLE "{table_name}" AS SELECT * FROM "{path}"'
                     )
+
         table = metadata.tables[resource_name]
+
         field_map = {}
         for col in table.c:
             field_map[col.name] = col
@@ -249,18 +252,17 @@ class DataPackage(BaseModel):
                 field_map[tbl] = metadata.tables[tbl].alias()
             else:
                 field_map[tbl] = metadata.tables[tbl]
+
         query = sa.select(table)
+
         if filter:
             query = query.filter(to_filter(filter, field_map))
-        primary_keys = (
-            schema.primaryKey
-            if isinstance(schema.primaryKey, list)
-            else [schema.primaryKey]
-        )
+
         group_cols = {pk: field_map[pk] for pk in primary_keys}
         if groupby:
             group_cols = {col: field_map[col] for col in groupby}
             query = query.group_by(*group_cols.values())
+
         if aggregate:
             agg_cols = []
             joins = set()
@@ -311,6 +313,7 @@ class DataPackage(BaseModel):
                         )
                     ),
                 )
+
         query_str = str(query.compile(compile_kwargs={"literal_binds": True}))
         relation = conn.sql(query_str)
         if any(col[1] == "GEOMETRY" for col in relation.description):
