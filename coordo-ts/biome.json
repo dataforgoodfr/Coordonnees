@@ -7,15 +7,8 @@
           "level": "on",
           "options": {
             "groups": [
-              [
-                "builtin",
-                "external"
-              ],
-              [
-                "parent",
-                "sibling",
-                "index"
-              ]
+              ["builtin", "external"],
+              ["parent", "sibling", "index"]
             ]
           }
         },
@@ -27,9 +20,7 @@
       }
     },
     "enabled": true,
-    "includes": [
-      "!package.json"
-    ]
+    "includes": ["!package.json"]
   },
   "files": {
     "ignoreUnknown": false
@@ -63,19 +54,33 @@
     "enabled": true,
     "rules": {
       "a11y": "info",
-      "complexity": "on",
+      "complexity": {
+        "noExcessiveLinesPerFunction": {
+          "level": "info",
+          "options": {
+            "maxLines": 100
+          }
+        }
+      },
       "correctness": {
-        "useQwikValidLexicalScope": "warn"
+        "useQwikValidLexicalScope": "off"
       },
       "nursery": {
-        "useExplicitType": "warn"
+        "useExplicitType": "off"
       },
       "performance": {
         "noBarrelFile": "off"
       },
       "recommended": true,
       "security": "on",
-      "style": "on",
+      "style": {
+        "useConsistentTypeDefinitions": {
+          "level": "info",
+          "options": {
+            "style": "type"
+          }
+        }
+      },
       "suspicious": {
         "noConsole": "info"
       }
