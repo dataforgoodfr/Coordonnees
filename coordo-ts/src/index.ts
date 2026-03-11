@@ -8,20 +8,15 @@ import maplibregl, {
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./index.css";
+import type { LayerMetadata } from "./types";
 import { makeSetLayerPopup } from "./layers/popup";
+import { makeSetLayerFilters } from "./layers/filters";
 
 type StyleMetaData = {
   controls: Array<{
     type: string;
     position: ControlPosition;
   }>;
-};
-type LayerMetadata = {
-  popup?: {
-    trigger: string;
-    html?: string;
-  };
-  url?: string;
 };
 
 const DEFAULT_MAP_OPTIONS: Partial<maplibregl.MapOptions> = {
@@ -161,9 +156,9 @@ export function createMap(
           renderCallback: (props: Record<string, string>) =>
             metadata.popup?.html
               ? renderTemplate(
-                  metadata.popup?.html ?? "<h1>Undefined</h1>",
-                  props,
-                )
+                metadata.popup?.html ?? "<h1>Undefined</h1>",
+                props,
+              )
               : JSON.stringify(props, null, 2),
           trigger: metadata.popup.trigger as keyof MapLayerEventType,
         });
@@ -175,28 +170,6 @@ export function createMap(
 
   function init() {
     el.dispatchEvent(new CustomEvent("map:ready"));
-  }
-
-  async function setLayerFilters(layerId: string, filters: any) {
-    const layer = map.getLayer(layerId);
-    if (layer === undefined) {
-      throw new Error(`Layer ${layerId} doesn't exist.`);
-    }
-    let dataUrl = (layer.metadata as LayerMetadata).url;
-    if (!dataUrl) {
-      throw new Error(`Layer ${layer.id} can't be filtered.`);
-    }
-    if (!dataUrl.startsWith("http")) {
-      dataUrl = new URL(dataUrl, baseUrl).toString();
-    }
-    const source = map.getSource(layer?.source);
-    const res = await fetch(dataUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(filters),
-    });
-    const data = await res.json();
-    (source as GeoJSONSource).setData(data);
   }
 
   function hideLayer(layerId: string) {
@@ -211,7 +184,9 @@ export function createMap(
     return map.getLayer(layerId)?.metadata;
   }
 
-  const setLayerPopup = makeSetLayerPopup(map);
+  const setLayerFilters = makeSetLayerFilters({ map, baseUrl });
+
+  const setLayerPopup = makeSetLayerPopup({ map });
 
   function getZoom() {
     return map.getZoom();
