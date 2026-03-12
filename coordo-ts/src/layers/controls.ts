@@ -1,10 +1,10 @@
-import type { Map as MapLibreMap, LayerSpecification } from "maplibre-gl";
+import type { LayerSpecification, Map as MapLibreMap } from "maplibre-gl";
 
 export const CONTROLS = {
   COMPASS: "compass",
-  ZOOM: "zoom",
   LAYER: "layer",
   SCALE: "scale",
+  ZOOM: "zoom",
 } as const;
 
 export type ControlKind = (typeof CONTROLS)[keyof typeof CONTROLS];

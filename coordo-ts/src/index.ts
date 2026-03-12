@@ -1,13 +1,16 @@
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+
 import "./index.css";
-import { makeSetLayerPopup } from "./layers/popup";
+
+import { LAYER_VISIBILITY } from "./layers/controls";
 import { makeSetLayerFilters } from "./layers/filters";
+import { makeSetLayerPopup } from "./layers/popup";
 import { addStyleDataListener } from "./map/style-data";
 
 const DEFAULT_MAP_OPTIONS: Partial<maplibregl.MapOptions> = {
-  zoom: 1,
   center: [0, 0],
+  zoom: 1,
 };
 
 export function createMap(
@@ -20,7 +23,10 @@ export function createMap(
       ? (document.querySelector(target) as HTMLElement)
       : target;
 
-  if (!el) throw new Error("Map target not found");
+  if (!el) {
+    throw new Error("[CREATE] Map target not found");
+  }
+
   const baseUrl = styleUrl.startsWith("http")
     ? new URL(styleUrl).origin
     : window.location.href;
@@ -28,27 +34,23 @@ export function createMap(
   const mergedOptions = { ...DEFAULT_MAP_OPTIONS, ...options };
 
   const map = new maplibregl.Map({
+    center: mergedOptions.center,
     container: el,
     style: styleUrl,
-    center: mergedOptions.center,
     zoom: mergedOptions.zoom,
   });
 
   function hideLayer(layerId: string) {
-    map.setLayoutProperty(layerId, "visibility", "none");
+    map.setLayoutProperty(layerId, "visibility", LAYER_VISIBILITY.NONE);
   }
 
   function showLayer(layerId: string) {
-    map.setLayoutProperty(layerId, "visibility", "visible");
+    map.setLayoutProperty(layerId, "visibility", LAYER_VISIBILITY.VISIBLE);
   }
 
   function getLayerMetadata(layerId: string) {
     return map.getLayer(layerId)?.metadata;
   }
-
-  const setLayerFilters = makeSetLayerFilters({ map, baseUrl });
-
-  const setLayerPopup = makeSetLayerPopup({ map });
 
   function getZoom() {
     return map.getZoom();
@@ -58,6 +60,10 @@ export function createMap(
     return map.getCenter().toArray();
   }
 
+  const setLayerFilters = makeSetLayerFilters({ baseUrl, map });
+
+  const setLayerPopup = makeSetLayerPopup({ map });
+
   function addEventListener<T extends keyof maplibregl.MapEventType>(
     type: T,
     listener: (ev: maplibregl.MapEventType[T] & Object) => void,
@@ -66,20 +72,20 @@ export function createMap(
   }
 
   addStyleDataListener({
-    map,
     el,
+    map,
     setLayerPopup,
   });
 
   return {
-    mapInstance: map,
-    hideLayer,
-    showLayer,
-    setLayerFilters,
-    getLayerMetadata,
-    setLayerPopup,
-    getZoom,
-    getCenter,
     addEventListener,
+    getCenter,
+    getLayerMetadata,
+    getZoom,
+    hideLayer,
+    mapInstance: map,
+    setLayerFilters,
+    setLayerPopup,
+    showLayer,
   };
 }

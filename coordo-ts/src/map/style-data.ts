@@ -1,15 +1,15 @@
 import type {
-  Map as MapLibreMap,
-  MapLayerEventType,
-  StyleSpecification,
   ControlPosition,
   LayerSpecification,
+  MapLayerEventType,
+  Map as MapLibreMap,
+  StyleSpecification,
 } from "maplibre-gl";
 import { NavigationControl, ScaleControl } from "maplibre-gl";
 
 import { CONTROLS, LayerControl } from "../layers/controls";
-import type { LayerMetadata } from "../types";
 import type { SetLayerPopupParams } from "../layers/popup";
+import type { LayerMetadata } from "../types";
 
 export type StyleMetaData = {
   controls: Array<{
@@ -106,8 +106,8 @@ export function addStyleDataListener({
   });
 
   return {
-    style,
     controlsAdded,
     init,
+    style,
   };
 }

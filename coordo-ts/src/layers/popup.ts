@@ -1,11 +1,11 @@
-import { Popup } from "maplibre-gl";
 import type {
-  Map as MapLibreMap,
   MapLayerEventType,
-  PopupOptions,
   MapLayerMouseEvent,
   MapLayerTouchEvent,
+  Map as MapLibreMap,
+  PopupOptions,
 } from "maplibre-gl";
+import { Popup } from "maplibre-gl";
 
 export type SetLayerPopupParams<T> = {
   layerId: string;

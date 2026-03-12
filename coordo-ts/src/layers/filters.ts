@@ -1,4 +1,5 @@
-import type { Map as MapLibreMap, GeoJSONSource } from "maplibre-gl";
+import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
+
 import type { LayerMetadata } from "../types";
 
 export type SetLayerFiltersParams<T> = {
@@ -52,9 +53,9 @@ export function makeSetLayerFilters({
 
     // Fetch data based on filters
     const res = await fetch(dataUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(filters),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
     });
     const data = await res.json();
 
