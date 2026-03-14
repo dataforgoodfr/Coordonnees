@@ -1,9 +1,11 @@
 from dataclasses import dataclass, field
 
+import sqlalchemy.sql.visitors
 from lark import Lark, Transformer
 from pygeofilter.ast import AstType, Node
 from pygeofilter.backends.evaluator import Evaluator, handle
 from sqlalchemy import Float, Function, Table, case, cast, func, text
+from sqlalchemy.sql import visitors
 
 GRAMMAR = r"""
     ?start: expr
@@ -137,10 +139,9 @@ class AggregateTransformer(Transformer):
 
 
 class SQLCompiler(Evaluator):
-    def __init__(self, base_model):
-        self.base_model = base_model
-        self.joins = []
-        self.subqueries = []
+    def __init__(self, field_map):
+        self.field_map = field_map
+        self.aggregates = []
 
     @handle(Arithmetic)
     def arithmetic(self, node, lhs, rhs):
@@ -156,19 +157,16 @@ class SQLCompiler(Evaluator):
 
     @handle(Column)
     def column(self, node):
-        model = self.base_model
+        mapping = self.field_map
         var = None
         for part in node.parts:
-            var = model[part]
+            var = mapping[part]
             if isinstance(var, Table):
-                model = var.c
-                self.joins.append(var)
+                mapping = var.columns
         return var
 
     @handle(Comparison)
     def comparison(self, node, lhs, rhs):
-        if isinstance(rhs, Function):
-            self.subqueries.append(rhs)
         match node.op:
             case "<":
                 return lhs < rhs
@@ -191,15 +189,19 @@ class SQLCompiler(Evaluator):
 
     @handle(Func)
     def func(self, node, *args):
-        if node.name == "centroid":
-            return func.st_centroid(func.st_collect(func.list(args[0])))
         if node.name == "unique":
             return args[0].distinct()
-        if node.name == "percentile":
-            return func.quantile_cont(args[0], args[1] / 100)
-        if node.name == "shannon":
-            return func.ln(2) * func.list_entropy(func.list(args[0]))
-        return getattr(func, node.name)(*args)
+        else:
+            if node.name == "centroid":
+                expr = func.st_centroid(func.st_collect(func.list(args[0])))
+            elif node.name == "percentile":
+                expr = func.quantile_cont(args[0], args[1] / 100)
+            elif node.name == "shannon":
+                expr = func.ln(2) * func.list_entropy(func.list(args[0]))
+            else:
+                expr = getattr(func, node.name)(*args)
+            expr.is_aggregate = True  # type: ignore
+            return expr
 
     @handle(float)
     def float(self, node):
@@ -214,4 +216,4 @@ def parse(text: str, model):
     expr = Lark(GRAMMAR, parser="lalr", transformer=AggregateTransformer()).parse(text)
     compiler = SQLCompiler(model)
     query = compiler.evaluate(expr)
-    return query, compiler.joins, compiler.subqueries
+    return query, compiler.aggregates

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import typer
+from dplib.models.schema.foreignKey import ForeignKey, ForeignKeyReference
 
 from coordo import loaders
 from coordo.datapackage import DataPackage
@@ -86,3 +87,25 @@ def file(
 
 
 app.add_typer(load, name="load")
+
+
+@app.command()
+def add_foreignkey(
+    from_: str,
+    to: str,
+    package: Path = typer.Option(help="Path to the package directory"),
+):
+    dp = DataPackage.from_path(package)
+    resource, field = from_.split(".")
+    foreign_resource, foreign_field = to.split(".")
+    dp.add_foreignkey(
+        resource,
+        ForeignKey(
+            fields=[field],
+            reference=ForeignKeyReference(
+                fields=[foreign_field],
+                resource=None if resource == foreign_resource else foreign_resource,
+            ),
+        ),
+    )
+    dp.save()

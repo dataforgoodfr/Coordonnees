@@ -9,6 +9,8 @@ DUCK_TO_DP_FIELDS = {
     "INTEGER": "integer",
     "VARCHAR": "string",
     "GEOMETRY": "geojson",
+    "BIGINT": "integer",
+    "DOUBLE": "number",
 }
 
 

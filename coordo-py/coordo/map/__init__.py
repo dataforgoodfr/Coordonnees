@@ -1,18 +1,24 @@
 import json
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 from geojson.feature import FeatureCollection
-from pydantic import BaseModel
+from pydantic import BaseModel, Discriminator
 from pygeofilter.parsers.cql2_json import parse as parse_cql2
 
-from .base import BaseLayerModel
+from .datapackage import DataPackageLayer
 from .maplibre_style_spec_v8 import Layer, Source, Style
+from .openmaptiles import OpenMapTilesLayer
+from .xyzservices import XYZServicesLayer
+
+LayerModel = Annotated[
+    DataPackageLayer | OpenMapTilesLayer | XYZServicesLayer, Discriminator("type")
+]
 
 
 class Map(BaseModel):
     title: str | None = None
-    layers: list[BaseLayerModel]
+    layers: list[LayerModel]
     controls: list[Any]
 
     _base_path: Path | None = None

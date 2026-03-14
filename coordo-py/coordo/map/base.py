@@ -9,6 +9,7 @@ from .maplibre_style_spec_v8 import Layer, Source
 
 class BaseLayerModel(BaseModel):
     id: str
+    type: str
 
     @classmethod
     def from_dict(cls, dic):

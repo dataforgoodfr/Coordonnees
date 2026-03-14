@@ -10,7 +10,7 @@ from pygeofilter.parsers.cql2_text import parse
 from coordo.datapackage import DataPackage
 
 from ..helpers import safe
-from .base import BaseConfig
+from .base import BaseLayerModel
 from .maplibre_style_spec_v8 import GeoJSONSource, Layer
 
 
@@ -19,7 +19,7 @@ class Popup(BaseModel):
     html: str | None = None
 
 
-class DataPackageLayer(BaseConfig):
+class DataPackageLayer(BaseLayerModel):
     type: Literal["datapackage"]
     path: str
     resource: str

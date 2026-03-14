@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterable, List, Optional, Union
 
@@ -23,7 +24,7 @@ from pygeofilter.ast import AstType as Filter
 from pygeofilter.backends.sqlalchemy import to_filter
 from sqlalchemy.sql import visitors
 
-from ..helpers import safe
+from ..helpers import StrictDict, safe
 from .aggregate import parse
 
 field_adapter = TypeAdapter(models.IField)
@@ -175,24 +176,23 @@ class DataPackage(BaseModel):
         # resource = self.get_resource(name=resource_name)
         # schema = resource.get_schema()
 
-    def read_resource(
+    def load_resource(
         self,
-        resource_name: str,
-        filter: Filter | None = None,
-        groupby: list[str] | None = None,
-        aggregate: dict[str, str] | None = None,
-    ) -> pd.DataFrame:
-        resource = self.get_resource(name=resource_name)
-        schema = safe(resource, "schema")
-        resources_to_load: List[Resource] = [resource]
+        conn: duckdb.DuckDBPyConnection,
+        metadata: sa.MetaData,
+        resource: Resource | str,
+    ):
+        if isinstance(resource, str):
+            resource = self.get_resource(resource)
 
-        primary_keys = (
-            schema.primaryKey
-            if isinstance(schema.primaryKey, list)
-            else [schema.primaryKey]
-        )
+        if resource.name in metadata.tables:
+            return
 
-        reverse_fks = {}
+        SqlSchema.from_dp(
+            safe(resource, "schema"),
+            table_name=resource.name,
+        ).table.to_metadata(metadata)
+
         for res in self.resources:
             if res is resource:
                 continue
@@ -200,121 +200,172 @@ class DataPackage(BaseModel):
             if sm.foreignKeys:
                 for fk in sm.foreignKeys:
                     if fk.reference.resource == resource.name:
-                        reverse_fks[res.name] = {
-                            from_: to
-                            for from_, to in zip(fk.fields, fk.reference.fields)
-                        }
-                        resources_to_load.append(res)
+                        self.load_resource(conn, metadata, res)
 
-        fks = []
+        schema = safe(resource, "schema")
         for fk in schema.foreignKeys:
             if fk.reference.resource:
-                res = self.get_resource(name=fk.reference.resource)
-                fks.append(res.name)
-                resources_to_load.append(res)
-            else:
-                fks.append(resource.name)
+                self.load_resource(conn, metadata, fk.reference.resource)
 
+        path = self.basepath / safe(resource, "path")
+        parsed = Path(path)
+        if parsed.suffix == ".geojson":
+            conn.execute(
+                f'CREATE TABLE "{resource.name}" AS SELECT * FROM ST_Read("{path}")'
+            )
+        else:
+            conn.execute(f'CREATE TABLE "{resource.name}" AS SELECT * FROM "{path}"')
+
+    def read_resource(
+        self,
+        resource_name: str,
+        filter: Filter | None = None,
+        groupby: list[str] | None = None,
+        aggregate: dict[str, str] | None = None,
+    ) -> pd.DataFrame:
         conn = duckdb.connect()
         conn.install_extension("SPATIAL")
         conn.load_extension("SPATIAL")
         conn.sql("CALL register_geoarrow_extensions()")
-
         metadata = sa.MetaData()
-        for res in resources_to_load:
-            SqlSchema.from_dp(
-                safe(res, "schema"),
-                table_name=res.name,
-            ).table.to_metadata(metadata)
-            path = self.basepath / safe(res, "path")
-            if path:
-                parsed = Path(path)
-                table_name = parsed.stem
-                if parsed.suffix == ".geojson":
-                    conn.execute(
-                        f'CREATE TABLE "{table_name}" AS SELECT * FROM ST_Read("{path}")'
-                    )
-                else:
-                    conn.execute(
-                        f'CREATE TABLE "{table_name}" AS SELECT * FROM "{path}"'
-                    )
+        self.load_resource(conn, metadata, resource_name)
 
         table = metadata.tables[resource_name]
-
-        field_map = {}
-        for col in table.c:
+        field_map = StrictDict()
+        for col in table.columns:
             field_map[col.name] = col
-        for tbl in reverse_fks:
-            field_map[tbl] = metadata.tables[tbl]
-        for tbl in fks:
+        for tbl in metadata.tables.values():
+            for fk in tbl.foreign_keys:
+                if fk.column.table == table:
+                    field_map[tbl.name] = tbl
+        for fk in table.foreign_keys:
+            tbl = fk.column.table
             if table == tbl:
-                # if self-referencing we must alias it
-                field_map[tbl] = metadata.tables[tbl].alias()
+                field_map[tbl] = tbl.alias()
             else:
-                field_map[tbl] = metadata.tables[tbl]
+                field_map[tbl] = tbl
 
-        query = sa.select(table)
+        def get_join(expr):
+            if not hasattr(expr, "froms"):
+                expr = sa.select(expr)
+            joins = [
+                tbl
+                for tbl in expr.froms
+                if tbl != table and tbl in metadata.tables.values()
+            ]
 
-        if filter:
-            query = query.filter(to_filter(filter, field_map))
+            assert len(joins) < 2, "You can't join to more than one table"
 
-        group_cols = {pk: field_map[pk] for pk in primary_keys}
-        if groupby:
-            group_cols = {col: field_map[col] for col in groupby}
-            query = query.group_by(*group_cols.values())
+            if joins:
+                return joins[0]
 
-        if aggregate:
-            agg_cols = []
-            joins = set()
-            subqueries = []
-            for alias, agg in aggregate.items():
-                agg_query, agg_joins, agg_subqueries = parse(agg, field_map)
-                agg_cols.append(agg_query.label(alias))
-                joins.update(agg_joins)
-                for subq in agg_subqueries:
-                    if any(q.compare(subq) for q in subqueries):
-                        # deduplicating subqueries
-                        continue
-                    subqueries.append(subq)
-            query = query.with_only_columns(
-                *group_cols.values(),
-                *agg_cols,
-            )
-            for join in joins:
-                query = query.join(
-                    join,
-                    isouter=True,
-                )
-            if subqueries:
-                subquery = sa.select(
-                    *group_cols.values(),
-                    *subqueries,
-                ).group_by(*group_cols.values())
-                for join in joins:
-                    subquery = subquery.join(join, isouter=True)
-                subquery = subquery.subquery()
+        def get_nested_aggregates(node, is_nested=False):
+            found = []
+            is_agg = getattr(node, "is_aggregate", False)
+            if is_agg and is_nested:
+                found.append(node)
+            for child in node.get_children():
+                found.extend(get_nested_aggregates(child, is_nested or is_agg))
+            return found
 
-                def replacer(node):
-                    for subq in subqueries:
-                        # There is sometimes an error I can't manage to resolve...
-                        try:
-                            if subq.compare(node):
-                                return subquery.c[subq.name]
-                        except Exception:
-                            pass
-
-                query = visitors.replacement_traverse(query, {}, replacer)  # type: ignore
+        def join_subqueries(query, subqueries):
+            for subquery in subqueries:
                 query = query.join(
                     subquery,
                     sa.and_(
                         *(
-                            col == getattr(subquery.c, col_name)
-                            for col_name, col in group_cols.items()
+                            getattr(table.columns, col_name)
+                            == getattr(subquery.columns, col_name)
+                            for col_name in group_cols.keys()
                         )
                     ),
                 )
+            return query
+
+        group_cols = (
+            {col: field_map[col] for col in groupby}
+            if groupby
+            else table.primary_key.columns
+        )
+
+        query = sa.select(
+            *group_cols.values(),
+            table,
+        )
+
+        if filter:
+            query = query.filter(to_filter(filter, table.columns))
+
+        query = query.group_by(*group_cols.values())
+
+        if aggregate:
+            cols = []
+            join_buckets = defaultdict(list)
+
+            for alias, agg in aggregate.items():
+                expr, _ = parse(agg, field_map)
+
+                nested_aggregates = get_nested_aggregates(expr)
+
+                subqueries = []
+                for agg in nested_aggregates:
+                    subquery = query.with_only_columns(*group_cols.values(), agg)
+
+                    join = get_join(subquery)
+                    if join is not None:
+                        subquery = subquery.outerjoin(join)
+
+                    subquery = subquery.subquery()
+
+                    def replacer(node):
+                        # There is sometimes an error I can't manage to resolve...
+                        try:
+                            if agg.compare(node):
+                                return subquery.columns[agg.name]
+                        except Exception:
+                            pass
+
+                    expr = visitors.replacement_traverse(expr, {}, replacer)  # type: ignore
+
+                    subqueries.append(subquery)
+
+                join = get_join(expr)
+                join_buckets[join].append((alias, expr, subqueries))
+
+            for join, expr_list in join_buckets.items():
+                if join is not None:
+                    cte_columns = list(group_cols.values())
+                    for alias, expr, _ in expr_list:
+                        cte_columns.append(expr.label(alias))
+                    cte = query.with_only_columns(*cte_columns)
+                    cte = cte.outerjoin(join)
+                    for _, _, subqueries in expr_list:
+                        cte = join_subqueries(cte, subqueries)
+                    cte = cte.cte(f"{join}_aggregates")
+                    query = query.join(
+                        cte,
+                        sa.and_(
+                            *(
+                                col == cte.columns[col_name]
+                                for col_name, col in group_cols.items()
+                            )
+                        ),
+                    )
+
+                    for alias, _, _ in expr_list:
+                        cols.append(sa.func.any_value(cte.columns[alias]).label(alias))
+                else:
+                    for alias, expr, subqueries in expr_list:
+                        cols.append(expr.label(alias))
+                        query = join_subqueries(query, subqueries)
+
+            query = query.with_only_columns(
+                *group_cols.values(),
+                *cols,
+            )
 
         query_str = str(query.compile(compile_kwargs={"literal_binds": True}))
+        print(query_str)
         relation = conn.sql(query_str)
         if any(col[1] == "GEOMETRY" for col in relation.description):
             out = gpd.GeoDataFrame.from_arrow(relation)
