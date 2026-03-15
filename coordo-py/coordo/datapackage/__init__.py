@@ -49,6 +49,23 @@ def handle_path(path: str | list[str]) -> str:
     return path
 
 
+def get_nested_aggregates(node, is_nested=False):
+    found = []
+    is_agg = hasattr(node, "name") and node.name in [
+        "sum",
+        "avg",
+        "max",
+        "min",
+        "list",
+        "quantile_cont",
+    ]
+    if is_agg and is_nested:
+        found.append(node)
+    for child in node.get_children():
+        found.extend(get_nested_aggregates(child, is_nested or is_agg))
+    return found
+
+
 class Resource(BaseModel):
     name: str
     type: Optional[str] = None
@@ -246,9 +263,9 @@ class DataPackage(BaseModel):
         for fk in table.foreign_keys:
             tbl = fk.column.table
             if table == tbl:
-                field_map[tbl] = tbl.alias()
+                field_map[tbl.name] = tbl.alias()
             else:
-                field_map[tbl] = tbl
+                field_map[tbl.name] = tbl
 
         def get_join(expr):
             if not hasattr(expr, "froms"):
@@ -263,22 +280,6 @@ class DataPackage(BaseModel):
 
             if joins:
                 return joins[0]
-
-        def get_nested_aggregates(node, is_nested=False):
-            found = []
-            is_agg = hasattr(node, "name") and node.name in [
-                "sum",
-                "avg",
-                "max",
-                "min",
-                "list",
-                "quantile_cont",
-            ]
-            if is_agg and is_nested:
-                found.append(node)
-            for child in node.get_children():
-                found.extend(get_nested_aggregates(child, is_nested or is_agg))
-            return found
 
         def join_subqueries(query, subqueries):
             for subquery in subqueries:
