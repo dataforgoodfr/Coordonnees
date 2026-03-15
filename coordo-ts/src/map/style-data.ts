@@ -24,19 +24,15 @@ function renderTemplate(html: string, vars: Record<string, string>) {
 
 export function addStyleDataListener({
   map,
-  el,
   setLayerPopup,
+  onSuccess,
 }: {
   map: MapLibreMap;
-  el: HTMLElement;
   setLayerPopup: (params: SetLayerPopupParams<Record<string, string>>) => void;
+  onSuccess?: () => void;
 }) {
   let style: StyleSpecification | undefined;
   let controlsAdded = false;
-
-  function init() {
-    el.dispatchEvent(new CustomEvent("map:ready"));
-  }
 
   map.on("styledata", () => {
     if (controlsAdded) {
@@ -102,12 +98,11 @@ export function addStyleDataListener({
       }
     });
 
-    init();
+    onSuccess?.();
   });
 
   return {
     controlsAdded,
-    init,
     style,
   };
 }

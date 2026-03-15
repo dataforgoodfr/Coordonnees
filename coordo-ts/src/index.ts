@@ -71,9 +71,13 @@ export function createMap(
     return map.on(type, listener);
   }
 
+  function init() {
+    el.dispatchEvent(new CustomEvent("map:ready"));
+  }
+
   addStyleDataListener({
-    el,
     map,
+    onSuccess: init,
     setLayerPopup,
   });
 
