@@ -25,7 +25,7 @@ from pygeofilter.backends.sqlalchemy import to_filter
 from sqlalchemy.sql import visitors
 
 from ..helpers import StrictDict, safe
-from .aggregate import parse
+from .sql import parse
 
 field_adapter = TypeAdapter(models.IField)
 
@@ -176,6 +176,8 @@ class DataPackage(BaseModel):
         # resource = self.get_resource(name=resource_name)
         # schema = resource.get_schema()
 
+    # This function loads a resource and recursively load all the associated
+    # resources (reverse and foreign keys) into DuckDB
     def load_resource(
         self,
         conn: duckdb.DuckDBPyConnection,
@@ -221,8 +223,9 @@ class DataPackage(BaseModel):
         resource_name: str,
         filter: Filter | None = None,
         groupby: list[str] | None = None,
-        aggregate: dict[str, str] | None = None,
+        columns: dict[str, str] | None = None,
     ) -> pd.DataFrame:
+        assert not groupby or columns, "You can't groupby without specifying columns"
         conn = duckdb.connect()
         conn.install_extension("SPATIAL")
         conn.load_extension("SPATIAL")
@@ -230,6 +233,8 @@ class DataPackage(BaseModel):
         metadata = sa.MetaData()
         self.load_resource(conn, metadata, resource_name)
 
+        # Here we collect all the fields (including related tables) into a map
+        # so we can pass it to the SQL parser
         table = metadata.tables[resource_name]
         field_map = StrictDict()
         for col in table.columns:
@@ -261,7 +266,14 @@ class DataPackage(BaseModel):
 
         def get_nested_aggregates(node, is_nested=False):
             found = []
-            is_agg = getattr(node, "is_aggregate", False)
+            is_agg = hasattr(node, "name") and node.name in [
+                "sum",
+                "avg",
+                "max",
+                "min",
+                "list",
+                "quantile_cont",
+            ]
             if is_agg and is_nested:
                 found.append(node)
             for child in node.get_children():
@@ -282,31 +294,25 @@ class DataPackage(BaseModel):
                 )
             return query
 
-        group_cols = (
-            {col: field_map[col] for col in groupby}
-            if groupby
-            else table.primary_key.columns
-        )
+        query = sa.select(table)
 
-        query = sa.select(
-            *group_cols.values(),
-            table,
-        )
+        group_cols = table.primary_key.columns
+        if groupby:
+            group_cols = {col: field_map[col] for col in groupby}
+            query = query.group_by(*group_cols.values())
 
         if filter:
             query = query.filter(to_filter(filter, table.columns))
 
-        query = query.group_by(*group_cols.values())
-
-        if aggregate:
+        if columns:
             cols = []
-            join_buckets = defaultdict(list)
 
-            for alias, agg in aggregate.items():
-                expr, _ = parse(agg, field_map)
+            expr_by_join = defaultdict(list)
+            for alias, expr_str in columns.items():
+                expr, _ = parse(expr_str, field_map)
 
+                # Since nested aggregates are not supported in SQL, we need to put them in subqueries
                 nested_aggregates = get_nested_aggregates(expr)
-
                 subqueries = []
                 for agg in nested_aggregates:
                     subquery = query.with_only_columns(*group_cols.values(), agg)
@@ -317,6 +323,8 @@ class DataPackage(BaseModel):
 
                     subquery = subquery.subquery()
 
+                    # Here we replace the nested aggregates by their reference
+                    # in the subquery
                     def replacer(node):
                         # There is sometimes an error I can't manage to resolve...
                         try:
@@ -330,18 +338,24 @@ class DataPackage(BaseModel):
                     subqueries.append(subquery)
 
                 join = get_join(expr)
-                join_buckets[join].append((alias, expr, subqueries))
+                expr_by_join[join].append((alias, expr, subqueries))
 
-            for join, expr_list in join_buckets.items():
+            for join, expr_list in expr_by_join.items():
                 if join is not None:
+                    # If we need to join, then we put the associated expressions
+                    # into a CTE in order to not modify the main query
                     cte_columns = list(group_cols.values())
                     for alias, expr, _ in expr_list:
                         cte_columns.append(expr.label(alias))
                     cte = query.with_only_columns(*cte_columns)
                     cte = cte.outerjoin(join)
+
+                    # We join to subqueries if there is any
                     for _, _, subqueries in expr_list:
                         cte = join_subqueries(cte, subqueries)
-                    cte = cte.cte(f"{join}_aggregates")
+                    cte = cte.cte(f"{join}_cte")
+
+                    # Then we join the CTE to the main query
                     query = query.join(
                         cte,
                         sa.and_(
@@ -352,9 +366,11 @@ class DataPackage(BaseModel):
                         ),
                     )
 
+                    # And add the columns as references to the CTE
                     for alias, _, _ in expr_list:
                         cols.append(sa.func.any_value(cte.columns[alias]).label(alias))
                 else:
+                    # if no join needed then we just add the column as-is and join the subqueries to the main query
                     for alias, expr, subqueries in expr_list:
                         cols.append(expr.label(alias))
                         query = join_subqueries(query, subqueries)

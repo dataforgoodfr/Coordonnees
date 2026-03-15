@@ -189,19 +189,17 @@ class SQLCompiler(Evaluator):
 
     @handle(Func)
     def func(self, node, *args):
-        if node.name == "unique":
-            return args[0].distinct()
-        else:
-            if node.name == "centroid":
-                expr = func.st_centroid(func.st_collect(func.list(args[0])))
-            elif node.name == "percentile":
-                expr = func.quantile_cont(args[0], args[1] / 100)
-            elif node.name == "shannon":
-                expr = func.ln(2) * func.list_entropy(func.list(args[0]))
-            else:
-                expr = getattr(func, node.name)(*args)
-            expr.is_aggregate = True  # type: ignore
-            return expr
+        match node.name:
+            case "unique":
+                return args[0].distinct()
+            case "centroid":
+                return func.st_centroid(func.st_collect(func.list(args[0])))
+            case "percentile":
+                return func.quantile_cont(args[0], args[1] / 100)
+            case "shannon":
+                return func.ln(2) * func.list_entropy(func.list(args[0]))
+            case _:
+                return getattr(func, node.name)(*args)
 
     @handle(float)
     def float(self, node):

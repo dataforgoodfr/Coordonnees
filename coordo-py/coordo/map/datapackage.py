@@ -25,7 +25,7 @@ class DataPackageLayer(BaseLayerModel):
     resource: str
     filter: str | None = None
     groupby: list[str] | None = None
-    aggregate: dict[str, str] | None = None
+    columns: dict[str, str] | None = None
     popup: Popup | None = None
 
     def to_maplibre(self, base_path):
@@ -58,7 +58,7 @@ class DataPackageLayer(BaseLayerModel):
             else:
                 final_filter = filter
         df = package.read_resource(
-            self.resource, final_filter, self.groupby, self.aggregate
+            self.resource, final_filter, self.groupby, self.columns
         )
         assert isinstance(df, GeoDataFrame), "No geometries in the layer output."
 

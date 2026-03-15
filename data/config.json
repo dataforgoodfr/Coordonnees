@@ -30,12 +30,13 @@
       "path": "../catalog/inventaire/datapackage.json",
       "resource": "inventaire_id",
       "groupby": ["for"],
-      "aggregate": {
+      "columns": {
         "geom": "centroid(gps)",
         "richness": "count(unique(ind.ess_arb))",
         "dominant_height": "avg(ind.haut if ind.haut > percentile(ind.haut, 80))",
         "soil_structure": "avg((ep1*not1 + ep2*not2 + ep3*not3 + ep4*not4 + ep5*not5) / 250)",
-        "shannon": "shannon(ind.ess_arb)"
+        "shannon": "shannon(ind.ess_arb)",
+        "biomass": "sum(0.0673 * pow(1.234 * pow(ind.dhp1 + ind.dhp2 + ind.dhp3 + ind.dhp4, 2) * ind.haut, 0.976))"
       },
       "popup": {
         "trigger": "click"
