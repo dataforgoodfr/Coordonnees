@@ -104,14 +104,10 @@ make build
 Import data into catalog
 
 ```
-uv run coordo load kobotoolbox --package catalog/inventaire data/20250213_Inventaire_ID_QuestionnaireK.xlsx data/20251017_Inventaire_ID_Donnees.xlsx
-uv run coordo load kobotoolbox --package catalog/enquete data/20240808_EnqueteMenage_CDF_QuestionnaireK.xlsx data/20241007_EnqueteMenage_CDF_Donnees.csv
-```
-
-Adding an external file
-
-```
-uv run coordo load file data/zones.geojson --package catalog/inventaire
+uv run coordo load kobotoolbox data/20250213_Inventaire_ID_QuestionnaireK.xlsx data/20251017_Inventaire_ID_Donnees.xlsx --package catalog/inventaire
+uv run coordo load file data/dens_bois.csv --package catalog/inventaire
+uv run coordo add-foreignkey ind.ess_arb dens_bois.ess_arb --package catalog/inventaire
+uv run coordo load kobotoolbox data/20240808_EnqueteMenage_CDF_QuestionnaireK.xlsx data/20241007_EnqueteMenage_CDF_Donnees.csv --package catalog/enquete
 ```
 
 Serve a config file

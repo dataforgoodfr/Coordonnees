@@ -1,11 +1,9 @@
 from dataclasses import dataclass, field
 
-import sqlalchemy.sql.visitors
 from lark import Lark, Transformer
 from pygeofilter.ast import AstType, Node
 from pygeofilter.backends.evaluator import Evaluator, handle
-from sqlalchemy import Float, Function, Table, case, cast, func, text
-from sqlalchemy.sql import visitors
+from sqlalchemy import Float, case, cast, func, text
 
 GRAMMAR = r"""
     ?start: expr
@@ -34,7 +32,7 @@ GRAMMAR = r"""
     arg_list: expr ("," expr)*
     func_call: CNAME "(" arg_list ")"
 
-    variable: CNAME ("." CNAME)?
+    variable: CNAME ("." CNAME)*
 
     comparison: sum OP sum
 
@@ -157,13 +155,10 @@ class SQLCompiler(Evaluator):
 
     @handle(Column)
     def column(self, node):
-        mapping = self.field_map
-        var = None
+        col = self.field_map
         for part in node.parts:
-            var = mapping[part]
-            if isinstance(var, Table):
-                mapping = var.columns
-        return var
+            col = col[part]
+        return col
 
     @handle(Comparison)
     def comparison(self, node, lhs, rhs):
@@ -198,6 +193,8 @@ class SQLCompiler(Evaluator):
                 return func.quantile_cont(args[0], args[1] / 100)
             case "shannon":
                 return func.ln(2) * func.list_entropy(func.list(args[0]))
+            case "gini":
+                return func.gini(func.list(args[0]))
             case _:
                 return getattr(func, node.name)(*args)
 

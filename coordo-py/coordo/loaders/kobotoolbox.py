@@ -87,10 +87,7 @@ DP_FIELDS = {
     "range": "integer",
     "text": "string",
     "select one": "string",
-    "select multiple": "string",
-    "select one from file": "string",
-    "select multiple from file": "string",
-    "select all that apply": "string",
+    "select all that apply": "list",
     "rank": "string",
     "geopoint": "geojson",
     "start-geopoint": "geojson",
@@ -164,6 +161,10 @@ def load(package: DataPackage, xlsform: Path, xlsdata: Path):
                             if coords
                             else None
                         )
+                    )
+                if field.type == "list":
+                    sheet[field.name] = sheet[field.name].apply(
+                        lambda string: str(string).split()
                     )
                 if field.type in DTYPES:
                     sheet[field.name] = sheet[field.name].astype(DTYPES[field.type])

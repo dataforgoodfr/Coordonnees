@@ -1,5 +1,6 @@
 import json
 from collections import defaultdict
+from functools import cached_property
 from pathlib import Path
 from typing import Any, Iterable, List, Optional, Union
 
@@ -64,6 +65,36 @@ def get_nested_aggregates(node, is_nested=False):
     for child in node.get_children():
         found.extend(get_nested_aggregates(child, is_nested or is_agg))
     return found
+
+
+class FieldMapper:
+    def __init__(self, table_name, metadata):
+        self.table = metadata.tables[table_name]
+        self.metadata = metadata
+
+    def __getitem__(self, key):
+        return self.field_map[key]
+
+    @cached_property
+    def field_map(self):
+        field_map = StrictDict()
+
+        for col in self.table.columns:
+            field_map[col.name] = col
+
+        for tbl in self.metadata.tables.values():
+            for fk in tbl.foreign_keys:
+                if fk.column.table == self.table:
+                    field_map[tbl.name] = FieldMapper(tbl.name, self.metadata)
+
+        for fk in self.table.foreign_keys:
+            tbl = fk.column.table
+            if self.table == tbl:
+                print("Self-referencing foreign keys are not yet supported.")
+            else:
+                field_map[tbl.name] = FieldMapper(tbl.name, self.metadata)
+
+        return field_map
 
 
 class Resource(BaseModel):
@@ -247,39 +278,28 @@ class DataPackage(BaseModel):
         conn.install_extension("SPATIAL")
         conn.load_extension("SPATIAL")
         conn.sql("CALL register_geoarrow_extensions()")
+        conn.execute((Path(__file__).parent / "macros.sql").read_text())
+
         metadata = sa.MetaData()
         self.load_resource(conn, metadata, resource_name)
 
-        # Here we collect all the fields (including related tables) into a map
-        # so we can pass it to the SQL parser
         table = metadata.tables[resource_name]
-        field_map = StrictDict()
-        for col in table.columns:
-            field_map[col.name] = col
-        for tbl in metadata.tables.values():
-            for fk in tbl.foreign_keys:
-                if fk.column.table == table:
-                    field_map[tbl.name] = tbl
-        for fk in table.foreign_keys:
-            tbl = fk.column.table
-            if table == tbl:
-                field_map[tbl.name] = tbl.alias()
-            else:
-                field_map[tbl.name] = tbl
+        field_map = FieldMapper(table.name, metadata)
 
-        def get_join(expr):
+        def get_joins(expr, return_fks):
             if not hasattr(expr, "froms"):
                 expr = sa.select(expr)
-            joins = [
+            external_joins = {
                 tbl
                 for tbl in expr.froms
                 if tbl != table and tbl in metadata.tables.values()
-            ]
-
-            assert len(joins) < 2, "You can't join to more than one table"
-
-            if joins:
-                return joins[0]
+            }
+            if not return_fks:
+                fk_joins = {
+                    fk.column.table for tbl in external_joins for fk in tbl.foreign_keys
+                }
+                return tuple(external_joins - fk_joins)
+            return tuple(external_joins)
 
         def join_subqueries(query, subqueries):
             for subquery in subqueries:
@@ -295,7 +315,7 @@ class DataPackage(BaseModel):
                 )
             return query
 
-        query = sa.select(table)
+        query = sa.select(table).select_from(table)
 
         group_cols = table.primary_key.columns
         if groupby:
@@ -307,6 +327,7 @@ class DataPackage(BaseModel):
 
         if columns:
             cols = []
+            initial_query = query
 
             expr_by_join = defaultdict(list)
             for alias, expr_str in columns.items():
@@ -318,8 +339,8 @@ class DataPackage(BaseModel):
                 for agg in nested_aggregates:
                     subquery = query.with_only_columns(*group_cols.values(), agg)
 
-                    join = get_join(subquery)
-                    if join is not None:
+                    joins = get_joins(subquery, return_fks=False)
+                    for join in joins:
                         subquery = subquery.outerjoin(join)
 
                     subquery = subquery.subquery()
@@ -338,7 +359,11 @@ class DataPackage(BaseModel):
 
                     subqueries.append(subquery)
 
-                join = get_join(expr)
+                joins = get_joins(expr, return_fks=False)
+                assert (
+                    len(joins) < 2
+                ), "Can't join to more than one table because it will duplicate rows"
+                join = joins[0] if joins else None
                 expr_by_join[join].append((alias, expr, subqueries))
 
             for join, expr_list in expr_by_join.items():
@@ -348,8 +373,10 @@ class DataPackage(BaseModel):
                     cte_columns = list(group_cols.values())
                     for alias, expr, _ in expr_list:
                         cte_columns.append(expr.label(alias))
-                    cte = query.with_only_columns(*cte_columns)
-                    cte = cte.outerjoin(join)
+                    cte = initial_query.with_only_columns(*cte_columns)
+
+                    for j in get_joins(cte, return_fks=True):
+                        cte = cte.outerjoin(j)
 
                     # We join to subqueries if there is any
                     for _, _, subqueries in expr_list:
@@ -371,7 +398,7 @@ class DataPackage(BaseModel):
                     for alias, _, _ in expr_list:
                         cols.append(sa.func.any_value(cte.columns[alias]).label(alias))
                 else:
-                    # if no join needed then we just add the column as-is and join the subqueries to the main query
+                    # if no join needed then we-- Avoid division by zero just add the column as-is and join the subqueries to the main query
                     for alias, expr, subqueries in expr_list:
                         cols.append(expr.label(alias))
                         query = join_subqueries(query, subqueries)
@@ -384,6 +411,7 @@ class DataPackage(BaseModel):
         query_str = str(query.compile(compile_kwargs={"literal_binds": True}))
         print(query_str)
         relation = conn.sql(query_str)
+        print(relation.show())
         if any(col[1] == "GEOMETRY" for col in relation.description):
             out = gpd.GeoDataFrame.from_arrow(relation)
         else:
