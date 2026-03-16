@@ -1,21 +1,30 @@
-import os
+from pathlib import Path
 
 import typer
-from flask import request, send_from_directory
+from dplib.models.schema.foreignKey import ForeignKey, ForeignKeyReference
 
-from . import loaders
-from .config import MapConfig
+from coordo import loaders
+from coordo.datapackage import DataPackage
+
+from .map import Map
 
 app = typer.Typer()
+options = {}
+static_dir = Path(__file__).parent / "static"
+
+
+@app.callback()
+def global_options(
+    catalog: Path = typer.Option(Path("./catalog"), help="Root catalog folder")
+):
+    options["catalog"] = catalog
 
 
 @app.command()
 def serve(config_file: str):
-    from flask import Flask, jsonify
+    from flask import Flask, request, send_from_directory
 
     app = Flask(__name__)
-    static_dir = os.path.join(os.path.dirname(__file__), "static")
-    parser = MapConfig.from_file(config_file)
 
     @app.route("/")
     def home():
@@ -31,18 +40,20 @@ def serve(config_file: str):
             <div id="map" style="height: 100dvh"></div>
           </body>
           <script>
-            map = coordo.createMap("#map", "style.json");
+            map = coordo.createMap("#map", "/map/style.json");
           </script>
         </html>
         """
 
-    @app.route("/style.json")
-    def style():
-        return jsonify(parser.to_maplibre("/layers"))
+    map = Map.from_file(config_file)
 
-    @app.route("/layers/<path:layer_id>", methods=["POST"])
-    def layer_data(layer_id):
-        return parser.get_data(layer_id, request.get_json())
+    @app.route("/map/<path:path>", methods=["GET", "POST"])
+    def maps(path: str):
+        return map.handle_request(
+            request.method,
+            path,
+            request.get_json(silent=True),
+        )
 
     @app.route("/static/<path:filename>")
     def static_files(filename):
@@ -53,10 +64,48 @@ def serve(config_file: str):
 
 load = typer.Typer()
 
-for name in loaders.__all__:
-    module = getattr(loaders, name)
 
-    cmd_name = name.replace("_", "-")
-    load.command(name=cmd_name)(module.load)
+@load.command()
+def kobotoolbox(
+    xlsform: Path,
+    xlsdata: Path,
+    package: Path = typer.Option(help="Path to the package directory"),
+):
+    dp = DataPackage.from_path(package)
+    loaders.kobotoolbox.load(dp, xlsform, xlsdata)
+    dp.save()
+
+
+@load.command()
+def file(
+    path: Path,
+    package: Path = typer.Option(help="Path to the package directory"),
+):
+    dp = DataPackage.from_path(package)
+    loaders.file.load(dp, path)
+    dp.save()
+
 
 app.add_typer(load, name="load")
+
+
+@app.command()
+def add_foreignkey(
+    from_: str,
+    to: str,
+    package: Path = typer.Option(help="Path to the package directory"),
+):
+    dp = DataPackage.from_path(package)
+    resource, field = from_.split(".")
+    foreign_resource, foreign_field = to.split(".")
+    dp.add_foreignkey(
+        resource,
+        ForeignKey(
+            fields=[field],
+            reference=ForeignKeyReference(
+                fields=[foreign_field],
+                resource=None if resource == foreign_resource else foreign_resource,
+            ),
+        ),
+    )
+    dp.save()

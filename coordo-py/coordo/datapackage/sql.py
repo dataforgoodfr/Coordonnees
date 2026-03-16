@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from lark import Lark, Transformer
 from pygeofilter.ast import AstType, Node
 from pygeofilter.backends.evaluator import Evaluator, handle
-from sqlalchemy import Float, Function, case, cast, func, text
+from sqlalchemy import Float, case, cast, func, text
 
 GRAMMAR = r"""
     ?start: expr
@@ -32,7 +32,7 @@ GRAMMAR = r"""
     arg_list: expr ("," expr)*
     func_call: CNAME "(" arg_list ")"
 
-    variable: CNAME ("." CNAME)?
+    variable: CNAME ("." CNAME)*
 
     comparison: sum OP sum
 
@@ -137,10 +137,9 @@ class AggregateTransformer(Transformer):
 
 
 class SQLCompiler(Evaluator):
-    def __init__(self, base_model):
-        self.base_model = base_model
-        self.joins = []
-        self.subqueries = []
+    def __init__(self, field_map):
+        self.field_map = field_map
+        self.aggregates = []
 
     @handle(Arithmetic)
     def arithmetic(self, node, lhs, rhs):
@@ -152,23 +151,17 @@ class SQLCompiler(Evaluator):
             case "/":
                 return lhs / cast(rhs, Float)
             case "*":
-                return lhs * rhs
+                return lhs * cast(rhs, Float)
 
     @handle(Column)
     def column(self, node):
-        model = self.base_model
-        var = None
+        col = self.field_map
         for part in node.parts:
-            var = getattr(model, part)
-            if hasattr(var.property, "direction"):
-                model = var.property.mapper.class_
-                self.joins.append(var)
-        return var
+            col = col[part]
+        return col
 
     @handle(Comparison)
     def comparison(self, node, lhs, rhs):
-        if isinstance(rhs, Function):
-            self.subqueries.append(rhs)
         match node.op:
             case "<":
                 return lhs < rhs
@@ -191,11 +184,19 @@ class SQLCompiler(Evaluator):
 
     @handle(Func)
     def func(self, node, *args):
-        if node.name == "centroid":
-            return func.ST_Centroid(func.ST_Collect(args[0]))
-        if node.name == "unique":
-            return args[0].distinct()
-        return getattr(func, node.name)(*args)
+        match node.name:
+            case "unique":
+                return args[0].distinct()
+            case "centroid":
+                return func.st_centroid(func.st_collect(func.list(args[0])))
+            case "percentile":
+                return func.quantile_cont(args[0], args[1] / 100)
+            case "shannon":
+                return func.ln(2) * func.list_entropy(func.list(args[0]))
+            case "gini":
+                return func.gini(func.list(args[0]))
+            case _:
+                return getattr(func, node.name)(*args)
 
     @handle(float)
     def float(self, node):
@@ -210,4 +211,4 @@ def parse(text: str, model):
     expr = Lark(GRAMMAR, parser="lalr", transformer=AggregateTransformer()).parse(text)
     compiler = SQLCompiler(model)
     query = compiler.evaluate(expr)
-    return query, compiler.joins, compiler.subqueries
+    return query, compiler.aggregates

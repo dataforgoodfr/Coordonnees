@@ -1,44 +1,4 @@
-#  Coordonnées
-
-#  System Dependencies
-
-You will need the following dependencies in order to use SpatialLite : SQLite, Spatialite, GDAL.
-
-## Ubuntu / Debian
-
-SQLite should be installed on the system by default.
-
-```
-sudo apt-get install gdal-bin libgdal-dev libsqlite3-mod-spatialite
-```
-
-## MacOS
-
-There should already be a system version of SQLite but in a version that does not support extensions
-which means you will need to install another version. This can be done via Brew.
-
-```
-brew update
-brew install sqlite3
-brew install libspatialite
-brew install spatialite-tools
-brew install gdal
-```
-
-After that you need to make sure that version of SQLite is used by adding it to your `PATH`. If you're using ZSH this can be done with:
-
-```
-echo "export PATH=\"$(brew --prefix)/opt/sqlite/bin:\$PATH\"" >> ~/.zshrc
-```
-
-Finally, SQLite needs to be able to find the Spatialite library installed by Brew. Peewee does not
-seem to use the `SPATIALITE_LIBRARY_PATH` environment variable unfortunately. For running commands
-locally using uv a workaround is to symlink it to the Python install managed by uv.
-
-  * Find the root folder used by uv with `uv python dir`.
-  * Find the version of Python used for this project
-  * Synlink Spatialite with
-    `ln -s $(brew --prefix)/lib/mod_spatialite.dylib $(uv python dir)/<PYTHON_VERSION>/lib/mod_spatialite.dylib`
+# Coordonnées
 
 # Repo structure
 
@@ -48,17 +8,83 @@ The **js** folder contains the Javascript part of the project, it is basically a
 
 The **python** folder contains the Python part of the project, it is capable of parsing a config format (TODO: define the JSON schema of the config) and automatically pulling data from sources and generating an augmented MapLibre Style Spec file, which can be used by the Javascript module.
 
+# Python API
+
+## Datapackages
+
+TODO
+
+## Map server
+
+You can integrate coordo into any Python web framework.
+
+First create the map object :
+
+```py
+from coordo.map import Map
+
+map = Map.from_file(config_file)
+```
+
+Then simply use the .handle_request(path, method, data) to integrate it in your server. Here are some examples :
+
+### Flask
+
+```py
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route("/maps/<path:subpath>")
+def maps(subpath: str):
+    return jsonify(
+        map.handle_request(
+            subpath,
+            request.method,
+            request.get_json(),
+        )
+    )
+```
+
+### Django
+
+```py
+# views.py
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+@csrf_exempt
+def my_map_view(request, subpath):
+    return JsonResponse(
+        map.handle_request(
+            subpath,
+            request.method,
+            json.loads(request.body),
+        )
+    )
+
+# urls.py
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('map/<path:subpath>/', views.map_view, name='map'),
+]
+```
 
 # Install from other projects
 
 This repo is still in very early stage so it is not yet published on registries, but you can still install the Python and Javascript packages with the following commands for testing
 
 Python
+
 ```
 pip install git+https://github.com/dataforgoodfr/Coordonnees.git#subdirectory=python
 ```
 
 Javascript
+
 ```
 npm install git+https://github.com/dataforgoodfr/Coordonnees.git
 ```
@@ -68,6 +94,7 @@ npm install git+https://github.com/dataforgoodfr/Coordonnees.git
 For development or to quickly test the library
 
 Install
+
 ```
 uv venv
 uv pip install -e coordo-py
@@ -75,14 +102,16 @@ make build
 ```
 
 Import data into catalog
+
 ```
-uv run coordo load kobotoolbox catalog/ data/20250213_Inventaire_ID_QuestionnaireK.xlsx data/20251017_Inventaire_ID_Donnees.xlsx
-uv run coordo load kobotoolbox catalog/ data/20240808_EnqueteMenage_CDF_QuestionnaireK.xlsx data/20241007_EnqueteMenage_CDF_Donnees.csv
+uv run coordo load kobotoolbox data/20250213_Inventaire_ID_QuestionnaireK.xlsx data/20251017_Inventaire_ID_Donnees.xlsx --package catalog/inventaire
+uv run coordo load file data/dens_bois.csv --package catalog/inventaire
+uv run coordo add-foreignkey ind.ess_arb dens_bois.ess_arb --package catalog/inventaire
+uv run coordo load kobotoolbox data/20240808_EnqueteMenage_CDF_QuestionnaireK.xlsx data/20241007_EnqueteMenage_CDF_Donnees.csv --package catalog/enquete
 ```
 
 Serve a config file
+
 ```
 uv run coordo serve data/config.json
 ```
-
-In order to read SQLite files, we recommend using [DBeaver](https://dbeaver.io/download/#requirements)

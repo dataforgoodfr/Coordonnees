@@ -571,7 +571,7 @@ class GeoJSONSource(TypedDict):
     type: Literal["geojson"]
     data: GeoJSON | str
     maxzoom: NotRequired[float]
-    attribution: NotRequired[str | None]
+    attribution: NotRequired[str]
     buffer: NotRequired[float]
     filter: NotRequired[FilterSpecification]
     tolerance: NotRequired[float]
@@ -589,7 +589,7 @@ class GeoJSONSource(TypedDict):
 #   /**
 #    * The data type of the video source.
 #    */
-#   type: "video";
+# type: "video";
 #   /**
 #    * URLs to video content in order of preferred format.
 #    */
@@ -609,7 +609,7 @@ class GeoJSONSource(TypedDict):
 #   /**
 #    * The data type of the image source.
 #    */
-#   type: "image";
+# type: "image";
 #   /**
 #    * URL that points to an image.
 #    */

@@ -2,11 +2,11 @@ from typing import Literal
 
 import xyzservices.providers as providers
 
-from ..maplibre_style_spec_v8 import RasterLayer, RasterSource
-from .base import BaseConfig
+from .base import BaseLayerModel
+from .maplibre_style_spec_v8 import RasterLayer, RasterSource
 
 
-class XYZServicesLayer(BaseConfig):
+class XYZServicesLayer(BaseLayerModel):
     type: Literal["xyzservices"]
     provider: str
 
