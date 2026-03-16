@@ -1,20 +1,20 @@
-import { Popup } from "maplibre-gl";
 import type {
-  Map as MapLibreMap,
   MapLayerEventType,
-  PopupOptions,
   MapLayerMouseEvent,
   MapLayerTouchEvent,
+  Map as MapLibreMap,
+  PopupOptions,
 } from "maplibre-gl";
+import { Popup } from "maplibre-gl";
 
-export type SetLayerPopup<T> = {
+export type SetLayerPopupParams<T> = {
   layerId: string;
   trigger: keyof MapLayerEventType;
   renderCallback: (properties: T) => HTMLElement | string;
   popupConfig?: PopupOptions;
 };
 
-export function makeSetLayerPopup(map: MapLibreMap) {
+export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
   /**
    * When setLayerPopup is called for a layer that has already
    * a click listener, we need to remove it before setting the new one
@@ -63,7 +63,7 @@ export function makeSetLayerPopup(map: MapLibreMap) {
     trigger,
     renderCallback,
     popupConfig,
-  }: SetLayerPopup<T>) {
+  }: SetLayerPopupParams<T>) {
     if (layerId in popupRemovers) {
       // Cleanup precedent trigger
       popupRemovers[layerId]?.();
