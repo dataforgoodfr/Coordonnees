@@ -1,15 +1,9 @@
-import maplibregl, {
-  type ControlPosition,
-  type GeoJSONSource,
-  type LayerSpecification,
-  type Map as MapLibreMap,
-  type MapLayerEventType,
-  type StyleSpecification,
-} from "maplibre-gl";
+import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import "./index.css";
-import { makeSetLayerPopup } from "./layers/popup";
 
+import "./index.css";
+
+<<<<<<< feat/external-data
 type StyleMetaData = {
   controls: Array<{
     type: string;
@@ -24,78 +18,17 @@ type LayerMetadata = {
   };
   url?: string;
 };
+=======
+import { LAYER_VISIBILITY } from "./layers/controls";
+import { makeSetLayerFilters } from "./layers/filters";
+import { makeSetLayerPopup } from "./layers/popup";
+import { addStyleDataListener } from "./map/style-data";
+>>>>>>> main
 
 const DEFAULT_MAP_OPTIONS: Partial<maplibregl.MapOptions> = {
-  zoom: 1,
   center: [0, 0],
+  zoom: 1,
 };
-
-class LayerControl {
-  private _map?: MapLibreMap;
-  private _container?: HTMLElement;
-  private _panel?: HTMLElement;
-
-  onAdd(map: MapLibreMap) {
-    this._map = map;
-    this._container = document.createElement("div");
-    this._container.className = "maplibregl-ctrl maplibregl-ctrl-group";
-    this._container.innerHTML = "<button>L</button>";
-
-    this._panel = document.createElement("div");
-    this._panel.className =
-      "maplibregl-ctrl-group maplibregl-ctrl-layer hidden";
-    this._buildLayerList();
-    this._container.appendChild(this._panel);
-
-    this._container.addEventListener("click", () =>
-      this._panel?.classList.toggle("hidden"),
-    );
-
-    this._panel.addEventListener("click", (e) => e.stopPropagation());
-    this._map?.on("click", () => this._panel?.classList.add("hidden"));
-
-    return this._container;
-  }
-
-  _buildLayerList() {
-    const layers = this._map?.getStyle().layers;
-
-    layers?.forEach((layer: LayerSpecification) => {
-      const layerId = layer.id;
-
-      const label = document.createElement("label");
-      label.style.display = "flex";
-      label.style.cursor = "pointer";
-
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.checked =
-        this._map?.getLayoutProperty(layerId, "visibility") !== "none";
-
-      checkbox.addEventListener("change", () => {
-        this._map?.setLayoutProperty(
-          layerId,
-          "visibility",
-          checkbox.checked ? "visible" : "none",
-        );
-      });
-
-      label.appendChild(checkbox);
-      label.appendChild(document.createTextNode(" " + layerId));
-
-      this._panel?.appendChild(label);
-    });
-  }
-
-  onRemove() {
-    this._container?.remove();
-    this._map = undefined;
-  }
-}
-
-function renderTemplate(html: string, vars: Record<string, string>) {
-  return html.replace(/{{\s*(\w+)\s*}}/g, (_, key) => vars[key] ?? "");
-}
 
 export function createMap(
   target: string | HTMLElement,
@@ -107,17 +40,28 @@ export function createMap(
       ? (document.querySelector(target) as HTMLElement)
       : target;
 
+<<<<<<< feat/external-data
   if (!el) throw new Error("Map target not found");
   const baseUrl = new URL("./", new URL(styleUrl, window.location.href)).href;
+=======
+  if (!el) {
+    throw new Error("[CREATE] Map target not found");
+  }
+
+  const baseUrl = styleUrl.startsWith("http")
+    ? new URL(styleUrl).origin
+    : window.location.href;
+>>>>>>> main
 
   const mergedOptions = { ...DEFAULT_MAP_OPTIONS, ...options };
 
   const map = new maplibregl.Map({
+    center: mergedOptions.center,
     container: el,
     style: styleUrl,
-    center: mergedOptions.center,
     zoom: mergedOptions.zoom,
   });
+<<<<<<< feat/external-data
 
   let style: StyleSpecification;
   let controlsAdded: string[] = [];
@@ -192,20 +136,20 @@ export function createMap(
     const data = await res.json();
     (source as GeoJSONSource).setData(data);
   }
+=======
+>>>>>>> main
 
   function hideLayer(layerId: string) {
-    map.setLayoutProperty(layerId, "visibility", "none");
+    map.setLayoutProperty(layerId, "visibility", LAYER_VISIBILITY.NONE);
   }
 
   function showLayer(layerId: string) {
-    map.setLayoutProperty(layerId, "visibility", "visible");
+    map.setLayoutProperty(layerId, "visibility", LAYER_VISIBILITY.VISIBLE);
   }
 
   function getLayerMetadata(layerId: string) {
     return map.getLayer(layerId)?.metadata;
   }
-
-  const setLayerPopup = makeSetLayerPopup(map);
 
   function getZoom() {
     return map.getZoom();
@@ -215,6 +159,10 @@ export function createMap(
     return map.getCenter().toArray();
   }
 
+  const setLayerFilters = makeSetLayerFilters({ baseUrl, map });
+
+  const setLayerPopup = makeSetLayerPopup({ map });
+
   function addEventListener<T extends keyof maplibregl.MapEventType>(
     type: T,
     listener: (ev: maplibregl.MapEventType[T] & Object) => void,
@@ -222,15 +170,25 @@ export function createMap(
     return map.on(type, listener);
   }
 
-  return {
-    mapInstance: map,
-    hideLayer,
-    showLayer,
-    setLayerFilters,
-    getLayerMetadata,
+  function init() {
+    el.dispatchEvent(new CustomEvent("map:ready"));
+  }
+
+  addStyleDataListener({
+    map,
+    onSuccess: init,
     setLayerPopup,
-    getZoom,
-    getCenter,
+  });
+
+  return {
     addEventListener,
+    getCenter,
+    getLayerMetadata,
+    getZoom,
+    hideLayer,
+    mapInstance: map,
+    setLayerFilters,
+    setLayerPopup,
+    showLayer,
   };
 }

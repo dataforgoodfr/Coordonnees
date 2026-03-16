@@ -7,8 +7,11 @@
           "level": "on",
           "options": {
             "groups": [
-              ["builtin", "external"],
-              ["parent", "sibling", "index"]
+              [":NODE:", ":PACKAGE_WITH_PROTOCOL:", ":PACKAGE:", ":BUN:"],
+              ":BLANK_LINE:",
+              ":ALIAS:",
+              ":BLANK_LINE:",
+              ":PATH:"
             ]
           }
         },
@@ -20,7 +23,7 @@
       }
     },
     "enabled": true,
-    "includes": ["!package.json"]
+    "includes": ["src/**/*"]
   },
   "files": {
     "ignoreUnknown": false
