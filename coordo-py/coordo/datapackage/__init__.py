@@ -20,7 +20,6 @@ from dplib.models import (
 )
 from dplib.models.dialect.dialect import Dialect
 from dplib.plugins.sql.models import SqlSchema
-from duckdb.sqltypes import DuckDBPyType
 from pydantic import BaseModel, TypeAdapter
 from pygeofilter.ast import AstType as Filter
 from pygeofilter.backends.sqlalchemy import to_filter
@@ -278,7 +277,6 @@ class DataPackage(BaseModel):
         conn = duckdb.connect()
         conn.install_extension("SPATIAL")
         conn.load_extension("SPATIAL")
-        # conn.sql("CALL register_geoarrow_extensions()")
         conn.execute((Path(__file__).parent / "macros.sql").read_text())
 
         metadata = sa.MetaData()
