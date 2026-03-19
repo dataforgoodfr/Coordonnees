@@ -39,8 +39,8 @@ app = Flask(__name__)
 def maps(subpath: str):
     return jsonify(
         map.handle_request(
-            subpath,
             request.method,
+            subpath,
             request.get_json(),
         )
     )
@@ -58,9 +58,9 @@ import json
 def my_map_view(request, subpath):
     return JsonResponse(
         map.handle_request(
-            subpath,
             request.method,
-            json.loads(request.body),
+            subpath,
+            request.body
         )
     )
 

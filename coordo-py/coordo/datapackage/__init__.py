@@ -277,7 +277,6 @@ class DataPackage(BaseModel):
         conn = duckdb.connect()
         conn.install_extension("SPATIAL")
         conn.load_extension("SPATIAL")
-        conn.sql("CALL register_geoarrow_extensions()")
         conn.execute((Path(__file__).parent / "macros.sql").read_text())
 
         metadata = sa.MetaData()
@@ -410,9 +409,10 @@ class DataPackage(BaseModel):
 
         query_str = str(query.compile(compile_kwargs={"literal_binds": True}))
         relation = conn.sql(query_str)
-        if any(col[1] == "GEOMETRY" for col in relation.description):
-            out = gpd.GeoDataFrame.from_arrow(relation)
+        table = relation.arrow().read_all()
+        if any(col[1].id == "geometry" for col in relation.description):
+            out = gpd.GeoDataFrame.from_arrow(table)
         else:
-            out = pd.DataFrame.from_arrow(relation)
+            out = pd.DataFrame.from_arrow(table)
         conn.close()
         return out

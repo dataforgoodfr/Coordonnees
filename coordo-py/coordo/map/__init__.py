@@ -27,11 +27,13 @@ class Map(BaseModel):
     def from_dict(cls, data: dict):
         return cls.model_validate(data)
 
-    def handle_request(self, method: str, path: str, json: dict):
+    def handle_request(self, method: str, path: str, filters: dict | str | bytes):
+        if isinstance(filters, (str, bytes)):
+            filters = json.loads(filters) if filters else {}
         if method.lower() == "get":
             return self.get_maplibre_style()
         elif method.lower() == "post":
-            return self.get_layer_data(path, json)
+            return self.get_layer_data(path, filters)
         else:
             raise ValueError(f"Method {method.lower()} not supported.")
 
@@ -48,7 +50,9 @@ class Map(BaseModel):
             raise ValueError(f"Layer with id {layer_id} not found")
         return layer
 
-    def get_layer_data(self, layer_id: str, json_filters=None) -> FeatureCollection:
+    def get_layer_data(
+        self, layer_id: str, json_filters: dict | None = None
+    ) -> FeatureCollection:
         layer = self._get_layer(layer_id)
         filters = parse_cql2(json_filters) if json_filters else None
         return layer.get_data(base_path=self._base_path, filter=filters)

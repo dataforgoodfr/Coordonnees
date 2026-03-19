@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "cross-web>=0.4.1",
     "dplib-py>=1.1.0",
-    "duckdb>=1.4.4",
+    "duckdb>=1.5",
     "duckdb-sqlalchemy>=1.4.4.2",
     "flask>=3.1.2",
     "geojson>=3.2.0",
@@ -27,3 +27,6 @@ dependencies = [
 
 [project.scripts]
 coordo = "coordo.cli:app"
+
+[tool.setuptools.package-data]
+"coordo" = ["static/*", "**/*.sql"]
