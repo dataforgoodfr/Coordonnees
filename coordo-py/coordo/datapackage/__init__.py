@@ -366,7 +366,6 @@ class DataPackage(BaseModel):
                 expr_by_join[join].append((alias, expr, subqueries))
 
             for join, expr_list in expr_by_join.items():
-                print(join, expr_list)
                 if join is not None:
                     # If we need to join, then we put the associated expressions
                     # into a CTE in order to not modify the main query
@@ -410,7 +409,6 @@ class DataPackage(BaseModel):
             )
 
         query_str = str(query.compile(compile_kwargs={"literal_binds": True}))
-        print(query_str)
         relation = conn.sql(query_str)
         table = relation.arrow().read_all()
         if any(col[1].id == "geometry" for col in relation.description):
