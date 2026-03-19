@@ -5,7 +5,7 @@ from ..datapackage import DataPackage, Field, Resource, Schema
 from ..datapackage.db_helpers import prepare_path, to_dp_type
 
 
-def load(dp: DataPackage, path: Path, overwrite = False):
+def load(dp: DataPackage, path: Path, overwrite=False):
     query = f"SELECT * FROM {prepare_path(path)}"
     conn, _ = dp.prepare_db()
     rel = conn.sql(query)
