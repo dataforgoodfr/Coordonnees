@@ -72,7 +72,10 @@ class DataPackageLayer(BaseLayerModel):
             else:
                 final_filter = filter
         df = package.read_resource(
-            self.resource, final_filter, self.groupby, self.columns
+            self.resource,
+            self.columns,
+            final_filter,
+            self.groupby,
         )
         assert isinstance(df, GeoDataFrame), "No geometries in the layer output."
         return df.to_geo_dict(show_bbox=True)  # type: ignore

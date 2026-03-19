@@ -80,10 +80,16 @@ def kobotoolbox(
 @load.command()
 def file(
     path: Path,
-    package: Path = typer.Option(help="Path to the package directory"),
+    package: Path = typer.Option(".", help="Path to the package directory"),
+    overwrite: bool = typer.Option(False, help="Path to the package directory"),
 ):
     dp = DataPackage.from_path(package)
-    loaders.file.load(dp, path)
+    try:
+        loaders.file.load(dp, path)
+    except ValueError as e:
+        raise typer.BadParameter(
+            f"{e} Add --overwrite if you wish to continue.", param_hint="path"
+        )
     dp.save()
 
 

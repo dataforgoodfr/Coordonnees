@@ -2,18 +2,18 @@ import shutil
 from pathlib import Path
 
 from ..datapackage import DataPackage, Field, Resource, Schema
-from ..datapackage.db_helpers import prepare_path
+from ..datapackage.db_helpers import prepare_path, to_dp_type
 
 
-def load(dp: DataPackage, path: str):
+def load(dp: DataPackage, path: Path, overwrite = False):
     query = f"SELECT * FROM {prepare_path(path)}"
-    conn = dp.prepare_db()
+    conn, _ = dp.prepare_db()
     rel = conn.sql(query)
     schema = Schema()
     for name, type in zip(rel.columns, rel.types):
         schema.add_field(
             Field(
-                type=DUCK_TO_DP_FIELDS[type],
+                type=to_dp_type(type),
                 name=name,
             )
         )
@@ -25,4 +25,4 @@ def load(dp: DataPackage, path: str):
             schema=schema,
         )
     )
-    shutil.copy(path, dp.basepath / path.name)
+    shutil.copy(path, dp._basepath / path.name)

@@ -16,7 +16,6 @@ from dplib.models import (
     ForeignKeyReference as ForeignKeyReference,
 )
 from dplib.plugins.sql.models import SqlSchema
-from pydantic import BaseModel, TypeAdapter
 from pygeofilter.ast import AstType as Filter
 
 from coordo.sql.builder import build_query
@@ -24,7 +23,7 @@ from coordo.sql.builder import build_query
 from ..helpers import safe
 from .resource import Resource
 
-field_adapter = TypeAdapter(models.IField)
+field_adapter = pydantic.TypeAdapter(models.IField)
 
 
 def Field(**kwargs):
@@ -36,7 +35,7 @@ def handle_path(path: str | list[str]) -> str:
     return path
 
 
-class DataPackage(BaseModel):
+class DataPackage(pydantic.BaseModel):
     id: Optional[str] = None
     name: str = pydantic.Field(pattern=r"^[a-z0-9._-]+$")
     resources: list[Resource] = []
@@ -60,8 +59,6 @@ class DataPackage(BaseModel):
 
     @classmethod
     def from_path(cls, path: Path) -> "DataPackage":
-        if not path.exists():
-            path.mkdir(parents=True)
         if path.is_dir():
             path = path / "datapackage.json"
         if path.exists():
@@ -73,7 +70,7 @@ class DataPackage(BaseModel):
         else:
             print(f"Creating new package at {path}")
             return cls.model_validate(
-                {"name": path.name},
+                {"name": path.parent.name},
                 context={"_basepath": path.parent},
             )
 
@@ -104,9 +101,10 @@ class DataPackage(BaseModel):
         self.resources = [res for res in self.resources if res.name != name]
 
     def add_resource(self, resource: Resource) -> None:
-        assert all(
-            res.name != resource.name for res in self.resources
-        ), f"A resource named {resource.name} already exists in package {self.name}."
+        if any(res.name == resource.name for res in self.resources):
+            raise ValueError(
+                f"A resource named {resource.name} already exists in package {self.name}."
+            )
         resource._package = self
         self.resources.append(resource)
 
@@ -124,7 +122,6 @@ class DataPackage(BaseModel):
         conn = duckdb.connect()
         conn.install_extension("SPATIAL")
         conn.load_extension("SPATIAL")
-        conn.sql("CALL register_geoarrow_extensions()")
         conn.execute((Path(__file__).parent / "macros.sql").read_text())
 
         metadata = sa.MetaData()
