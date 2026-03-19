@@ -288,17 +288,17 @@ class DataPackage(BaseModel):
         def get_joins(expr, return_fks):
             if not hasattr(expr, "froms"):
                 expr = sa.select(expr)
-            external_joins = {
+            external_joins = [
                 tbl
                 for tbl in expr.froms
                 if tbl != table and tbl in metadata.tables.values()
-            }
+            ]
             if not return_fks:
                 fk_joins = {
                     fk.column.table for tbl in external_joins for fk in tbl.foreign_keys
                 }
-                return tuple(external_joins - fk_joins)
-            return tuple(external_joins)
+                return [j for j in external_joins if j not in fk_joins]
+            return external_joins
 
         def join_subqueries(query, subqueries):
             for subquery in subqueries:
@@ -375,6 +375,7 @@ class DataPackage(BaseModel):
                     cte = initial_query.with_only_columns(*cte_columns)
 
                     for j in get_joins(cte, return_fks=True):
+                        print(j)
                         cte = cte.outerjoin(j)
 
                     # We join to subqueries if there is any
@@ -397,7 +398,7 @@ class DataPackage(BaseModel):
                     for alias, _, _ in expr_list:
                         cols.append(sa.func.any_value(cte.columns[alias]).label(alias))
                 else:
-                    # if no join needed then we-- Avoid division by zero just add the column as-is and join the subqueries to the main query
+                    # if no join needed then we just add the column as-is and join the subqueries to the main query
                     for alias, expr, subqueries in expr_list:
                         cols.append(expr.label(alias))
                         query = join_subqueries(query, subqueries)
