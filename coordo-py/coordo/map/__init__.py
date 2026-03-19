@@ -29,7 +29,7 @@ class Map(BaseModel):
 
     def handle_request(self, method: str, path: str, filters: dict | str | bytes):
         if isinstance(filters, (str, bytes)):
-            filters = json.loads(filters)
+            filters = json.loads(filters) if filters else {}
         if method.lower() == "get":
             return self.get_maplibre_style()
         elif method.lower() == "post":
