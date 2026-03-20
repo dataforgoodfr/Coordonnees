@@ -1,39 +1,5 @@
-import json
-from collections import defaultdict
-from functools import cached_property
-from pathlib import Path
-from typing import Any, Iterable, List, Optional, Union
-
-import duckdb
-import geopandas as gpd
-import pandas as pd
-import pydantic
-import sqlalchemy as sa
-from dplib import models
-from dplib.models import (
-    Contributor,
-    ForeignKey,
-    ForeignKeyReference,
-    License,
-    Schema,
-    Source,
-)
-from dplib.models.dialect.dialect import Dialect
-from dplib.plugins.sql.models import SqlSchema
-from pydantic import BaseModel, TypeAdapter
-from pygeofilter.ast import AstType as Filter
-from pygeofilter.backends.sqlalchemy import to_filter
-from sqlalchemy.sql import visitors
-
-from ..helpers import StrictDict, safe
-from .sql import parse
-
-field_adapter = TypeAdapter(models.IField)
-
-
-def Field(**kwargs):
-    return field_adapter.validate_python(kwargs)
-
+from .package import DataPackage, Field, ForeignKeyReference
+from .resource import ForeignKey, Resource, Schema
 
 __all__ = [
     "DataPackage",

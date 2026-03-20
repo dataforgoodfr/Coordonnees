@@ -1,26 +1,14 @@
 import shutil
 from pathlib import Path
 
-import duckdb
-
 from ..datapackage import DataPackage, Field, Resource, Schema
-
-DUCK_TO_DP_FIELDS = {
-    "INTEGER": "integer",
-    "VARCHAR": "string",
-    "GEOMETRY": "geojson",
-    "BIGINT": "integer",
-    "DOUBLE": "number",
-}
+from ..datapackage.db_helpers import prepare_path
 
 
-def load(dp: DataPackage, path: Path):
-    conn = duckdb.connect()
-    from_str = f'"{path}"'
-    if path.suffix == ".geojson":
-        conn.load_extension("spatial")
-        from_str = f"ST_Read({from_str})"
-    rel = conn.sql(f"SELECT * FROM {from_str}")
+def load(dp: DataPackage, path: str):
+    query = f"SELECT * FROM {prepare_path(path)}"
+    conn = dp.prepare_db()
+    rel = conn.sql(query)
     schema = Schema()
     for name, type in zip(rel.columns, rel.types):
         schema.add_field(

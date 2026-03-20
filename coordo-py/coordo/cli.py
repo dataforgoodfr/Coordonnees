@@ -5,6 +5,7 @@ from dplib.models.schema.foreignKey import ForeignKey, ForeignKeyReference
 
 from coordo import loaders
 from coordo.datapackage import DataPackage
+from coordo.sql.builder import build_query
 
 from .map import Map
 
@@ -90,16 +91,13 @@ app.add_typer(load, name="load")
 
 
 @app.command()
-def add_foreignkey(
-    from_: str,
-    to: str,
-    package: Path = typer.Option(help="Path to the package directory"),
-):
+def add_foreignkey(from_: str, to: str, package: Path):
     dp = DataPackage.from_path(package)
     resource, field = from_.split(".")
     foreign_resource, foreign_field = to.split(".")
-    dp.add_foreignkey(
+    dp.get_resource(
         resource,
+    ).add_foreignkey(
         ForeignKey(
             fields=[field],
             reference=ForeignKeyReference(
@@ -109,3 +107,27 @@ def add_foreignkey(
         ),
     )
     dp.save()
+
+
+dp = typer.Typer()
+
+
+@dp.command()
+def query(
+    package: Path,
+    resource: str,
+    select: str | None = typer.Option(None, "--select", "-s"),
+    groupby: list[str] = typer.Option(None, "--group-by", "-g"),
+):
+    dp = DataPackage.from_path(package)
+    columns = {}
+    if select:
+        for part in select.split(","):
+            alias, expr = part.split(":")
+            columns[alias] = expr
+    conn, metadata = dp.prepare_db()
+    query = build_query(metadata, resource, columns, None, groupby)
+    conn.sql(str(query)).show()
+
+
+app.add_typer(dp, name="dp")

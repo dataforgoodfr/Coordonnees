@@ -1,0 +1,159 @@
+from pathlib import Path
+from typing import Iterable, Optional
+
+import duckdb
+import geopandas as gpd
+import pandas as pd
+import pydantic
+import sqlalchemy as sa
+from dplib import models
+from dplib.models import (
+    Contributor,
+    License,
+    Source,
+)
+from dplib.models import (
+    ForeignKeyReference as ForeignKeyReference,
+)
+from dplib.plugins.sql.models import SqlSchema
+from pydantic import BaseModel, TypeAdapter
+from pygeofilter.ast import AstType as Filter
+
+from coordo.sql.builder import build_query
+
+from ..helpers import safe
+from .resource import Resource
+
+field_adapter = TypeAdapter(models.IField)
+
+
+def Field(**kwargs):
+    return field_adapter.validate_python(kwargs)
+
+
+def handle_path(path: str | list[str]) -> str:
+    assert isinstance(path, str), "Multi-path resources are not yet supported"
+    return path
+
+
+class DataPackage(BaseModel):
+    id: Optional[str] = None
+    name: str = pydantic.Field(pattern=r"^[a-z0-9._-]+$")
+    resources: list[Resource] = []
+    title: Optional[str] = None
+    description: Optional[str] = None
+    homepage: Optional[str] = None
+    version: Optional[str] = None
+    licenses: list[License] = []
+    sources: list[Source] = []
+    contributors: list[Contributor] = []
+    keywords: list[str] = []
+    image: Optional[str] = None
+    created: Optional[str] = None
+
+    _basepath: Path
+
+    def model_post_init(self, context):
+        self._basepath = context["_basepath"]
+        for resource in self.resources:
+            resource._package = self
+
+    @classmethod
+    def from_path(cls, path: Path) -> "DataPackage":
+        if not path.exists():
+            path.mkdir(parents=True)
+        if path.is_dir():
+            path = path / "datapackage.json"
+        if path.exists():
+            print(f"Loading package from {path}")
+            return cls.model_validate_json(
+                path.read_bytes(),
+                context={"_basepath": path.parent},
+            )
+        else:
+            print(f"Creating new package at {path}")
+            return cls.model_validate(
+                {"name": path.name},
+                context={"_basepath": path.parent},
+            )
+
+    def save(self):
+        Path(self._basepath, "datapackage.json").write_text(
+            self.model_dump_json(
+                exclude_none=True,
+                exclude_defaults=True,
+                indent=2,
+                round_trip=True,
+            )
+        )
+
+    def remove_resource(self, name: str) -> None:
+        resource = self.get_resource(name=name)
+        for res in self.resources:
+            if res.name == name:
+                continue
+            sm = safe(res, "schema")
+            if sm.foreignKeys:
+                for fk in sm.foreignKeys:
+                    assert (
+                        fk.reference.resource != name
+                    ), f"Can't remove the resource {name} : {res.name} have a foreign key pointing to this resource."
+        if resource.path:
+            path = handle_path(resource.path)
+            Path(self._basepath / path).unlink()
+        self.resources = [res for res in self.resources if res.name != name]
+
+    def add_resource(self, resource: Resource) -> None:
+        assert all(
+            res.name != resource.name for res in self.resources
+        ), f"A resource named {resource.name} already exists in package {self.name}."
+        resource._package = self
+        self.resources.append(resource)
+
+    def get_resource(self, name: str) -> Resource:
+        resource = next(res for res in self.resources if res.name == name)
+        assert resource is not None, f"Resource {name} not found."
+        return resource
+
+    def write_resource(self, resource_name: str, it: Iterable[dict]):
+        pass
+        # resource = self.get_resource(name=resource_name)
+        # schema = resource.get_schema()
+
+    def prepare_db(self):
+        conn = duckdb.connect()
+        conn.install_extension("SPATIAL")
+        conn.load_extension("SPATIAL")
+        conn.sql("CALL register_geoarrow_extensions()")
+        conn.execute((Path(__file__).parent / "macros.sql").read_text())
+
+        metadata = sa.MetaData()
+
+        for resource in self.resources:
+            if resource.path and resource.schema:
+                SqlSchema.from_dp(
+                    resource.schema,
+                    table_name=resource.name,
+                ).table.to_metadata(metadata)
+
+                resource.load_table(conn)
+
+        return conn, metadata
+
+    def read_resource(
+        self,
+        resource_name: str,
+        columns: dict[str, str] | None = None,
+        filter: Filter | None = None,
+        groupby: list[str] | None = None,
+    ) -> pd.DataFrame:
+        conn, metadata = self.prepare_db()
+        query = build_query(metadata, resource_name, columns, filter, groupby)
+        query_str = str(query.compile(compile_kwargs={"literal_binds": True}))
+        relation = conn.sql(query_str)
+        if any(col[1] == "GEOMETRY" for col in relation.description):
+            out = gpd.GeoDataFrame.from_arrow(relation)
+        else:
+            out = pd.DataFrame.from_arrow(relation)
+        conn.close()
+        return out
