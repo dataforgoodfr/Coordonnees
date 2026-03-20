@@ -75,8 +75,7 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
       const properties = ev.features?.[0]?.properties;
       if (geometry && properties) {
         /** @todo Remove "any" casting  */
-        const coordinates = (geometry as any).coordinates.slice();
-        const popup = new Popup(popupConfig).setLngLat(coordinates);
+        const popup = new Popup(popupConfig).setLngLat(ev.lngLat);
 
         const content = renderCallback(properties as T);
         if (typeof content === "string") {

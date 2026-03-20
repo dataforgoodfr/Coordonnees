@@ -177,7 +177,7 @@ def load(package: DataPackage, xlsform: Path, xlsdata: Path):
 
         sheet = sheet[fields]
         sheet = sheet.replace({np.nan: None})
-        path = Path(package.basepath, table_name + ".parquet")
+        path = Path(package._basepath, table_name + ".parquet")
         geo_cols = [f.name for f in schema.fields if f.type == "geojson"]
         if geo_cols:
             gdf = gpd.GeoDataFrame(
@@ -242,6 +242,8 @@ def _parse_questions(pkg, questions: List[Dict[str, Any]], resource: Resource):
             constraints = {"required": False}
             if qtype == "integer":
                 constraints["minimum"] = 0
+            if qtype == "select all that apply":
+                kwargs["itemType"] = "string"
             if "bind" in question:
                 bind = question["bind"]
                 if "required" in bind:

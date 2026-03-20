@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from lark import Lark, Transformer
 from pygeofilter.ast import AstType, Node
 from pygeofilter.backends.evaluator import Evaluator, handle
-from sqlalchemy import Float, case, cast, func, text
+from sqlalchemy import Integer, case, cast, func, text
 
 GRAMMAR = r"""
     ?start: expr
@@ -86,7 +86,6 @@ class Comparison(BinaryOp):
 
 @dataclass
 class Query(Node):
-
     else_: Node | None = None
 
 
@@ -104,7 +103,7 @@ class Conditional(Node):
         return [self.expr]
 
 
-class AggregateTransformer(Transformer):
+class SQLTransformer(Transformer):
     def arg_list(self, items):
         return list(items)
 
@@ -136,7 +135,7 @@ class AggregateTransformer(Transformer):
         return token.value
 
 
-class SQLCompiler(Evaluator):
+class SQLEvaluator(Evaluator):
     def __init__(self, field_map):
         self.field_map = field_map
         self.aggregates = []
@@ -149,9 +148,9 @@ class SQLCompiler(Evaluator):
             case "-":
                 return lhs - rhs
             case "/":
-                return lhs / cast(rhs, Float)
+                return lhs / rhs
             case "*":
-                return lhs * cast(rhs, Float)
+                return lhs * rhs
 
     @handle(Column)
     def column(self, node):
@@ -185,10 +184,14 @@ class SQLCompiler(Evaluator):
     @handle(Func)
     def func(self, node, *args):
         match node.name:
+            case "int":
+                return cast(args[0], Integer)
             case "unique":
                 return args[0].distinct()
+            case "merge":
+                return func.st_union_agg(args[0])
             case "centroid":
-                return func.st_centroid(func.st_collect(func.list(args[0])))
+                return func.st_centroid(args[0])
             case "percentile":
                 return func.quantile_cont(args[0], args[1] / 100)
             case "shannon":
@@ -207,8 +210,8 @@ class SQLCompiler(Evaluator):
         return text(node)
 
 
-def parse(text: str, model):
-    expr = Lark(GRAMMAR, parser="lalr", transformer=AggregateTransformer()).parse(text)
-    compiler = SQLCompiler(model)
+def parse(text: str, field_map):
+    expr = Lark(GRAMMAR, parser="lalr", transformer=SQLTransformer()).parse(text)
+    compiler = SQLEvaluator(field_map)
     query = compiler.evaluate(expr)
-    return query, compiler.aggregates
+    return query

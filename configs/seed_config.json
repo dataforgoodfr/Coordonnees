@@ -1,0 +1,51 @@
+{
+  "layers": [
+    {
+      "id": "satellite",
+      "type": "xyzservices",
+      "provider": "Esri.WorldImagery"
+    },
+    {
+      "id": "villages",
+      "type": "openmaptiles",
+      "layer": "place",
+      "filters": { "class": "village" }
+    },
+    {
+      "id": "towns",
+      "type": "openmaptiles",
+      "layer": "place",
+      "filters": { "class": "town" }
+    },
+    {
+      "id": "boundaries",
+      "type": "openmaptiles",
+      "layer": "boundary",
+      "filters": { "admin_level": 2 },
+      "style": { "paint": { "line-color": "hsl(248,7%,66%)" } }
+    },
+    {
+      "id": "inventaire",
+      "type": "datapackage",
+      "path": "../catalog/seed/datapackage.json",
+      "resource": "survey",
+      "popup": {
+        "trigger": "click"
+      }
+    }
+  ],
+  "controls": [
+    {
+      "type": "compass",
+      "position": "top-left"
+    },
+    {
+      "type": "layer",
+      "position": "top-right"
+    },
+    {
+      "type": "scale",
+      "position": "bottom-left"
+    }
+  ]
+}
