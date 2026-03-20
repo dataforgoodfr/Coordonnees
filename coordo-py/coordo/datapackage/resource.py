@@ -40,11 +40,11 @@ class Resource(pydantic.BaseModel):
         return self._package
 
     def load_table(self, conn: duckdb.DuckDBPyConnection):
-        db_fields = tuple(
-            f'"{field.name}"::{to_db_type(field)} AS "{field.name}"'
-            for field in self.schema.fields
-        )
-        query = f'CREATE VIEW "{self.name}" AS SELECT {",".join(db_fields)} FROM {prepare_path(self.package._basepath / self.path)}'
+        # db_fields = tuple(
+        #     f'"{field.name}"::{to_db_type(field)} AS "{field.name}"'
+        #     for field in self.schema.fields
+        # )
+        query = f'CREATE VIEW "{self.name}" AS SELECT * FROM {prepare_path(self.package._basepath / self.path)}'
         conn.execute(query)
 
     def add_foreignkey(self, fk: ForeignKey) -> None:

@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from lark import Lark, Transformer
 from pygeofilter.ast import AstType, Node
 from pygeofilter.backends.evaluator import Evaluator, handle
-from sqlalchemy import case, func, text
+from sqlalchemy import Integer, case, cast, func, text
 
 GRAMMAR = r"""
     ?start: expr
@@ -184,12 +184,14 @@ class SQLEvaluator(Evaluator):
     @handle(Func)
     def func(self, node, *args):
         match node.name:
+            case "int":
+                return cast(args[0], Integer)
             case "unique":
                 return args[0].distinct()
-            case "centroid":
-                return func.st_centroid(args[0])
             case "merge":
                 return func.st_union_agg(args[0])
+            case "centroid":
+                return func.st_centroid(args[0])
             case "percentile":
                 return func.quantile_cont(args[0], args[1] / 100)
             case "shannon":

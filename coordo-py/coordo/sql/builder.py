@@ -79,17 +79,17 @@ def build_query(
     def get_joins(expr, return_fks):
         if not hasattr(expr, "froms"):
             expr = select(expr)
-        external_joins = {
+        external_joins = [
             tbl
             for tbl in expr.froms
             if tbl != table and tbl in metadata.tables.values()
-        }
+        ]
         if not return_fks:
             fk_joins = {
                 fk.column.table for tbl in external_joins for fk in tbl.foreign_keys
             }
-            return tuple(external_joins - fk_joins)
-        return tuple(external_joins)
+            return [j for j in external_joins if j not in fk_joins]
+        return external_joins
 
     def join_subqueries(query, subqueries):
         for subquery in subqueries:
