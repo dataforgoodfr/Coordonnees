@@ -27,9 +27,7 @@ export function createMap(
     throw new Error("[CREATE] Map target not found");
   }
 
-  const baseUrl = styleUrl.startsWith("http")
-    ? new URL(styleUrl).origin
-    : window.location.href;
+  const baseUrl = new URL(".", new URL(styleUrl, window.location.href));
 
   const mergedOptions = { ...DEFAULT_MAP_OPTIONS, ...options };
 

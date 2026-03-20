@@ -12,7 +12,7 @@ export function makeSetLayerFilters({
   baseUrl,
 }: {
   map: MapLibreMap;
-  baseUrl: string;
+  baseUrl: URL;
 }) {
   /**
    * Update map data of the selected layer based on the provided filters.
@@ -43,13 +43,11 @@ export function makeSetLayerFilters({
     }
 
     // Retrieve dataUrl froom layer configuration
-    let dataUrl = (layer.metadata as LayerMetadata).url;
-    if (!dataUrl) {
+    const schema = (layer.metadata as LayerMetadata).schema;
+    if (!schema) {
       throw new Error(`[FILTERS] Layer ${layer.id} can't be filtered.`);
     }
-    if (!dataUrl.startsWith("http")) {
-      dataUrl = new URL(dataUrl, baseUrl).toString();
-    }
+    const dataUrl = new URL(layerId, baseUrl).toString();
 
     // Fetch data based on filters
     const res = await fetch(dataUrl, {
