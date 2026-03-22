@@ -28,6 +28,7 @@ export function createMap(
   }
 
   const baseUrl = new URL(".", new URL(styleUrl, window.location.href));
+  console.log("baseUrl", baseUrl);
 
   const mergedOptions = { ...DEFAULT_MAP_OPTIONS, ...options };
 
