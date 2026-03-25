@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 
 from lark import Lark, Transformer
-from pygeofilter.ast import AstType, Node
+from pygeofilter.ast import ArrayAstType, AstType, Node
 from pygeofilter.backends.evaluator import Evaluator, handle
 from sqlalchemy import Integer, case, cast, func, text
 
@@ -215,8 +215,10 @@ class SQLEvaluator(Evaluator):
         return text(node)
 
 
-def parse(text: str, field_map):
-    expr = Lark(GRAMMAR, parser="lalr", transformer=SQLTransformer()).parse(text)
+parse = Lark(GRAMMAR, parser="lalr", transformer=SQLTransformer()).parse
+
+
+def to_sql(expr: AstType, field_map):
     compiler = SQLEvaluator(field_map)
     query = compiler.evaluate(expr)
     return query
