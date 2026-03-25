@@ -411,7 +411,7 @@ class DataPackage(BaseModel):
         query_str = str(query.compile(compile_kwargs={"literal_binds": True}))
         relation = conn.sql(query_str)
         table = relation.arrow().read_all()
-        if any(str(col[1]) == "GEOMETRY" for col in relation.description):
+        if any(str(col[1]).startswith("GEOMETRY") for col in relation.description):
             out = gpd.GeoDataFrame.from_arrow(table)
         else:
             out = pd.DataFrame.from_arrow(table)
