@@ -10,27 +10,33 @@ GRAMMAR = r"""
 
     ?expr: sum ("if" comparison ("else" expr)? )?
 
+    SUM: "+" | "-"
+
     ?sum: sum SUM term -> op
         | term
 
-    SUM: "+" | "-"
-
-    ?term: term MULT factor -> op
-         | factor
-
     MULT: "*" | "/"
 
+    ?term: term MULT power -> op
+        | power
+
+    POW: "^"
+
+    ?power: factor POW NUMBER -> op
+        | factor
+
     ?factor: "-" factor    -> op
-           | atom
+        | atom
 
     ?atom: func_call
-         | variable
-         | NUMBER
-         | QUOTED
-         | "(" expr ")"
+        | variable
+        | NUMBER
+        | QUOTED
+        | "(" expr ")"
+
 
     arg_list: expr ("," expr)*
-    func_call: CNAME "(" arg_list ")"
+    func_call: CNAME "(" arg_list? ")"
 
     variable: CNAME ("." CNAME)*
 
@@ -120,7 +126,7 @@ class SQLTransformer(Transformer):
         return Query(*children)
 
     def func_call(self, children):
-        return Func(children[0], children[1])
+        return Func(children[0], *children[1:])
 
     def variable(self, children):
         return Column(children)
@@ -138,7 +144,6 @@ class SQLTransformer(Transformer):
 class SQLEvaluator(Evaluator):
     def __init__(self, field_map):
         self.field_map = field_map
-        self.aggregates = []
 
     @handle(Arithmetic)
     def arithmetic(self, node, lhs, rhs):
@@ -151,6 +156,8 @@ class SQLEvaluator(Evaluator):
                 return lhs / rhs
             case "*":
                 return lhs * rhs
+            case "^":
+                return func.pow(lhs, rhs)
 
     @handle(Column)
     def column(self, node):
@@ -196,8 +203,6 @@ class SQLEvaluator(Evaluator):
                 return func.quantile_cont(args[0], args[1] / 100)
             case "shannon":
                 return func.ln(2) * func.list_entropy(func.list(args[0]))
-            case "gini":
-                return func.gini(func.list(args[0]))
             case _:
                 return getattr(func, node.name)(*args)
 

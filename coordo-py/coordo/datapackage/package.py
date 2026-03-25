@@ -4,6 +4,7 @@ from typing import Iterable, Optional
 import duckdb
 import geopandas as gpd
 import pandas as pd
+import pyarrow as pa
 import pydantic
 import sqlalchemy as sa
 from dplib import models
@@ -149,9 +150,18 @@ class DataPackage(pydantic.BaseModel):
         query_str = str(query.compile(compile_kwargs={"literal_binds": True}))
         relation = conn.sql(query_str)
         table = relation.arrow().read_all()
-        if any(col[1].id == "geometry" for col in relation.description):
-            out = gpd.GeoDataFrame.from_arrow(table)
-        else:
-            out = pd.DataFrame.from_arrow(table)
         conn.close()
-        return out
+
+        if any(col[1].id == "geometry" for col in relation.description):
+            df = gpd.GeoDataFrame.from_arrow(table)
+        else:
+            df = pd.DataFrame.from_arrow(table)
+
+        # Convert numpy arrays to python lists so the dataframe is JSON-serializable
+        list_cols = [
+            field.name for field in table.schema if pa.types.is_list(field.type)
+        ]
+        for col in list_cols:
+            df[col] = df[col].apply(lambda x: x.tolist() if x is not None else None)
+
+        return df

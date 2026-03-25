@@ -77,5 +77,5 @@ class DataPackageLayer(BaseLayerModel):
             final_filter,
             self.groupby,
         )
-        assert isinstance(df, GeoDataFrame), "No geometries in the layer output."
+        assert isinstance(df, GeoDataFrame), "No geometry column found."
         return df.to_geo_dict(show_bbox=True)  # type: ignore

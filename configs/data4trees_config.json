@@ -32,15 +32,17 @@
       "groupby": ["for"],
       "columns": {
         "geom": "centroid(merge(gps))",
-        "total_trees": "count(ind.ess_arb)",
-        "richness": "count(unique(ind.ess_arb))",
+        "tree_density": "count(1 if ind.etat = 1) / (20^2*pi()/10000)",
+        "unique_species": "list(unique(ind.ess_arb))",
         "dominant_height": "avg(ind.haut if ind.haut > percentile(ind.haut, 80))",
-        "soil_structure": "avg((ep1*int(not1) + ep2*int(not2) + ep3*int(not3) + ep4*int(not4) + ep5*int(not5)) / 250)",
+        "soil_structure": "2 * sum(ep1*int(not1) + ep2*int(not2) + ep3*int(not3) + ep4*int(not4) + ep5*int(not5)) / sum(ep1 + ep2 + ep3 + ep4 + ep5)",
         "diversity": "shannon(ind.ess_arb) / 5 * 10",
-        "biomass": "sum(0.0673 * pow(ind.dens_bois.value * pow(ind.dhp1 + ind.dhp2 + ind.dhp3 + ind.dhp4, 2) * ind.haut, 0.976))",
-        "density": "count(1 if ind.etat = 1) / 0.1257",
+        "biomass": "sum(0.0673 * (ind.dens_bois.value * (ind.dhp1 + ind.dhp2 + ind.dhp3 + ind.dhp4)^2 * ind.haut)^0.976)",
         "vertical_distribution": "gini(ind.haut) * 10",
-        "dendro": "list_unique(flatten(list(ind.dmh))) / 16 * 10"
+        "spatial_distribution": "categorical_gini(ind.zon) * 10",
+        "diametral_distribution": "gini(ind.dhp1 + ind.dhp2 + ind.dhp3 + ind.dhp4 + ind.dhp5 + ind.dhp6 + ind.dhp7 + ind.dhp8 + ind.dhp9 + ind.dhp10) * 10",
+        "dendro": "list_unique(flatten(list(ind.dmh))) / 16 * 10",
+        "epigeal_specific_richness": "sum(barba_001.nomb_barbA) + sum(barbb_001.nomb_barbB) + sum(barbc_001.nomb_barbC) + sum(barbd_001.nomb_barbD)"
       },
       "popup": {
         "trigger": "click"
