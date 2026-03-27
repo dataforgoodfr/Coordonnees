@@ -4,9 +4,10 @@ from geojson import FeatureCollection
 from geopandas.geodataframe import GeoDataFrame
 from pydantic import BaseModel
 from pygeofilter.ast import And
-from pygeofilter.parsers.cql2_text import parse
+from pygeofilter.parsers.cql2_text import parse as parse_filter
 
 from coordo.datapackage import DataPackage
+from coordo.sql.parser import parse as parse_expr
 
 from ..helpers import safe
 from .base import BaseLayerModel
@@ -65,15 +66,19 @@ class DataPackageLayer(BaseLayerModel):
         package = DataPackage.from_path(base_path / self.path)
         final_filter = None
         if self.filter:
-            final_filter = parse(self.filter)
+            final_filter = parse_filter(self.filter)
         if filter:
             if final_filter:
                 final_filter = And(final_filter, filter)
             else:
                 final_filter = filter
+
+        columns = None
+        if self.columns:
+            columns = {alias: parse_expr(expr) for alias, expr in self.columns.items()}
         df = package.read_resource(
             self.resource,
-            self.columns,
+            columns,
             final_filter,
             self.groupby,
         )

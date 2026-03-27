@@ -1,10 +1,9 @@
-from pygeofilter.ast import AstType as Filter
+from pygeofilter.ast import AstType
 from pygeofilter.backends.sqlalchemy import to_filter
-from sqlalchemy import FunctionElement, MetaData, and_, select
-from sqlalchemy.sql import visitors
+from sqlalchemy import MetaData, and_, select
 
 from .mapper import FieldMapper
-from .parser import parse
+from .parser import to_sql
 
 # TODO: automatically create this list from Duckdb
 AGG_FUNCS = [
@@ -21,15 +20,15 @@ AGG_FUNCS = [
 ]
 
 
-def compile(query):
+def compile_query(query):
     return str(query.compile(compile_kwargs={"literal_binds": True}))
 
 
 def build_query(
     metadata: MetaData,
     table_name: str,
-    columns: dict[str, str] | None = None,
-    filter: Filter | None = None,
+    columns: dict[str, AstType] | None = None,
+    filter: AstType | None = None,
     groupby: list[str] | None = None,
 ):
     assert not groupby or columns, "You can't groupby without specifying columns"
@@ -62,52 +61,13 @@ def build_query(
         query = query.filter(to_filter(filter, table.columns))
 
     if columns:
-        base_query = query.with_only_columns()
-        query = base_query.group_by()
+        base_query = query.with_only_columns(*group_cols.values())
+        query = base_query.group_by(None)
 
-        ctes = []
-
-        def add_expression(query, expr, skip=None):
-            def agg_replacer(node):
-                nonlocal query
-                if isinstance(node, FunctionElement) and node.name in AGG_FUNCS:
-                    subquery = base_query
-
-                    if skip is node:
-                        return None
-
-                    subquery = add_expression(subquery, node, skip=node)
-                    subquery = auto_join(subquery)
-
-                    cte = subquery.cte()
-                    ctes.append(cte)
-
-                    return cte.columns[node.name]
-
-            expr = visitors.replacement_traverse(expr, {}, agg_replacer)  # type: ignore
-            query = query.add_columns(expr)
-
-            return query
-
-        for alias, expr_str in columns.items():
-            expr = parse(expr_str, field_map)
-            query = add_expression(query, expr.label(alias))
-
-        # if ctes:
-        #     first_cte = ctes[0]
-        #     final_from = first_cte
-
-        #     for cte in ctes[1:]:
-        #         final_from = final_from.join(
-        #             cte,
-        #             *(final_from.c[col] == cte.c[col] for col in group_cols.values())
-        #         )
-
-        #     print("FINAL_FROM", final_from)
-        #     query = query.select_from(final_from)
-        if ctes:
-            query = select(*ctes)
-
-        query = auto_join(query)
+        for alias, ast in columns.items():
+            expr, joins = to_sql(ast, field_map, base_query)
+            query = query.add_columns(expr.label(alias))
+            for join, on in joins:
+                query = query.join(join, on)
 
     return query

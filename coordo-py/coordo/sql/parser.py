@@ -1,9 +1,55 @@
 from dataclasses import dataclass, field
 
 from lark import Lark, Transformer
-from pygeofilter.ast import ArrayAstType, AstType, Node
+from pygeofilter.ast import AstType, Node
 from pygeofilter.backends.evaluator import Evaluator, handle
-from sqlalchemy import Integer, case, cast, func, text
+from sqlalchemy import Integer, and_, case, cast, func, text
+
+from .mapper import FieldMapper
+
+# TODO: automatically create this list from Duckdb
+AGG_FUNCS = [
+    "sum",
+    "avg",
+    "max",
+    "min",
+    "list",
+    "count",
+    "percentile",
+    "merge",
+    "gini",
+    "categorical_gini",
+    "shannon",
+]
+
+
+class oset:
+    def __init__(self, items=None):
+        self.data = []
+        if items:
+            for item in items:
+                self.add(item)
+
+    def add(self, item):
+        if item not in self.data:
+            self.data.append(item)
+
+    def union(self, other):
+        result = oset(self)
+        for item in other:
+            result.add(item)
+        return result
+
+    def update(self, other):
+        for item in other:
+            self.add(item)
+
+    def __getitem__(self, index):
+        return self.data[index]
+
+    def __bool__(self):
+        return bool(self.data)
+
 
 GRAMMAR = r"""
     ?start: expr
@@ -142,83 +188,135 @@ class SQLTransformer(Transformer):
 
 
 class SQLEvaluator(Evaluator):
-    def __init__(self, field_map):
+    def __init__(self, field_map, base_query):
         self.field_map = field_map
+        self.base_query = base_query
 
     @handle(Arithmetic)
     def arithmetic(self, node, lhs, rhs):
+        lhs_expr, lhs_joins = lhs
+        rhs_expr, rhs_joins = rhs
+
         match node.op:
             case "+":
-                return lhs + rhs
+                expr = lhs_expr + rhs_expr
             case "-":
-                return lhs - rhs
+                expr = lhs_expr - rhs_expr
             case "/":
-                return lhs / rhs
+                expr = lhs_expr / rhs_expr
             case "*":
-                return lhs * rhs
+                expr = lhs_expr * rhs_expr
             case "^":
-                return func.pow(lhs, rhs)
+                expr = func.pow(lhs_expr, rhs_expr)
+
+        return expr, lhs_joins.union(rhs_joins)
 
     @handle(Column)
     def column(self, node):
         col = self.field_map
+        joins = oset()
         for part in node.parts:
             col = col[part]
-        return col
+            if isinstance(col, FieldMapper):
+                joins.add((col.table, None))
+            else:
+                return col, joins
 
     @handle(Comparison)
     def comparison(self, node, lhs, rhs):
+        lhs_expr, lhs_joins = lhs
+        rhs_expr, rhs_joins = rhs
+
         match node.op:
             case "<":
-                return lhs < rhs
+                expr = lhs_expr < rhs_expr
             case ">":
-                return lhs > rhs
+                expr = lhs_expr > rhs_expr
             case "=":
-                return lhs == rhs
+                expr = lhs_expr == rhs_expr
             case "!=":
-                return lhs != rhs
+                expr = lhs_expr != rhs_expr
             case ">=":
-                return lhs >= rhs
+                expr = lhs_expr >= rhs_expr
             case "<=":
-                return lhs <= rhs
+                expr = lhs_expr <= rhs_expr
             case "in":
-                return rhs.contains(lhs)
+                expr = rhs_expr.contains(lhs_expr)
+
+        return expr, lhs_joins.union(rhs_joins)
 
     @handle(Conditional)
     def conditional(self, node, expr, if_, else_=None):
-        return case((if_, expr), else_=else_)
+        expr_expr, expr_joins = expr
+        if_expr, if_joins = if_
+
+        joins = expr_joins.union(if_joins)
+
+        if else_ is not None:
+            else_expr, else_joins = else_
+            joins.add(else_joins)
+        else:
+            else_expr = None
+
+        result = case((if_expr, expr_expr), else_=else_expr)
+
+        return result, joins
 
     @handle(Func)
     def func(self, node, *args):
+        exprs = []
+        joins = oset()
+
+        for arg in args:
+            arg_expr, arg_joins = arg
+            exprs.append(arg_expr)
+            joins.update(arg_joins)
+
         match node.name:
             case "int":
-                return cast(args[0], Integer)
+                f = cast(exprs[0], Integer)
             case "unique":
-                return args[0].distinct()
+                f = exprs[0].distinct()
             case "merge":
-                return func.st_union_agg(args[0])
+                f = func.st_union_agg(exprs[0])
             case "centroid":
-                return func.st_centroid(args[0])
+                f = func.st_centroid(exprs[0])
             case "percentile":
-                return func.quantile_cont(args[0], args[1] / 100)
+                f = func.quantile_cont(exprs[0], exprs[1] / 100)
             case "shannon":
-                return func.ln(2) * func.list_entropy(func.list(args[0]))
+                f = func.ln(2) * func.list_entropy(func.list(exprs[0]))
             case _:
-                return getattr(func, node.name)(*args)
+                f = getattr(func, node.name)(*exprs)
+
+        if node.name in AGG_FUNCS:
+            query = self.base_query
+            for join, on in joins:
+                query = query.join(join, on)
+            cte = query.add_columns(f.label("value")).cte()
+            group_cols = list(self.base_query._group_by_clause)
+            return cte.columns["value"], oset(
+                [
+                    (
+                        cte,
+                        and_(*([col == cte.c[col.name] for col in group_cols])),
+                    )
+                ]
+            )
+
+        return f, joins
 
     @handle(float)
     def float(self, node):
-        return node
+        return node, oset()
 
     @handle(str)
     def str(self, node):
-        return text(node)
+        return text(node), oset()
 
 
 parse = Lark(GRAMMAR, parser="lalr", transformer=SQLTransformer()).parse
 
 
-def to_sql(expr: AstType, field_map):
-    compiler = SQLEvaluator(field_map)
-    query = compiler.evaluate(expr)
-    return query
+def to_sql(expr: AstType, field_map, base_query):
+    compiler = SQLEvaluator(field_map, base_query)
+    return compiler.evaluate(expr)

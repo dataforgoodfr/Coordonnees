@@ -17,9 +17,9 @@ from dplib.models import (
     ForeignKeyReference as ForeignKeyReference,
 )
 from dplib.plugins.sql.models import SqlSchema
-from pygeofilter.ast import AstType as Filter
+from pygeofilter.ast import AstType
 
-from coordo.sql.builder import build_query
+from coordo.sql.builder import build_query, compile_query
 
 from ..helpers import safe
 from .resource import Resource
@@ -141,13 +141,14 @@ class DataPackage(pydantic.BaseModel):
     def read_resource(
         self,
         resource_name: str,
-        columns: dict[str, str] | None = None,
-        filter: Filter | None = None,
+        columns: dict[str, AstType] | None = None,
+        filter: AstType | None = None,
         groupby: list[str] | None = None,
     ) -> pd.DataFrame:
         conn, metadata = self.prepare_db()
         query = build_query(metadata, resource_name, columns, filter, groupby)
-        query_str =
+        query_str = compile_query(query)
+        print(query_str)
         relation = conn.sql(query_str)
         table = relation.arrow().read_all()
         conn.close()
