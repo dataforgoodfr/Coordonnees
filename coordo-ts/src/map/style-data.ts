@@ -5,7 +5,7 @@ import type {
   Map as MapLibreMap,
   StyleSpecification,
 } from "maplibre-gl";
-import { NavigationControl, ScaleControl, LngLatBounds } from "maplibre-gl";
+import { LngLatBounds, NavigationControl, ScaleControl } from "maplibre-gl";
 
 import { CONTROLS, LayerControl } from "../layers/controls";
 import type { SetLayerPopupParams } from "../layers/popup";
@@ -97,7 +97,7 @@ export function addStyleDataListener({
 
     const totalBounds = new LngLatBounds();
     Object.values(style.sources).forEach((source) => {
-      if (source.type == "geojson") {
+      if (source.type === "geojson") {
         if (typeof source.data !== "string" && source.data.bbox) {
           const bbox = source.data.bbox.slice(0, 4);
           totalBounds.extend(bbox as [number, number, number, number]);
