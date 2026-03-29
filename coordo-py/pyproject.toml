@@ -31,3 +31,8 @@ coordo = "coordo.cli:app"
 
 [tool.setuptools.package-data]
 "coordo" = ["static/*", "**/*.sql"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.8",
+]

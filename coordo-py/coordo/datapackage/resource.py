@@ -5,7 +5,7 @@ import pydantic
 from dplib.models import Contributor, Dialect, ForeignKey, License, Schema, Source
 from pydantic import model_validator
 
-from .db_helpers import prepare_path, to_db_type
+from .db_helpers import prepare_path
 
 
 class Resource(pydantic.BaseModel):

@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import Iterable, Optional
 
-import duckdb
 import geopandas as gpd
 import pandas as pd
 import pyarrow as pa
