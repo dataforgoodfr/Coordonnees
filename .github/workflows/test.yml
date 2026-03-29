@@ -7,7 +7,7 @@ on:
 
 defaults:
   run:
-    working-directory: subfolder
+    working-directory: coordo-py
 
 jobs:
   test:
