@@ -3,6 +3,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 import "./index.css";
 
+import { EVENTS } from "./events";
 import { LAYER_VISIBILITY } from "./layers/controls";
 import { makeSetLayerFilters } from "./layers/filters";
 import { makeSetLayerPopup } from "./layers/popup";
@@ -12,6 +13,8 @@ const DEFAULT_MAP_OPTIONS: Partial<maplibregl.MapOptions> = {
   center: [0, 0],
   zoom: 1,
 };
+
+export { EVENTS };
 
 export function createMap(
   target: string | HTMLElement,
@@ -70,10 +73,15 @@ export function createMap(
   }
 
   function init() {
-    el.dispatchEvent(new CustomEvent("map:ready"));
+    el.dispatchEvent(new CustomEvent(EVENTS.MAP_READY));
+  }
+
+  function dispatchEventToConsumer(event: CustomEvent) {
+    el.dispatchEvent(event);
   }
 
   addStyleDataListener({
+    dispatchEventToConsumer,
     map,
     onSuccess: init,
     setLayerPopup,

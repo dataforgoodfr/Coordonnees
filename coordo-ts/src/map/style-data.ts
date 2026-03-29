@@ -23,10 +23,12 @@ function renderTemplate(html: string, vars: Record<string, string>) {
 }
 
 export function addStyleDataListener({
+  dispatchEventToConsumer,
   map,
   setLayerPopup,
   onSuccess,
 }: {
+  dispatchEventToConsumer: (event: CustomEvent) => void;
   map: MapLibreMap;
   setLayerPopup: (params: SetLayerPopupParams<Record<string, string>>) => void;
   onSuccess?: () => void;
@@ -64,7 +66,7 @@ export function addStyleDataListener({
           break;
 
         case CONTROLS.LAYER:
-          map.addControl(new LayerControl(), config.position);
+          map.addControl(new LayerControl({ dispatchEventToConsumer }), config.position);
           break;
 
         case CONTROLS.SCALE:

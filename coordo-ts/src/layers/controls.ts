@@ -1,5 +1,7 @@
 import type { LayerSpecification, Map as MapLibreMap } from "maplibre-gl";
 
+import { EVENTS } from "../events";
+
 export const CONTROLS = {
   COMPASS: "compass",
   LAYER: "layer",
@@ -18,6 +20,14 @@ export class LayerControl {
   private _map?: MapLibreMap;
   private _container?: HTMLElement;
   private _panel?: HTMLElement;
+  private _dispatchEvent: (eventName: string) => void;
+
+  constructor({
+    dispatchEventToConsumer,
+  }: { dispatchEventToConsumer: (event: CustomEvent) => void }) {
+    this._dispatchEvent = (eventName: string) =>
+      dispatchEventToConsumer(new CustomEvent(eventName));
+  }
 
   onAdd(map: MapLibreMap) {
     this._map = map;
@@ -41,6 +51,13 @@ export class LayerControl {
     return this._container;
   }
 
+  _isChecked(layerId: string) {
+    return (
+      this._map?.getLayoutProperty(layerId, "visibility") !==
+      LAYER_VISIBILITY.NONE
+    );
+  }
+
   _buildLayerList() {
     const layers = this._map?.getStyle().layers;
 
@@ -54,16 +71,16 @@ export class LayerControl {
 
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
-      checkbox.checked =
-        this._map?.getLayoutProperty(layerId, "visibility") !==
-        LAYER_VISIBILITY.NONE;
+      checkbox.checked = this._isChecked(layerId);
 
       checkbox.addEventListener("change", () => {
+        const isChecked = checkbox.checked;
         this._map?.setLayoutProperty(
           layerId,
           "visibility",
-          checkbox.checked ? LAYER_VISIBILITY.VISIBLE : LAYER_VISIBILITY.NONE,
+          isChecked ? LAYER_VISIBILITY.VISIBLE : LAYER_VISIBILITY.NONE,
         );
+        this._dispatchEvent(isChecked ? EVENTS.LAYER_SHOW(layerId) : EVENTS.LAYER_HIDE(layerId));
       });
 
       label.appendChild(checkbox);
