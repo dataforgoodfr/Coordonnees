@@ -1,6 +1,16 @@
-import doctest
 import re
+from doctest import NORMALIZE_WHITESPACE, DocTestFinder, DocTestRunner
 from pathlib import Path
+
+
+def run_doctests(code):
+    finder = DocTestFinder(recurse=False)
+    runner = DocTestRunner(optionflags=NORMALIZE_WHITESPACE)
+    for test in finder.find(code, "coordo-py", globs=globals()):
+        result = runner.run(test)
+        if result.failed:
+            exit(1)
+
 
 readme_content = (Path(__file__).parent / "README.md").read_text()
 
@@ -17,10 +27,8 @@ for line in combined_code.splitlines():
         doctest_lines.append(line)
     elif doctest_lines:
         if line == "":
-            doctest.run_docstring_examples(
+            run_doctests(
                 "\n".join(doctest_lines),
-                globals(),
-                optionflags=doctest.NORMALIZE_WHITESPACE,
             )
             doctest_lines = []
         else:

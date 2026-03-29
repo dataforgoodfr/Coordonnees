@@ -31,7 +31,6 @@ mapper = FieldMapper("parents", metadata)
 
 >>> mapper["some_column"]
 Column('some_column', String(), table=<parents>)
-
 >>> mapper["children"]["another_column"]
 Column('another_column', String(), table=<children>)
 ```
@@ -43,7 +42,6 @@ Using this field mapper you can then parse an expression using our simplified la
 from coordo.sql.parser import parse
 from coordo.sql.evaluator import to_sql
 from coordo.sql.builder import compile_query
-
 
 ast = parse("centroid(some_column if other_column > 5)")
 expr, joins = to_sql(ast, mapper)
