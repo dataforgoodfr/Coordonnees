@@ -48,11 +48,11 @@ def serve(config_file: str):
 
     map = Map.from_file(config_file)
 
-    @app.route("/map/<path:path>", methods=["GET", "POST"])
-    def maps(path: str):
+    @app.route("/map/<path:subpath>", methods=["GET", "POST"])
+    def maps(subpath: str):
         return map.handle_request(
             request.method,
-            path,
+            subpath,
             request.get_json(silent=True),
         )
 

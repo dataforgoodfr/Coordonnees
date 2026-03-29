@@ -1,5 +1,5 @@
 uv.lock
 .DS_Store
-
 catalog/
 data/
+.vscode/

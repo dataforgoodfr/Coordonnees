@@ -3,5 +3,5 @@ export type LayerMetadata = {
     trigger: string;
     html?: string;
   };
-  url?: string;
+  schema?: string;
 };
