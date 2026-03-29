@@ -7,7 +7,7 @@ import type {
 } from "maplibre-gl";
 import { LngLatBounds, NavigationControl, ScaleControl } from "maplibre-gl";
 
-import { CONTROLS, LayerControl } from "../layers/controls";
+import { CONTROLS, LAYER_VISIBILITY, LayerControl } from "../layers/controls";
 import type { SetLayerPopupParams } from "../layers/popup";
 import type { LayerMetadata } from "../types";
 
@@ -36,9 +36,10 @@ export function addStyleDataListener({
   let style: StyleSpecification | undefined;
   let controlsAdded = false;
 
+  const layerControl = new LayerControl({ dispatchEventToConsumer });
+
   map.on("styledata", () => {
     if (controlsAdded) {
-      console.warn("[STYLEDATA] Controls already setup.");
       return;
     }
     controlsAdded = true;
@@ -66,7 +67,7 @@ export function addStyleDataListener({
           break;
 
         case CONTROLS.LAYER:
-          map.addControl(new LayerControl({ dispatchEventToConsumer }), config.position);
+          map.addControl(layerControl, config.position);
           break;
 
         case CONTROLS.SCALE:
@@ -111,8 +112,24 @@ export function addStyleDataListener({
     onSuccess?.();
   });
 
+  function hideLayer(layerId: string) {
+    // Update the layout property
+    map.setLayoutProperty(layerId, "visibility", LAYER_VISIBILITY.NONE);
+    // Trigger an internal synchronization of the Controls Layer
+    layerControl.syncState();
+  }
+
+  function showLayer(layerId: string) {
+    // Update the layout property
+    map.setLayoutProperty(layerId, "visibility", LAYER_VISIBILITY.VISIBLE);
+    // Trigger an internal synchronization of the Controls Layer
+    layerControl.syncState();
+  }
+
   return {
     controlsAdded,
+    hideLayer,
+    showLayer,
     style,
   };
 }

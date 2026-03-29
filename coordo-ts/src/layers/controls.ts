@@ -21,12 +21,14 @@ export class LayerControl {
   private _container?: HTMLElement;
   private _panel?: HTMLElement;
   private _dispatchEvent: (eventName: string) => void;
+  private _syncFunctions: Record<string, () => void>;
 
   constructor({
     dispatchEventToConsumer,
   }: { dispatchEventToConsumer: (event: CustomEvent) => void }) {
     this._dispatchEvent = (eventName: string) =>
       dispatchEventToConsumer(new CustomEvent(eventName));
+    this._syncFunctions = {};
   }
 
   onAdd(map: MapLibreMap) {
@@ -80,8 +82,16 @@ export class LayerControl {
           "visibility",
           isChecked ? LAYER_VISIBILITY.VISIBLE : LAYER_VISIBILITY.NONE,
         );
-        this._dispatchEvent(isChecked ? EVENTS.LAYER_SHOW(layerId) : EVENTS.LAYER_HIDE(layerId));
+        this._dispatchEvent(
+          isChecked ? EVENTS.LAYER_SHOW(layerId) : EVENTS.LAYER_HIDE(layerId),
+        );
       });
+
+      const syncCheckboxState = () => {
+        checkbox.checked = this._isChecked(layerId);
+      };
+
+      this._syncFunctions[layerId] = syncCheckboxState;
 
       label.appendChild(checkbox);
       label.appendChild(document.createTextNode(` ${layerId}`));
@@ -93,5 +103,14 @@ export class LayerControl {
   onRemove() {
     this._container?.remove();
     this._map = undefined;
+  }
+
+  syncState() {
+    const layers = this._map?.getStyle().layers;
+
+    layers?.forEach((layer: LayerSpecification) => {
+      const layerId = layer.id;
+      this._syncFunctions[layerId]?.();
+    });
   }
 }

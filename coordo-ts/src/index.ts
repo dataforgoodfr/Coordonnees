@@ -4,7 +4,6 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "./index.css";
 
 import { EVENTS } from "./events";
-import { LAYER_VISIBILITY } from "./layers/controls";
 import { makeSetLayerFilters } from "./layers/filters";
 import { makeSetLayerPopup } from "./layers/popup";
 import { addStyleDataListener } from "./map/style-data";
@@ -41,14 +40,6 @@ export function createMap(
     zoom: mergedOptions.zoom,
   });
 
-  function hideLayer(layerId: string) {
-    map.setLayoutProperty(layerId, "visibility", LAYER_VISIBILITY.NONE);
-  }
-
-  function showLayer(layerId: string) {
-    map.setLayoutProperty(layerId, "visibility", LAYER_VISIBILITY.VISIBLE);
-  }
-
   function getLayerMetadata(layerId: string) {
     return map.getLayer(layerId)?.metadata;
   }
@@ -80,7 +71,7 @@ export function createMap(
     el.dispatchEvent(event);
   }
 
-  addStyleDataListener({
+  const { hideLayer, showLayer } = addStyleDataListener({
     dispatchEventToConsumer,
     map,
     onSuccess: init,
