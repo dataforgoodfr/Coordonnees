@@ -20,6 +20,7 @@ from dplib.plugins.sql.models import SqlSchema
 from pygeofilter.ast import AstType
 
 from coordo.sql.builder import build_query, compile_query
+from coordo.sql.helpers import load_conn
 
 from ..helpers import safe
 from .resource import Resource
@@ -120,10 +121,7 @@ class DataPackage(pydantic.BaseModel):
         # schema = resource.get_schema()
 
     def prepare_db(self):
-        conn = duckdb.connect()
-        conn.install_extension("SPATIAL")
-        conn.load_extension("SPATIAL")
-        conn.execute((Path(__file__).parent / "macros.sql").read_text())
+        conn = load_conn()
 
         metadata = sa.MetaData()
 

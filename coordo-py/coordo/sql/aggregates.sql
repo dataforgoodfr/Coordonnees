@@ -1,3 +1,9 @@
+CREATE OR REPLACE MACRO merge(col) AS st_union_agg(col);
+
+CREATE OR REPLACE MACRO percentile(col, pct) AS quantile_cont(col, pct / 100);
+
+CREATE OR REPLACE MACRO shannon(col) AS ln(2) * list_entropy(list(col));
+
 CREATE OR REPLACE MACRO gini(col) AS (
     SELECT
         (

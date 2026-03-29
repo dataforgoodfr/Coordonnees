@@ -1,23 +1,13 @@
 from pygeofilter.ast import AstType
 from pygeofilter.backends.sqlalchemy import to_filter
-from sqlalchemy import MetaData, and_, select
+from sqlalchemy import MetaData, func, select
 
+from .evaluator import to_sql
 from .mapper import FieldMapper
-from .parser import to_sql
 
-# TODO: automatically create this list from Duckdb
-AGG_FUNCS = [
-    "sum",
-    "avg",
-    "max",
-    "min",
-    "list",
-    "count",
-    "quantile_cont",
-    "st_union_agg",
-    "gini",
-    "categorical_gini",
-]
+
+def print_query(query):
+    print(compile_query(query))
 
 
 def compile_query(query):
@@ -36,38 +26,27 @@ def build_query(
     table = metadata.tables[table_name]
     field_map = FieldMapper(table.name, metadata)
 
-    def auto_join(query):
-        all_joins = [
-            tbl
-            for tbl in query.froms
-            if tbl != table and tbl in metadata.tables.values()
-        ]
-        fk_joins = {fk.column.table for tbl in all_joins for fk in tbl.foreign_keys}
-        fanout_joins = [j for j in all_joins if j not in fk_joins]
+    query = select().select_from(table)
 
-        for join in fanout_joins:
-            query = query.join(join, isouter=True)
-
-        return query
-
-    query = select(table).select_from(table)
-
-    group_cols = table.primary_key.columns
     if groupby:
-        group_cols = {col: field_map[col] for col in groupby}
-        query = query.group_by(*group_cols.values())
+        group_cols = [field_map[col] for col in groupby]
+        query = query.group_by(*group_cols).with_only_columns(*group_cols)
 
     if filter:
         query = query.filter(to_filter(filter, table.columns))
 
     if columns:
-        base_query = query.with_only_columns(*group_cols.values())
-        query = base_query.group_by(None)
+        base_query = query
 
         for alias, ast in columns.items():
             expr, joins = to_sql(ast, field_map, base_query)
-            query = query.add_columns(expr.label(alias))
+            if groupby:
+                query = query.add_columns(func.any_value(expr).label(alias))
+            else:
+                query = query.add_columns(expr.label(alias))
             for join, on in joins:
-                query = query.join(join, on)
+                query = query.join(join, on, isouter=True)
+    else:
+        query = query.with_only_columns(table)
 
     return query

@@ -6,7 +6,7 @@ This is the Python side of coordo. It is divided in 3 main modules :
 
 Let's start with some SQLAlchemy tables
 ```py
-from sqlalchemy import MetaData, Table
+from sqlalchemy import MetaData, Table, Column, Integer, String, ForeignKey
 
 metadata = MetaData()
 
@@ -28,21 +28,27 @@ You can then use the field mapper to naturally access columns and reverse relati
 from coordo.sql.mapper import FieldMapper
 
 mapper = FieldMapper("parents", metadata)
-print(mapper["some_column"])
-# parents.some_column
-print(mapper["children"]["another_column"])
-# children.other_column
+
+>>> mapper["some_column"]
+Column('some_column', String(), table=<parents>)
+
+>>> mapper["children"]["another_column"]
+Column('another_column', String(), table=<children>)
 ```
 
 PS: if you are using the SQLAlchemy ORM you can use `Base.metadata`
 
 Using this field mapper you can then parse an expression using our simplified language
 ```py
-from coordo.sql.parser import parse, compile
+from coordo.sql.parser import parse
+from coordo.sql.evaluator import to_sql
+from coordo.sql.builder import compile_query
 
-expr = parse("centroid(some_column if other_column > 5)")
-print(compile(expr))
-# st_centroid(CASE WHEN (parents.other_column > 5.0) THEN parents.some_column END)
+
+ast = parse("centroid(some_column if other_column > 5)")
+expr, joins = to_sql(ast, mapper)
+>>> print(compile_query(expr))
+st_centroid(CASE WHEN (parents.other_column > 5.0) THEN parents.some_column END)
 ```
 
 You can also use expressions with the query builder
@@ -51,9 +57,9 @@ You can also use expressions with the query builder
 from coordo.sql.builder import build_query
 
 query = build_query(metadata, "parents")
-print(compile(query))
-# SELECT parents.id, parents.some_column, parents.other_column
-# FROM parents
+>>> print(compile_query(query))
+SELECT parents.id, parents.some_column, parents.other_column
+FROM parents
 ```
 
 Reverse relationships are automatically left-joined
@@ -62,11 +68,12 @@ Reverse relationships are automatically left-joined
 query = build_query(
     metadata,
     "parents",
-    {"location": "centroid(children.another_column)"},
+    {"location": parse("centroid(children.another_column)")},
 )
-print(compile(query))
-# SELECT st_centroid(children.another_column) AS location
-# FROM parents LEFT OUTER JOIN children ON parents.id = children.parent_id
+
+>>> print(compile_query(query))
+SELECT st_centroid(children.another_column) AS location
+FROM parents LEFT OUTER JOIN children ON parents.id = children.parent_id
 ```
 
 Aggregations are automatically wrapped in CTEs
@@ -75,12 +82,13 @@ Aggregations are automatically wrapped in CTEs
 query = build_query(
     metadata,
     "parents",
-    {"mean": "avg(children.another_column)"},
+    {"mean": parse("avg(children.another_column)")},
 )
-print(compile(query))
-# WITH anon_1 AS
-# (SELECT avg(children.another_column) AS avg_1
-# FROM parents LEFT OUTER JOIN children ON parents.id = children.parent_id)
-#  SELECT anon_1.avg_1
-# FROM anon_1
+
+>>> compile(query)
+WITH anon_1 AS
+ (SELECT avg(children.another_column) AS avg_1
+FROM parents LEFT OUTER JOIN children ON parents.id = children.parent_id)
+ SELECT anon_1.avg_1
+FROM anon_1
 ```

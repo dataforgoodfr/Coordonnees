@@ -12,7 +12,8 @@ class FieldDict(UserDict):
 
 
 class FieldMapper:
-    def __init__(self, table_name: str, metadata: MetaData):
+    def __init__(self, table_name: str, metadata: MetaData, is_reverse=False):
+        self.is_reverse = is_reverse
         self.table = metadata.tables[table_name]
         self.metadata = metadata
 
@@ -26,16 +27,18 @@ class FieldMapper:
         for col in self.table.columns:
             field_map[col.name] = col
 
-        for tbl in self.metadata.tables.values():
-            for fk in tbl.foreign_keys:
-                if fk.column.table == self.table:
-                    field_map[tbl.name] = FieldMapper(tbl.name, self.metadata)
-
         for fk in self.table.foreign_keys:
             tbl = fk.column.table
             if self.table == tbl:
                 print("Self-referencing foreign keys are not yet supported.")
             else:
                 field_map[tbl.name] = FieldMapper(tbl.name, self.metadata)
+
+        for tbl in self.metadata.tables.values():
+            for fk in tbl.foreign_keys:
+                if fk.column.table == self.table:
+                    field_map[tbl.name] = FieldMapper(
+                        tbl.name, self.metadata, is_reverse=True
+                    )
 
         return field_map
