@@ -125,6 +125,12 @@ def stringify(obj):
     return json.dumps(obj)
 
 
+def coords_to_point(coords):
+    if coords:
+        lat, lon, alt, prec = map(float, coords.split(" "))
+        return Point(lon, lat, alt)
+
+
 def load(package: DataPackage, xlsform: Path, xlsdata: Path):
     form = parse_file_to_json(str(xlsform))
     name = cast(str, form["id_string"].lower())
@@ -155,13 +161,7 @@ def load(package: DataPackage, xlsform: Path, xlsdata: Path):
         for field in schema.fields:
             if field.name in sheet.columns:
                 if field.type == "geojson":
-                    sheet[field.name] = sheet[field.name].apply(
-                        lambda coords: (
-                            Point([float(c) for c in coords.split(" ")[:3]])
-                            if coords
-                            else None
-                        )
-                    )
+                    sheet[field.name] = sheet[field.name].apply(coords_to_point)
                 if field.type == "list":
                     sheet[field.name] = sheet[field.name].apply(
                         lambda string: str(string).split()

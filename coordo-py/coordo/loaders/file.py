@@ -11,12 +11,7 @@ def load(dp: DataPackage, path: Path, overwrite=False):
     rel = conn.sql(query)
     schema = Schema()
     for name, type in zip(rel.columns, rel.types):
-        schema.add_field(
-            Field(
-                type=to_dp_type(type),
-                name=name,
-            )
-        )
+        schema.add_field(Field(name=name, **to_dp_type(type)))
     conn.close()
     dp.add_resource(
         Resource(

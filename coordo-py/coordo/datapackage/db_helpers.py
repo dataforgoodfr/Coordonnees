@@ -33,15 +33,15 @@ def to_db_type(field: IField):
 
 def to_dp_type(type: DuckDBPyType):
     match type.id:
-        case "INTEGER":
+        case "bigint" | "integer":
             return {"type": "integer"}
-        case "VARCHAR":
-            return {"type": "string"}
-        case "GEOMETRY":
+        case "geometry":
             return {"type": "geojson"}
-        case "DOUBLE":
-            return {"type": "float"}
-        case "DATE":
+        case "double":
+            return {"type": "number"}
+        case "date":
             return {"type": "date"}
-        case "LIST":
+        case "list":
             return {"type": "list", "itemType": type.children[0]}
+        case _:
+            return {"type": "string"}

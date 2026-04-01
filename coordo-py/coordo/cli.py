@@ -16,7 +16,7 @@ static_dir = Path(__file__).parent / "static"
 
 @app.callback()
 def global_options(
-    catalog: Path = typer.Option(Path("./catalog"), help="Root catalog folder")
+    catalog: Path = typer.Option(Path("./catalog"), help="Root catalog folder"),
 ):
     options["catalog"] = catalog
 
@@ -81,7 +81,6 @@ def kobotoolbox(
 def file(
     path: Path,
     package: Path = typer.Option(".", help="Path to the package directory"),
-    overwrite: bool = typer.Option(False, help="Path to the package directory"),
 ):
     dp = DataPackage.from_path(package)
     try:
@@ -97,7 +96,11 @@ app.add_typer(load, name="load")
 
 
 @app.command()
-def add_foreignkey(from_: str, to: str, package: Path):
+def add_foreignkey(
+    from_: str,
+    to: str,
+    package: Path = typer.Option(".", help="Path to the package directory"),
+):
     dp = DataPackage.from_path(package)
     resource, field = from_.split(".")
     foreign_resource, foreign_field = to.split(".")

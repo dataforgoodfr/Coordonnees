@@ -60,8 +60,9 @@ class DataPackage(pydantic.BaseModel):
 
     @classmethod
     def from_path(cls, path: Path) -> "DataPackage":
-        if path.is_dir():
+        if path.is_dir() or not path.exists():
             path = path / "datapackage.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
         if path.exists():
             print(f"Loading package from {path}")
             return cls.model_validate_json(
@@ -93,9 +94,9 @@ class DataPackage(pydantic.BaseModel):
             sm = safe(res, "schema")
             if sm.foreignKeys:
                 for fk in sm.foreignKeys:
-                    assert (
-                        fk.reference.resource != name
-                    ), f"Can't remove the resource {name} : {res.name} have a foreign key pointing to this resource."
+                    assert fk.reference.resource != name, (
+                        f"Can't remove the resource {name} : {res.name} have a foreign key pointing to this resource."
+                    )
         if resource.path:
             path = handle_path(resource.path)
             Path(self._basepath / path).unlink()
@@ -145,7 +146,7 @@ class DataPackage(pydantic.BaseModel):
         conn, metadata = self.prepare_db()
         query = build_query(metadata, resource_name, columns, filter, groupby)
         query_str = compile_query(query)
-        print(query_str)
+        # print(query_str)
         relation = conn.sql(query_str)
         table = relation.arrow().read_all()
         conn.close()
