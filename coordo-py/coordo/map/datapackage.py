@@ -1,13 +1,13 @@
 from typing import Literal
 
-import numpy as np
 from geojson import FeatureCollection
 from geopandas.geodataframe import GeoDataFrame
 from pydantic import BaseModel
 from pygeofilter.ast import And
-from pygeofilter.parsers.cql2_text import parse
+from pygeofilter.parsers.cql2_text import parse as parse_filter
 
 from coordo.datapackage import DataPackage
+from coordo.sql.parser import parse as parse_expr
 
 from ..helpers import safe
 from .base import BaseLayerModel
@@ -31,7 +31,22 @@ class DataPackageLayer(BaseLayerModel):
     def to_maplibre(self, base_path):
         package = DataPackage.from_path(base_path / self.path)
         resource = package.get_resource(name=self.resource)
-        source = GeoJSONSource(type="geojson", data=self.get_data(base_path=base_path))
+        data = self.get_data(base_path=base_path)
+
+        # We check the type of the first non-null geometry, it doesn't support yet mixed geometries
+        geom_type = (
+            next(f["geometry"] for f in data["features"] if f["geometry"])["type"]
+            if data["features"]
+            else "Point"
+        )
+        if "Polygon" in geom_type:
+            layer_type = "fill"
+        elif "LineString" in geom_type:
+            layer_type = "line"
+        else:
+            layer_type = "circle"
+
+        source = GeoJSONSource(type="geojson", data=data)
         metadata = {
             "schema": safe(resource, "schema").model_dump(
                 exclude_none=True, warnings="none"
@@ -41,7 +56,7 @@ class DataPackageLayer(BaseLayerModel):
             metadata.update(popup=self.popup.model_dump())
         layer: Layer = {
             "id": self.id,
-            "type": "circle",
+            "type": layer_type,
             "source": self.id,
             "metadata": metadata,
         }
@@ -51,21 +66,21 @@ class DataPackageLayer(BaseLayerModel):
         package = DataPackage.from_path(base_path / self.path)
         final_filter = None
         if self.filter:
-            final_filter = parse(self.filter)
+            final_filter = parse_filter(self.filter)
         if filter:
             if final_filter:
                 final_filter = And(final_filter, filter)
             else:
                 final_filter = filter
+
+        columns = None
+        if self.columns:
+            columns = {alias: parse_expr(expr) for alias, expr in self.columns.items()}
         df = package.read_resource(
-            self.resource, final_filter, self.groupby, self.columns
+            self.resource,
+            columns,
+            final_filter,
+            self.groupby,
         )
-        assert isinstance(df, GeoDataFrame), "No geometries in the layer output."
-
-        # We convert numpy arrays to python lists so the output
-        # can be dumped to json
-        array_cols = df.select_dtypes(include=np.ndarray, exclude="str").columns
-        if not array_cols.empty:
-            df[array_cols] = df[array_cols].map(np.ndarray.tolist)
-
-        return df.to_geo_dict()
+        assert isinstance(df, GeoDataFrame), "No geometry column found."
+        return df.to_geo_dict(show_bbox=True)  # type: ignore

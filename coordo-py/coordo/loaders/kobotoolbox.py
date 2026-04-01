@@ -125,6 +125,12 @@ def stringify(obj):
     return json.dumps(obj)
 
 
+def coords_to_point(coords):
+    if coords:
+        lat, lon, alt, prec = map(float, coords.split(" "))
+        return Point(lon, lat, alt)
+
+
 def load(package: DataPackage, xlsform: Path, xlsdata: Path):
     form = parse_file_to_json(str(xlsform))
     name = cast(str, form["id_string"].lower())
@@ -155,13 +161,7 @@ def load(package: DataPackage, xlsform: Path, xlsdata: Path):
         for field in schema.fields:
             if field.name in sheet.columns:
                 if field.type == "geojson":
-                    sheet[field.name] = sheet[field.name].apply(
-                        lambda coords: (
-                            Point([float(c) for c in coords.split(" ")[:3]])
-                            if coords
-                            else None
-                        )
-                    )
+                    sheet[field.name] = sheet[field.name].apply(coords_to_point)
                 if field.type == "list":
                     sheet[field.name] = sheet[field.name].apply(
                         lambda string: str(string).split()
@@ -177,7 +177,7 @@ def load(package: DataPackage, xlsform: Path, xlsdata: Path):
 
         sheet = sheet[fields]
         sheet = sheet.replace({np.nan: None})
-        path = Path(package.basepath, table_name + ".parquet")
+        path = Path(package._basepath, table_name + ".parquet")
         geo_cols = [f.name for f in schema.fields if f.type == "geojson"]
         if geo_cols:
             gdf = gpd.GeoDataFrame(
@@ -242,6 +242,8 @@ def _parse_questions(pkg, questions: List[Dict[str, Any]], resource: Resource):
             constraints = {"required": False}
             if qtype == "integer":
                 constraints["minimum"] = 0
+            if qtype == "select all that apply":
+                kwargs["itemType"] = "string"
             if "bind" in question:
                 bind = question["bind"]
                 if "required" in bind:

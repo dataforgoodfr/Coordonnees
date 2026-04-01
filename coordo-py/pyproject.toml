@@ -4,10 +4,8 @@ version = "0.1.0"
 description = "A set of modules to help with using spatio-temporal data and creating maps"
 requires-python = ">=3.11"
 dependencies = [
-    "cross-web>=0.4.1",
     "dplib-py>=1.1.0",
     "duckdb>=1.5",
-    "duckdb-sqlalchemy>=1.4.4.2",
     "flask>=3.1.2",
     "geojson>=3.2.0",
     "geopandas>=1.1.2",
@@ -19,8 +17,7 @@ dependencies = [
     "pygeofilter>=0.3.3",
     "pyxform>=4.2.0",
     "shapely>=2.1.2",
-    "sqlalchemy-serializer>=1.6.2",
-    "sqlite-sqlean>=0.1",
+    "sqlalchemy>=2.0.48",
     "typer>=0.24.0",
     "xyzservices>=2025.11.0",
 ]
@@ -30,3 +27,8 @@ coordo = "coordo.cli:app"
 
 [tool.setuptools.package-data]
 "coordo" = ["static/*", "**/*.sql"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.8",
+]

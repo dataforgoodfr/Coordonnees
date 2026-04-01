@@ -1,0 +1,68 @@
+{
+  "layers": [
+    {
+      "id": "satellite",
+      "type": "xyzservices",
+      "provider": "Esri.WorldImagery"
+    },
+    {
+      "id": "villages",
+      "type": "openmaptiles",
+      "layer": "place",
+      "filters": { "class": "village" }
+    },
+    {
+      "id": "towns",
+      "type": "openmaptiles",
+      "layer": "place",
+      "filters": { "class": "town" }
+    },
+    {
+      "id": "boundaries",
+      "type": "openmaptiles",
+      "layer": "boundary",
+      "filters": { "admin_level": 2 },
+      "style": { "paint": { "line-color": "hsl(248,7%,66%)" } }
+    },
+    {
+      "id": "inventaire",
+      "type": "datapackage",
+      "path": "../catalog/inventaire/datapackage.json",
+      "resource": "inventaire_id",
+      "groupby": ["for", "cod"],
+      "columns": {
+        "geom": "gps.merge().centroid()",
+        "mean_density": "ind.sum(dens_bois.value)",
+        "tree_density": "ind.count(1 if etat = 2) / (20^2 * pi() / 10000)",
+        "unique_species": "ind.list(ess_arb).list_unique()",
+        "dominant_height": "ind.avg(haut if haut > percentile(haut, 80))",
+        "soil_structure": "2 * sum(ep1*int(not1) + ep2 * int(not2) + ep3 * int(not3) + ep4 * int(not4) + ep5 * int(not5)) / sum(ep1 + ep2 + ep3 + ep4 + ep5)",
+        "diversity": "ind.shannon(ess_arb) / 5 * 10",
+        "biomass": "ind.sum(0.0673 * (dens_bois.value * (dhp1 + dhp2 + dhp3 + dhp4 + dhp5 + dhp6 + dhp7 + dhp8 + dhp9 + dhp10)^2 * haut)^0.976 if etat = 1)",
+        "necromass": "ind.sum(0.0673 * (dens_bois.value * (dhp1 + dhp2 + dhp3 + dhp4 + dhp5 + dhp6 + dhp7 + dhp8 + dhp9 + dhp10)^2 * haut)^0.976 if etat = 2)",
+        "vertical_distribution": "ind.gini(haut) * 10",
+        "spatial_distribution": "ind.categorical_gini(zon) * 10",
+        "diametral_distribution": "ind.gini(dhp1 + dhp2 + dhp3 + dhp4 + dhp5 + dhp6 + dhp7 + dhp8 + dhp9 + dhp10) * 10",
+        "dendro": "ind.list(dmh).flatten().list_unique() / 16 * 10",
+        "epigeal_specific_richness": "barba_001.sum(nomb_barbA) + barbb_001.sum(nomb_barbB) + barbc_001.sum(nomb_barbC) + barbd_001.sum(nomb_barbD)"
+      },
+      "popup": {
+        "trigger": "click"
+      }
+    }
+  ],
+  "controls": [
+    {
+      "type": "compass",
+      "position": "top-left"
+    },
+    {
+      "type": "layer",
+      "position": "top-right"
+    },
+    {
+      "type": "scale",
+      "position": "bottom-left"
+    }
+  ]
+}

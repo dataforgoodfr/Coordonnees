@@ -5,7 +5,7 @@ import type {
   Map as MapLibreMap,
   StyleSpecification,
 } from "maplibre-gl";
-import { NavigationControl, ScaleControl } from "maplibre-gl";
+import { LngLatBounds, NavigationControl, ScaleControl } from "maplibre-gl";
 
 import { CONTROLS, LayerControl } from "../layers/controls";
 import type { SetLayerPopupParams } from "../layers/popup";
@@ -85,18 +85,26 @@ export function addStyleDataListener({
           layerId: layer.id,
           renderCallback: (props) => {
             if (metadata.popup?.html) {
-              // When the backend data contains html, render it
-              return renderTemplate(
-                metadata.popup?.html ?? "<h1>Undefined</h1>",
-                props,
-              );
+              // If the backend provide html, render it
+              return renderTemplate(metadata.popup?.html, props);
             }
-            return JSON.stringify(props, null, 2);
+            return `<div style="background-color: white">${JSON.stringify(props, null, 2)}</div>`;
           },
           trigger: metadata.popup?.trigger as keyof MapLayerEventType,
         });
       }
     });
+
+    const totalBounds = new LngLatBounds();
+    Object.values(style.sources).forEach((source) => {
+      if (source.type === "geojson") {
+        if (typeof source.data !== "string" && source.data.bbox) {
+          const bbox = source.data.bbox.slice(0, 4);
+          totalBounds.extend(bbox as [number, number, number, number]);
+        }
+      }
+    });
+    map.fitBounds(totalBounds, { padding: 50 });
 
     onSuccess?.();
   });
