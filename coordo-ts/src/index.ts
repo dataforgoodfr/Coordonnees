@@ -3,7 +3,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 import "./index.css";
 
-import { LAYER_VISIBILITY } from "./layers/controls";
+import { EVENTS } from "./events";
 import { makeSetLayerFilters } from "./layers/filters";
 import { makeSetLayerPopup } from "./layers/popup";
 import { addStyleDataListener } from "./map/style-data";
@@ -12,6 +12,8 @@ const DEFAULT_MAP_OPTIONS: Partial<maplibregl.MapOptions> = {
   center: [0, 0],
   zoom: 1,
 };
+
+export { EVENTS };
 
 export function createMap(
   target: string | HTMLElement,
@@ -38,14 +40,6 @@ export function createMap(
     zoom: mergedOptions.zoom,
   });
 
-  function hideLayer(layerId: string) {
-    map.setLayoutProperty(layerId, "visibility", LAYER_VISIBILITY.NONE);
-  }
-
-  function showLayer(layerId: string) {
-    map.setLayoutProperty(layerId, "visibility", LAYER_VISIBILITY.VISIBLE);
-  }
-
   function getLayerMetadata(layerId: string) {
     return map.getLayer(layerId)?.metadata;
   }
@@ -70,10 +64,15 @@ export function createMap(
   }
 
   function init() {
-    el.dispatchEvent(new CustomEvent("map:ready"));
+    el.dispatchEvent(new CustomEvent(EVENTS.MAP_READY));
   }
 
-  addStyleDataListener({
+  function dispatchEventToConsumer(event: CustomEvent) {
+    el.dispatchEvent(event);
+  }
+
+  const { hideLayer, showLayer } = addStyleDataListener({
+    dispatchEventToConsumer,
     map,
     onSuccess: init,
     setLayerPopup,
