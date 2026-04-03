@@ -55,7 +55,9 @@ class SQLEvaluator:
         group_cols = (
             list(base_query._group_by_clause) or mapper.table.primary_key.columns
         )
-        self.base_query = base_query.with_only_columns(*group_cols)
+        self.base_query = base_query.with_only_columns(*group_cols).group_by(
+            *group_cols
+        )
         self.join_cols = group_cols
 
     def evaluate(self, node: AstType, mapper: FieldMapper) -> Any:

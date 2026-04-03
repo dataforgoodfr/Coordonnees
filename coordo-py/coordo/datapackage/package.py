@@ -151,7 +151,6 @@ class DataPackage(pydantic.BaseModel):
         conn, metadata = self.prepare_db()
         query = build_query(metadata, resource_name, columns, filter, groupby)
         query_str = compile_query(query)
-        print(query_str)
         relation = conn.sql(query_str)
         table: pa.Table = relation.arrow().read_all()
         conn.close()
