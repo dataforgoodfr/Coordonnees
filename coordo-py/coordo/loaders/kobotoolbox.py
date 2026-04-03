@@ -138,7 +138,7 @@ def load(package: DataPackage, xlsform: Path, xlsdata: Path):
     form = parse_file_to_json(str(xlsform))
     name = cast(str, form["id_string"].lower())
     main_resource = _create_resource(name)
-    # _parse_form(package, form, main_resource)
+    _parse_form(package, form, main_resource)
     if xlsdata.suffix == ".xlsx":
         sheets_dict = pd.read_excel(xlsdata, sheet_name=None)
     elif xlsdata.suffix == ".csv":
@@ -185,7 +185,6 @@ def load(package: DataPackage, xlsform: Path, xlsdata: Path):
 
         sheet = sheet[fields]
         sheet = sheet.replace({np.nan: None})
-        print(sheet)
         path = Path(package._basepath, table_name + ".parquet")
         geo_cols = [f.name for f in schema.fields if f.type == "geojson"]
         if geo_cols:

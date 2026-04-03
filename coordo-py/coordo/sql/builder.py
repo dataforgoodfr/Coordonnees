@@ -31,11 +31,9 @@ def build_query(
 
     query = select().select_from(table)
 
-    group_cols = table.primary_key.columns
     if groupby:
         group_cols = [field_map[col] for col in groupby]
-
-    query = query.group_by(*group_cols).with_only_columns(*group_cols)
+        query = query.group_by(*group_cols).with_only_columns(*group_cols)
 
     if filter:
         query = query.filter(to_filter(filter, table.columns))
@@ -45,7 +43,10 @@ def build_query(
 
         for alias, ast in columns.items():
             expr, joins = to_sql(ast, field_map, base_query)
-            query = query.add_columns(func.any_value(expr).label(alias))
+            if groupby:
+                query = query.add_columns(func.any_value(expr).label(alias))
+            else:
+                query = query.add_columns(expr.label(alias))
             for join, on in joins:
                 query = query.join(join, on, isouter=True)
     else:

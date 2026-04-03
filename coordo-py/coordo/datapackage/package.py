@@ -20,7 +20,6 @@ from dplib.models import (
     ForeignKeyReference as ForeignKeyReference,
 )
 from dplib.plugins.sql.models import SqlSchema
-from duckdb import DuckDBPyConnection
 from pygeofilter.ast import AstType
 
 from coordo.sql.builder import build_query, compile_query
