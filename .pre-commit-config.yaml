@@ -1,11 +1,19 @@
+# Copyright IBM Corp. 2025, 2026
+
 repos:
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: "v0.2.1"
+    rev: v0.15.9
     hooks:
-      - id: ruff
-        args: [--fix]
+      - id: ruff-check
+      - id: ruff-format
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+    rev: v6.0.0
     hooks:
       - id: check-merge-conflict
       - id: mixed-line-ending
+
+  - repo: https://github.com/hashicorp/copywrite
+    rev: v0.25.2
+    hooks:
+      - id: add-headers
