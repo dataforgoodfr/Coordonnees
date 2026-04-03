@@ -25,7 +25,6 @@ CREATE OR REPLACE MACRO categorical_gini(col) AS (
         SELECT SUM((cnt/total)^2)
         FROM (
             SELECT
-                x,
                 COUNT(*) AS cnt,
                 SUM(COUNT(*)) OVER () AS total
             FROM unnest(list(col)) AS x
@@ -33,3 +32,5 @@ CREATE OR REPLACE MACRO categorical_gini(col) AS (
         )
     )
 );
+
+CREATE OR REPLACE MACRO value_counts(col) AS list_reduce(list(col), lambda counts, x: struct_update(counts, x := coalesce(counts[x], 0) + 1));

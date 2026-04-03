@@ -30,6 +30,7 @@ GRAMMAR = r"""
         | func_call
         | NUMBER
         | QUOTED
+        | NULL
         | "(" expr ")"
 
     call_chain: variable ("." (func_call | variable))*
@@ -38,19 +39,20 @@ GRAMMAR = r"""
 
     variable: CNAME
 
+    NULL: "null"
+
     arg_list: expr ("," expr)*
 
     comparison: sum OP sum
 
     OP: ">" | "<" | "=" | "!=" | ">=" | "<=" | "in"
-    QUOTED: /([\"\'])(.*)([\"\'])/
+    QUOTED: /'[^']*'|"[^"]*"/
 
     %import common.CNAME
     %import common.NUMBER
     %import common.WS
     %ignore WS
 """
-parser = Lark(GRAMMAR)
 
 
 @dataclass
@@ -164,11 +166,8 @@ class SQLTransformer(Transformer):
     def QUOTED(self, token):
         return Text(token.value)
 
+    def NULL(self, token):
+        return None
+
 
 parse = Lark(GRAMMAR, parser="lalr", transformer=SQLTransformer()).parse
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()

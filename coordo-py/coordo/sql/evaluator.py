@@ -132,7 +132,7 @@ class SQLEvaluator:
 
         if else_ is not None:
             else_expr = else_.expr
-            joins.add(else_.joins)
+            joins.update(else_.joins)
         else:
             else_expr = None
 
@@ -182,7 +182,7 @@ class SQLEvaluator:
                             cte,
                             and_(*([col == cte.c[col.name] for col in self.join_cols])),
                         )
-                    ],
+                    ]
                 ),
             )
         return Context(f, joins)
@@ -192,6 +192,9 @@ class SQLEvaluator:
 
     def text(self, node, *, mapper: FieldMapper):
         return Context(text(node.value), oset())
+
+    def nonetype(self, node, *, mapper: FieldMapper):
+        return Context(None, oset())
 
 
 def to_sql(ast: AstType, field_map, base_query=None):
