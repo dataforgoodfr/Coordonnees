@@ -135,7 +135,7 @@ def load(package: DataPackage, xlsform: Path, xlsdata: Path):
     form = parse_file_to_json(str(xlsform))
     name = cast(str, form["id_string"].lower())
     main_resource = _create_resource(name)
-    # _parse_form(package, form, main_resource)
+    _parse_form(package, form, main_resource)
     if xlsdata.suffix == ".xlsx":
         sheets_dict = pd.read_excel(xlsdata, sheet_name=None)
     elif xlsdata.suffix == ".csv":
