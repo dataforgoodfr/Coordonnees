@@ -1,0 +1,25 @@
+name: Check Copyright Notices
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check_copyright:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0 # As git operations are involved, we will need a deep clone of the repo.
+
+      - name: Setup Copywrite
+        uses: hashicorp/setup-copywrite@867a1a2a064a0626db322392806428f7dc59cb3e # v1.1.2
+
+      - name: Check headers
+        run: copywrite headers --plan
+
+      - name: Check license
+        run: copywrite license --plan

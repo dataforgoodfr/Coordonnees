@@ -1,3 +1,6 @@
+# Copyright COORDONNÉES 2025, 2026
+# SPDX-License-Identifier: MPL-2.0
+
 import json
 from datetime import date, datetime
 from pathlib import Path
