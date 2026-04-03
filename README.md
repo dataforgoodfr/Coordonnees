@@ -80,7 +80,7 @@ This repo is still in very early stage so it is not yet published on registries,
 Python
 
 ```
-pip install git+https://github.com/dataforgoodfr/Coordonnees.git#subdirectory=python
+pip install git+https://github.com/dataforgoodfr/Coordonnees.git#subdirectory=coordo-py
 ```
 
 Javascript
@@ -108,10 +108,13 @@ uv run coordo load kobotoolbox data/20250213_Inventaire_ID_QuestionnaireK.xlsx d
 uv run coordo load file data/dens_bois.csv --package catalog/inventaire
 uv run coordo add-foreignkey ind.ess_arb dens_bois.ess_arb --package catalog/inventaire
 uv run coordo load kobotoolbox data/20240808_EnqueteMenage_CDF_QuestionnaireK.xlsx data/20241007_EnqueteMenage_CDF_Donnees.csv --package catalog/enquete
+uv run coordo load file data/socio_eco_gps.csv --package catalog/enquete
+uv run coordo add-foreignkey enquete_menage_cdf.admi2 socio_eco_gps.admi2 --package catalog/enquete
 ```
 
 Serve a config file
 
-```
-uv run coordo serve data/config.json
+All 4 Trees data :
+```bash
+uv run coordo serve configs/all4trees_config.json
 ```
