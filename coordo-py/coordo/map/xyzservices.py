@@ -1,3 +1,6 @@
+# Copyright COORDONNÉES 2025, 2026
+# SPDX-License-Identifier: MPL-2.0
+
 from typing import Literal
 
 import xyzservices.providers as providers

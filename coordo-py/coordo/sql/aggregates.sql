@@ -1,3 +1,6 @@
+-- Copyright COORDONNÉES 2025, 2026
+-- SPDX-License-Identifier: MPL-2.0
+
 CREATE OR REPLACE MACRO merge(col) AS st_union_agg(col);
 
 CREATE OR REPLACE MACRO percentile(col, pct) AS quantile_cont(col, pct / 100);

@@ -1,3 +1,6 @@
+# Copyright COORDONNÉES 2025, 2026
+# SPDX-License-Identifier: MPL-2.0
+
 # Not all definitions have been imported from common/maplibre-style-spec-v8.ts
 # Please add them when needed
 

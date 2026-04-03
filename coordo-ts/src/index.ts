@@ -1,3 +1,8 @@
+/**
+ * Copyright COORDONNÉES 2025, 2026
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 

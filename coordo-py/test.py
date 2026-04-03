@@ -1,3 +1,6 @@
+# Copyright COORDONNÉES 2025, 2026
+# SPDX-License-Identifier: MPL-2.0
+
 import re
 from doctest import NORMALIZE_WHITESPACE, DocTestFinder, DocTestRunner
 from pathlib import Path
