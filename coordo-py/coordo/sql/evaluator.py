@@ -52,7 +52,9 @@ class SQLEvaluator:
         group_cols = (
             list(base_query._group_by_clause) or mapper.table.primary_key.columns
         )
-        self.base_query = base_query.with_only_columns(*group_cols)
+        self.base_query = base_query.with_only_columns(*group_cols).group_by(
+            *group_cols
+        )
         self.join_cols = group_cols
 
     def evaluate(self, node: AstType, mapper: FieldMapper) -> Any:
@@ -132,7 +134,7 @@ class SQLEvaluator:
 
         if else_ is not None:
             else_expr = else_.expr
-            joins.add(else_.joins)
+            joins.update(else_.joins)
         else:
             else_expr = None
 
@@ -182,7 +184,7 @@ class SQLEvaluator:
                             cte,
                             and_(*([col == cte.c[col.name] for col in self.join_cols])),
                         )
-                    ],
+                    ]
                 ),
             )
         return Context(f, joins)
@@ -192,6 +194,9 @@ class SQLEvaluator:
 
     def text(self, node, *, mapper: FieldMapper):
         return Context(text(node.value), oset())
+
+    def nonetype(self, node, *, mapper: FieldMapper):
+        return Context(None, oset())
 
 
 def to_sql(ast: AstType, field_map, base_query=None):

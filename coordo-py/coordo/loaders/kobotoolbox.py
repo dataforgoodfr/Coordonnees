@@ -108,7 +108,7 @@ DP_FIELDS = {
 
 DTYPES = {
     "string": str,
-    "integer": int,
+    "integer": "Int64",
     "number": float,
     "date": date,
     "time": time,
@@ -126,7 +126,7 @@ def stringify(obj):
 
 
 def coords_to_point(coords):
-    if coords:
+    if not pd.isna(coords):
         lat, lon, alt, prec = map(float, coords.split(" "))
         return Point(lon, lat, alt)
 
@@ -141,7 +141,12 @@ def load(package: DataPackage, xlsform: Path, xlsdata: Path):
     elif xlsdata.suffix == ".csv":
         # I think this encoding is not the one from Kobo we should verify
         sheets_dict = {
-            name: pd.read_csv(xlsdata, sep=";", encoding="windows-1252", decimal=",")
+            name: pd.read_csv(
+                xlsdata,
+                sep=";",
+                encoding="windows-1252",
+                decimal=",",
+            )
         }
     else:
         raise ValueError(f"Unsupported file format: {xlsdata}")
@@ -153,8 +158,8 @@ def load(package: DataPackage, xlsform: Path, xlsdata: Path):
             sheet.rename(
                 columns={"_parent_index": "parent_id"},
             )
-            .replace(np.nan, 0)
-            .fillna("")
+            .convert_dtypes()
+            .replace(np.nan, None)
         )
         sheet[PRIMARY_KEY] = sheet.index + 1
         fields = []
@@ -180,9 +185,7 @@ def load(package: DataPackage, xlsform: Path, xlsdata: Path):
         path = Path(package._basepath, table_name + ".parquet")
         geo_cols = [f.name for f in schema.fields if f.type == "geojson"]
         if geo_cols:
-            gdf = gpd.GeoDataFrame(
-                sheet, geometry=geo_cols[0] if geo_cols else None, crs="EPSG:4326"
-            )
+            gdf = gpd.GeoDataFrame(sheet, geometry=geo_cols[0], crs="EPSG:4326")
             gdf.to_parquet(
                 path,
                 schema_version="1.1.0",

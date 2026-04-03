@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Iterable, Optional
 
+import duckdb
 import geopandas as gpd
 import pandas as pd
 import pyarrow as pa
@@ -120,7 +121,7 @@ class DataPackage(pydantic.BaseModel):
         # resource = self.get_resource(name=resource_name)
         # schema = resource.get_schema()
 
-    def prepare_db(self):
+    def prepare_db(self) -> tuple[duckdb.DuckDBPyConnection, sa.MetaData]:
         conn = load_conn()
 
         metadata = sa.MetaData()
@@ -146,15 +147,17 @@ class DataPackage(pydantic.BaseModel):
         conn, metadata = self.prepare_db()
         query = build_query(metadata, resource_name, columns, filter, groupby)
         query_str = compile_query(query)
-        # print(query_str)
         relation = conn.sql(query_str)
-        table = relation.arrow().read_all()
+        table: pa.Table = relation.arrow().read_all()
         conn.close()
 
         if any(col[1].id == "geometry" for col in relation.description):
-            df = gpd.GeoDataFrame.from_arrow(table)
+            df = gpd.GeoDataFrame.from_arrow(
+                table,
+                to_pandas_kwargs={"maps_as_pydicts": "strict"},
+            )
         else:
-            df = pd.DataFrame.from_arrow(table)
+            df = table.to_df()
 
         # Convert numpy arrays to python lists so the dataframe is JSON-serializable
         list_cols = [

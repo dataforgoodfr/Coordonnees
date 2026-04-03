@@ -1,6 +1,6 @@
 from pygeofilter.ast import AstType
 from pygeofilter.backends.sqlalchemy import to_filter
-from sqlalchemy import MetaData, func, select
+from sqlalchemy import MetaData, Select, func, select
 
 from .evaluator import to_sql
 from .mapper import FieldMapper
@@ -10,7 +10,7 @@ def print_query(query):
     print(compile_query(query))
 
 
-def compile_query(query):
+def compile_query(query: Select) -> str:
     return str(query.compile(compile_kwargs={"literal_binds": True}))
 
 
@@ -20,7 +20,7 @@ def build_query(
     columns: dict[str, AstType] | None = None,
     filter: AstType | None = None,
     groupby: list[str] | None = None,
-):
+) -> Select:
     assert not groupby or columns, "You can't groupby without specifying columns"
 
     table = metadata.tables[table_name]

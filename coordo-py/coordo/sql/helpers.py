@@ -6,7 +6,7 @@ import duckdb
 AGGREGATES_SQL = (Path(__file__).parent / "aggregates.sql").read_text()
 
 
-def load_conn():
+def load_conn() -> duckdb.DuckDBPyConnection:
     conn = duckdb.connect()
     conn.install_extension("SPATIAL")
     conn.load_extension("SPATIAL")

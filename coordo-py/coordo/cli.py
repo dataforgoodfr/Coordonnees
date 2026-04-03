@@ -1,3 +1,4 @@
+import signal
 from pathlib import Path
 
 import typer
@@ -19,6 +20,14 @@ def global_options(
     catalog: Path = typer.Option(Path("./catalog"), help="Root catalog folder"),
 ):
     options["catalog"] = catalog
+
+
+@app.command()
+def explore(package_path: Path):
+    dp = DataPackage.from_path(package_path)
+    conn, _ = dp.prepare_db()
+    conn.execute("CALL start_ui();")
+    signal.pause()
 
 
 @app.command()
@@ -46,11 +55,11 @@ def serve(config_file: str):
         </html>
         """
 
-    map = Map.from_file(config_file)
-
     @app.route("/map/<path:subpath>", methods=["GET", "POST"])
     def maps(subpath: str):
-        return map.handle_request(
+        return Map.from_file(
+            config_file,
+        ).handle_request(
             request.method,
             subpath,
             request.get_json(silent=True),
