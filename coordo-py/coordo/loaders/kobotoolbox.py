@@ -182,7 +182,6 @@ def load(package: DataPackage, xlsform: Path, xlsdata: Path):
 
         sheet = sheet[fields]
         sheet = sheet.replace({np.nan: None})
-        print(sheet)
         path = Path(package._basepath, table_name + ".parquet")
         geo_cols = [f.name for f in schema.fields if f.type == "geojson"]
         if geo_cols:
