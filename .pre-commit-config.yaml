@@ -17,3 +17,4 @@ repos:
     rev: v0.25.2
     hooks:
       - id: add-headers
+      - id: add-license
