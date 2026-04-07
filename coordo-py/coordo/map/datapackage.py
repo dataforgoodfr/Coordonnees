@@ -16,7 +16,6 @@ from ..helpers import safe
 from .base import BaseLayerModel
 from .maplibre_style_spec_v8 import GeoJSONSource, Layer
 
-
 class Popup(BaseModel):
     trigger: str
     html: str | None = None
@@ -48,6 +47,15 @@ class DataPackageLayer(BaseLayerModel):
             layer_type = "line"
         else:
             layer_type = "circle"
+
+        # sanitize properties to avoid issues with null values in MapLibre
+        # as they say in the doc: "only string and numeric property values are supported"
+        # https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/
+        for f in data["features"]:
+            properties = f.get("properties", {})
+            for p, v in properties.items():
+                if v is None:
+                    properties[p] = "null"
 
         source = GeoJSONSource(type="geojson", data=data)
         metadata = {
