@@ -103,6 +103,7 @@ export function addStyleDataListener({
       }
     });
 
+    /*
     const totalBounds = new LngLatBounds();
     Object.values(style.sources).forEach((source) => {
       if (source.type === "geojson") {
@@ -113,7 +114,7 @@ export function addStyleDataListener({
       }
     });
     map.fitBounds(totalBounds, { padding: 50 });
-
+*/
     onSuccess?.();
   });
 

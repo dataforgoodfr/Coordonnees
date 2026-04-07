@@ -62,6 +62,7 @@ export function makeSetLayerFilters({
     });
     const data = await res.json();
 
+    console.log(`[FILTERS] Data fetched for layer ${layerId} with filters ${JSON.stringify(filters)}:`, data);
     // Update map internal state data
     const source = map.getSource(layer?.source) as GeoJSONSource;
     source?.setData(data);
