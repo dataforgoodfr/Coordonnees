@@ -4,6 +4,7 @@
  */
 
 import type {
+  GeoJSONSource,
   MapLayerEventType,
   MapLayerMouseEvent,
   MapLayerTouchEvent,
@@ -85,7 +86,7 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
       delete popupRemovers[layerId];
     }
 
-    const onTrigger = (ev: MapLayerMouseEvent | MapLayerTouchEvent) => {
+    const onTrigger = async (ev: MapLayerMouseEvent | MapLayerTouchEvent) => {
       const geometry = ev.features?.[0]?.geometry;
       const properties = ev.features?.[0]?.properties;
       const id = ev.features?.[0]?.id;
@@ -94,9 +95,12 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
         const popup = new Popup(popupConfig).setLngLat(ev.lngLat);
 
         console.log("Feature id", id);
-        const layer = map.getStyle().sources[layerId];
-        console.log("Layer Source:", layer);
-        console.log("Feature state:", map.getSource(layerId));
+        const source = map.getSource(layerId) as GeoJSONSource;
+        const data = await source.getData(); // Returns the full FeatureCollection
+
+        console.log("Source:", source);
+        console.log("Source data:", data);
+    
         const content = renderCallback(properties as T);
         if (typeof content === "string") {
           popup.setHTML(content);
