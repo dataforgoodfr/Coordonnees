@@ -96,11 +96,17 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
         // Retrieve properties directly from source as MapLayerEvent only supports string and numeric types
         // https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/
         const source = map.getSource(layerId) as GeoJSONSource;
-        const data = await source.getData(); 
-        const properties = data.type === 'FeatureCollection' ? data.features?.find((f) => Number(f.id) === Number(id))?.properties : undefined;
-        
+        const data = await source.getData();
+        const properties =
+          data.type === "FeatureCollection"
+            ? data.features?.find((f) => Number(f.id) === Number(id))
+                ?.properties
+            : undefined;
+
         if (!properties) {
-          console.warn(`Coordo lib only supports popups on GeoJSON sources with "FeatureCollection" types`);
+          console.warn(
+            `Coordo lib only supports popups on GeoJSON sources with "FeatureCollection" types`,
+          );
           return;
         }
 
