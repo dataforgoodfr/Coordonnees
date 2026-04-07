@@ -16,6 +16,7 @@ from ..helpers import safe
 from .base import BaseLayerModel
 from .maplibre_style_spec_v8 import GeoJSONSource, Layer
 
+
 class Popup(BaseModel):
     trigger: str
     html: str | None = None
