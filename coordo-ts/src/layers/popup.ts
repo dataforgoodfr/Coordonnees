@@ -96,6 +96,7 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
         console.log("Feature id", id);
         const layer = map.getStyle().sources[layerId];
         console.log("Layer Source:", layer);
+        console.log("Feature state:", map.getFeatureState({ source: layerId, id }));
         const content = renderCallback(properties as T);
         if (typeof content === "string") {
           popup.setHTML(content);
