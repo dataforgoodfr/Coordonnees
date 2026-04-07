@@ -99,8 +99,19 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
         const data = await source.getData(); // Returns the full FeatureCollection
 
         console.log("Source:", source);
-        console.log("Source data:", data);
-    
+        console.log("Source data:", typeof data);
+        if (data.type === 'FeatureCollection') {
+          const feature = data.features.find((f) => f.id === id);
+          if (feature) {
+            console.log("Matched feature:", feature);
+            console.log("Feature properties:", feature.properties);
+          } else {
+            console.warn(`Feature with id ${id} not found in source data.`);
+          }
+        } else {
+          console.warn(`Unexpected data type from source: ${data.type}`);
+        }
+
         const content = renderCallback(properties as T);
         if (typeof content === "string") {
           popup.setHTML(content);
