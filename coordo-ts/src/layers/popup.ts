@@ -88,34 +88,14 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
 
     const onTrigger = async (ev: MapLayerMouseEvent | MapLayerTouchEvent) => {
       const geometry = ev.features?.[0]?.geometry;
-      const properties = ev.features?.[0]?.properties;
       const id = ev.features?.[0]?.id;
       if (geometry && id) {
         /** @todo Remove "any" casting  */
         const popup = new Popup(popupConfig).setLngLat(ev.lngLat);
 
-        console.log("Feature id", id);
         const source = map.getSource(layerId) as GeoJSONSource;
         const data = await source.getData(); // Returns the full FeatureCollection
-
-        console.log("Source:", source);
-        console.log("Source data:", typeof data);
-        if (data.type === 'FeatureCollection') {
-          const features = data.features;
-          features.forEach((feature, index) => {
-            console.log(`Feature ${index}:`, feature);
-            console.log(`Feature ${id} properties:`, feature.id);
-          });
-          const feature = features.find((f) => Number(f.id) === Number(id));
-          if (feature) {
-            console.log("Matched feature:", feature);
-            console.log("Feature properties:", feature.properties);
-          } else {
-            console.warn(`Feature with id ${id} not found in source data.`);
-          }
-        } else {
-          console.warn(`Unexpected data type from source: ${data.type}`);
-        }
+        const properties = data.type === 'FeatureCollection' ? data.features?.find((f) => Number(f.id) === Number(id))?.properties : undefined;
 
         const content = renderCallback(properties as T);
         if (typeof content === "string") {
