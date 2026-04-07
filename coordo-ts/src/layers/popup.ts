@@ -87,13 +87,14 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
 
     const onTrigger = (ev: MapLayerMouseEvent | MapLayerTouchEvent) => {
       const geometry = ev.features?.[0]?.geometry;
-      const properties = ev.features?.[0]?.properties;
-      const features = ev.features?.[0];
-      if (geometry && properties) {
+      const id = ev.features?.[0]?.id;
+      if (geometry && id) {
         /** @todo Remove "any" casting  */
         const popup = new Popup(popupConfig).setLngLat(ev.lngLat);
 
-        console.log("Sources:", map.getStyle().sources);
+        console.log("Feature id", id);
+        const layer = map.getStyle().sources[layerId];
+        console.log("Layer Source:", layer);
         const content = renderCallback(properties as T);
         if (typeof content === "string") {
           popup.setHTML(content);
