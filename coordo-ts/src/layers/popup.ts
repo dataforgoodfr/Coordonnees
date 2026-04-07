@@ -4,6 +4,7 @@
  */
 
 import type {
+  GeoJSONSource,
   MapLayerEventType,
   MapLayerMouseEvent,
   MapLayerTouchEvent,
@@ -85,12 +86,23 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
       delete popupRemovers[layerId];
     }
 
-    const onTrigger = (ev: MapLayerMouseEvent | MapLayerTouchEvent) => {
+    const onTrigger = async (ev: MapLayerMouseEvent | MapLayerTouchEvent) => {
       const geometry = ev.features?.[0]?.geometry;
-      const properties = ev.features?.[0]?.properties;
-      if (geometry && properties) {
+      const id = ev.features?.[0]?.id;
+      if (geometry && id) {
         /** @todo Remove "any" casting  */
         const popup = new Popup(popupConfig).setLngLat(ev.lngLat);
+
+        // Retrieve properties directly from source as MapLayerEvent only supports string and numeric types
+        // https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/
+        const source = map.getSource(layerId) as GeoJSONSource;
+        const data = await source.getData(); 
+        const properties = data.type === 'FeatureCollection' ? data.features?.find((f) => Number(f.id) === Number(id))?.properties : undefined;
+        
+        if (!properties) {
+          console.warn(`Coordo lib only supports popups on GeoJSON sources with "FeatureCollection" types`);
+          return;
+        }
 
         const content = renderCallback(properties as T);
         if (typeof content === "string") {

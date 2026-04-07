@@ -48,15 +48,6 @@ class DataPackageLayer(BaseLayerModel):
         else:
             layer_type = "circle"
 
-        # sanitize properties to avoid issues with null values in MapLibre
-        # as they say in the doc: "only string and numeric property values are supported"
-        # https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/
-        for f in data["features"]:
-            properties = f.get("properties", {})
-            for p, v in properties.items():
-                if v is None:
-                    properties[p] = "null"
-
         source = GeoJSONSource(type="geojson", data=data)
         metadata = {
             "schema": safe(resource, "schema").model_dump(
