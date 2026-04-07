@@ -87,6 +87,7 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
 
     const onTrigger = (ev: MapLayerMouseEvent | MapLayerTouchEvent) => {
       const geometry = ev.features?.[0]?.geometry;
+      const properties = ev.features?.[0]?.properties;
       const id = ev.features?.[0]?.id;
       if (geometry && id) {
         /** @todo Remove "any" casting  */
