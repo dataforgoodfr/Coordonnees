@@ -91,7 +91,11 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
       if (geometry && properties) {
         /** @todo Remove "any" casting  */
         const popup = new Popup(popupConfig).setLngLat(ev.lngLat);
-
+        console.log(`Popup trigger event on layer ${layerId}:`, {
+          ev,
+          geometry,
+          properties,
+        });
         const content = renderCallback(properties as T);
         if (typeof content === "string") {
           popup.setHTML(content);
