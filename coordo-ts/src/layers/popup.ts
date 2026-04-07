@@ -101,7 +101,12 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
         console.log("Source:", source);
         console.log("Source data:", typeof data);
         if (data.type === 'FeatureCollection') {
-          const feature = data.features.find((f) => f.id === id);
+          const features = data.features;
+          features.forEach((feature, index) => {
+            console.log(`Feature ${index}:`, feature);
+            console.log(`Feature ${id} properties:`, feature.id);
+          });
+          const feature = features.find((f) => Number(f.id) === Number(id));
           if (feature) {
             console.log("Matched feature:", feature);
             console.log("Feature properties:", feature.properties);
