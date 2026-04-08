@@ -101,14 +101,7 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
           data.type === "FeatureCollection"
             ? data.features?.find((f) => Number(f.id) === Number(id))
                 ?.properties
-            : undefined;
-
-        if (!properties) {
-          console.warn(
-            `Coordo lib only supports popups on GeoJSON sources with "FeatureCollection" types`,
-          );
-          return;
-        }
+            : ev.features?.[0]?.properties; // Fallback to event properties
 
         const content = renderCallback(properties as T);
         if (typeof content === "string") {
