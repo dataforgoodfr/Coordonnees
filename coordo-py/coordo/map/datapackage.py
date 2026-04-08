@@ -17,7 +17,7 @@ from .base import BaseLayerModel
 from .maplibre_style_spec_v8 import GeoJSONSource, Layer
 
 # https://birkskyum.github.io/maplibre-style/layers/#layer-properties
-ALLOWED_LAYER_KEYS = ["id", "type", "source", "metadata", "paint", "layout", "minizoom", "maxzoom", "fitler", "source-layer"]
+ALLOWED_LAYER_KEYS = ["id", "source", "metadata", "paint", "layout", "minizoom", "maxzoom", "source-layer"]
 
 class Popup(BaseModel):
     trigger: str
