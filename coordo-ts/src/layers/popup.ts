@@ -94,7 +94,6 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
         /** @todo Remove "any" casting  */
         const popup = new Popup(popupConfig).setLngLat(ev.lngLat);
 
-
         const source = map.getSource(layerId) as GeoJSONSource;
         const data = await source.getData();
         const properties = Object.assign(eventProps, {
@@ -102,7 +101,8 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
           // see https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/#querysourcefeatures
           // We want to add them back because we use complex object and potential null values
           // @ts-expect-error - MapLibre types are not accurate regarding feature properties
-          ...data.features?.find((f) => Number(f.id) === Number(id))?.properties,
+          ...data.features?.find((f) => Number(f.id) === Number(id))
+            ?.properties,
         }) as T;
 
         const content = renderCallback(properties as T);
