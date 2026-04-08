@@ -12,12 +12,15 @@ import type {
   PopupOptions,
 } from "maplibre-gl";
 import { Popup } from "maplibre-gl";
-import { LayerMetadata } from "src/types";
+import type { LayerMetadata } from "src/types";
 
 export type SetLayerPopupParams<T> = {
   layerId: string;
   trigger: keyof MapLayerEventType;
-  renderCallback: (properties: T, layerMetadata: LayerMetadata) => HTMLElement | string;
+  renderCallback: (
+    properties: T,
+    layerMetadata: LayerMetadata,
+  ) => HTMLElement | string;
   popupConfig?: PopupOptions;
 };
 
