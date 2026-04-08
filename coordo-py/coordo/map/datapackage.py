@@ -17,7 +17,7 @@ from .base import BaseLayerModel
 from .maplibre_style_spec_v8 import GeoJSONSource, Layer
 
 # https://birkskyum.github.io/maplibre-style/layers/#layer-properties
-ALLOWED_LAYER_KEYS = ["id", "source", "metadata", "paint", "layout", "minizoom", "maxzoom", "source-layer"]
+ALLOWED_LAYER_KEYS = ["id", "source", "metadata", "paint", "layout", "minzoom", "maxzoom", "source-layer"]
 
 class Popup(BaseModel):
     trigger: str
@@ -69,7 +69,6 @@ class DataPackageLayer(BaseLayerModel):
             "metadata": metadata,
         }
         # Update layer with eventual extra keys passed in the config.json
-        print("Adding extra keys to layer...")
         for k, v in self.__pydantic_extra__.items():
             if k in ALLOWED_LAYER_KEYS:
                 layer[k] = v
