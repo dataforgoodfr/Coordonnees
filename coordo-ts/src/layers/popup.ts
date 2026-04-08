@@ -12,11 +12,12 @@ import type {
   PopupOptions,
 } from "maplibre-gl";
 import { Popup } from "maplibre-gl";
+import { LayerMetadata } from "src/types";
 
 export type SetLayerPopupParams<T> = {
   layerId: string;
   trigger: keyof MapLayerEventType;
-  renderCallback: (properties: T) => HTMLElement | string;
+  renderCallback: (properties: T, layerMetadata: LayerMetadata) => HTMLElement | string;
   popupConfig?: PopupOptions;
 };
 
@@ -105,7 +106,8 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
             ?.properties,
         }) as T;
 
-        const content = renderCallback(properties as T);
+        const layerMetadata = map.getLayer(layerId)?.metadata as LayerMetadata;
+        const content = renderCallback(properties as T, layerMetadata);
         if (typeof content === "string") {
           popup.setHTML(content);
         } else {
