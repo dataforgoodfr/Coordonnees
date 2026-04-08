@@ -12,7 +12,8 @@ import type {
   PopupOptions,
 } from "maplibre-gl";
 import { Popup } from "maplibre-gl";
-import type { LayerMetadata } from "src/types";
+
+import type { LayerMetadata } from "../types";
 
 export type SetLayerPopupParams<T> = {
   layerId: string;
