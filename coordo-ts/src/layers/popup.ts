@@ -88,20 +88,22 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
 
     const onTrigger = async (ev: MapLayerMouseEvent | MapLayerTouchEvent) => {
       const geometry = ev.features?.[0]?.geometry;
+      const eventProps = ev.features?.[0]?.properties;
       const id = ev.features?.[0]?.id;
-      if (geometry && id) {
+      if (geometry && id && eventProps) {
         /** @todo Remove "any" casting  */
         const popup = new Popup(popupConfig).setLngLat(ev.lngLat);
 
-        // Retrieve properties directly from source as MapLayerEvent only supports string and numeric types
-        // https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/
+
         const source = map.getSource(layerId) as GeoJSONSource;
         const data = await source.getData();
-        const properties =
-          data.type === "FeatureCollection"
-            ? data.features?.find((f) => Number(f.id) === Number(id))
-                ?.properties
-            : ev.features?.[0]?.properties; // Fallback to event properties
+        const properties = Object.assign(eventProps, {
+          // MapLibre Events will remove any non-string and non-numeric properties from object definition
+          // see https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/#querysourcefeatures
+          // We want to add them back because we use complex object and potential null values
+          // @ts-expect-error - MapLibre types are not accurate regarding feature properties
+          ...data.features?.find((f) => Number(f.id) === Number(id))?.properties,
+        }) as T;
 
         const content = renderCallback(properties as T);
         if (typeof content === "string") {
