@@ -69,6 +69,7 @@ class DataPackageLayer(BaseLayerModel):
             "metadata": metadata,
         }
         # Update layer with eventual extra keys passed in the config.json
+        print("Adding extra keys to layer...")
         for k, v in self.__pydantic_extra__.items():
             if k in ALLOWED_LAYER_KEYS:
                 layer[k] = v
