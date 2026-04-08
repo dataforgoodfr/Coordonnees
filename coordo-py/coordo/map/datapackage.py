@@ -5,7 +5,7 @@ from typing import Literal
 
 from geojson import FeatureCollection
 from geopandas.geodataframe import GeoDataFrame
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from pygeofilter.ast import And
 from pygeofilter.parsers.cql2_text import parse as parse_filter
 
@@ -16,6 +16,8 @@ from ..helpers import safe
 from .base import BaseLayerModel
 from .maplibre_style_spec_v8 import GeoJSONSource, Layer
 
+# https://birkskyum.github.io/maplibre-style/layers/#layer-properties
+ALLOWED_LAYER_KEYS = ["id", "type", "source", "metadata", "paint", "layout", "minizoom", "maxzoom", "fitler", "source-layer"]
 
 class Popup(BaseModel):
     trigger: str
@@ -23,6 +25,8 @@ class Popup(BaseModel):
 
 
 class DataPackageLayer(BaseLayerModel):
+    model_config = ConfigDict(extra='allow')  # Allows arbitrary extra fields
+
     type: Literal["datapackage"]
     path: str
     resource: str
@@ -57,12 +61,18 @@ class DataPackageLayer(BaseLayerModel):
         }
         if self.popup:
             metadata.update(popup=self.popup.model_dump())
+
         layer: Layer = {
             "id": self.id,
             "type": layer_type,
             "source": self.id,
             "metadata": metadata,
         }
+        # Update layer with eventual extra keys passed in the config.json
+        for k, v in self.__pydantic_extra__.items():
+            if k in ALLOWED_LAYER_KEYS:
+                layer[k] = v
+
         return {self.id: source}, layer
 
     def get_data(self, *, base_path, filter=None) -> FeatureCollection:
