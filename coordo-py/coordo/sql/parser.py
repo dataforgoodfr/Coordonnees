@@ -13,10 +13,10 @@ GRAMMAR = r"""
 
     ?boolean_expr: boolean_or
 
-    ?boolean_or: boolean_and ( "||" | "or" ) boolean_or
+    ?boolean_or: boolean_and BOOL_OR_OP boolean_or
             | boolean_and
 
-    ?boolean_and: comparison ( "&&" | "and" ) boolean_and
+    ?boolean_and: comparison BOOL_AND_OP boolean_and
             | comparison
 
     SUM: "+" | "-"
@@ -56,6 +56,8 @@ GRAMMAR = r"""
 
     comparison: sum OP sum
 
+    BOOL_AND_OP: "and" | "&&"
+    BOOL_OR_OP: "or" | "||"
     OP: ">" | "<" | "=" | "!=" | ">=" | "<=" | "in"
     QUOTED: /'[^']*'|"[^"]*"/
 
@@ -154,12 +156,12 @@ class SQLTransformer(Transformer):
     def boolean_and(self, children):
         if len(children) == 1:
             return children[0]
-        return BinaryOp(children[0], 'and', children[2])  # children[1] is the "&&" or "and" token
+        return Comparison(*children)
 
     def boolean_or(self, children):
         if len(children) == 1:
             return children[0]
-        return BinaryOp(children[0], 'or', children[2])  # children[1] is the "||" or "or" token
+        return Comparison(*children)
 
     def query(self, children):
         return Query(*children)
