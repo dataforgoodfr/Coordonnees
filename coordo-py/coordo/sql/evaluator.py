@@ -177,7 +177,7 @@ class SQLEvaluator:
         if node.name.lower() in AGGREGATES:
             query = self.base_query
             for join, on in joins:
-                query = query.join(join, on)
+                query = query.join(join, on, isouter=True)
             cte = query.add_columns(f.label("value")).cte()
             return Context(
                 cte.columns["value"],
