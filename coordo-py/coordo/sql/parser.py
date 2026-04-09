@@ -9,7 +9,15 @@ from pygeofilter.ast import AstType, Node
 GRAMMAR = r"""
     ?start: expr
 
-    ?expr: sum ("if" comparison ("else" expr)? )?
+    ?expr: sum ("if" boolean_expr ("else" expr)?)?
+
+    ?boolean_expr: boolean_or
+
+    ?boolean_or: boolean_and ( "||" | "or" ) boolean_or
+            | boolean_and
+
+    ?boolean_and: comparison ( "&&" | "and" ) boolean_and
+            | comparison
 
     SUM: "+" | "-"
 
@@ -26,8 +34,8 @@ GRAMMAR = r"""
     ?power: factor POW NUMBER -> op
         | factor
 
-    ?factor: "-" factor    -> op
-        | atom
+    ?factor: "-" factor -> op
+            | atom
 
     ?atom: call_chain
         | func_call
@@ -139,6 +147,19 @@ class SQLTransformer(Transformer):
 
     def comparison(self, children):
         return Comparison(*children)
+
+    def boolean_expr(self, children):
+        return self.boolean_or(self, children)
+
+    def boolean_and(self, children):
+        if len(children) == 1:
+            return children[0]
+        return BinaryOp(children[0], 'and', children[2])  # children[1] is the "&&" or "and" token
+
+    def boolean_or(self, children):
+        if len(children) == 1:
+            return children[0]
+        return BinaryOp(children[0], 'or', children[2])  # children[1] is the "||" or "or" token
 
     def query(self, children):
         return Query(*children)
