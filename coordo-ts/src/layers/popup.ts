@@ -4,6 +4,7 @@
  */
 
 import type {
+  GeoJSONSource,
   MapLayerEventType,
   MapLayerMouseEvent,
   MapLayerTouchEvent,
@@ -12,10 +13,15 @@ import type {
 } from "maplibre-gl";
 import { Popup } from "maplibre-gl";
 
+import type { LayerMetadata } from "../types";
+
 export type SetLayerPopupParams<T> = {
   layerId: string;
   trigger: keyof MapLayerEventType;
-  renderCallback: (properties: T) => HTMLElement | string;
+  renderCallback: (
+    properties: T,
+    layerMetadata: LayerMetadata,
+  ) => HTMLElement | string;
   popupConfig?: PopupOptions;
 };
 
@@ -87,12 +93,25 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
 
     const onTrigger = (ev: MapLayerMouseEvent | MapLayerTouchEvent) => {
       const geometry = ev.features?.[0]?.geometry;
-      const properties = ev.features?.[0]?.properties;
-      if (geometry && properties) {
+      const eventProps = ev.features?.[0]?.properties;
+      const id = ev.features?.[0]?.id;
+      if (geometry && id && eventProps) {
         /** @todo Remove "any" casting  */
         const popup = new Popup(popupConfig).setLngLat(ev.lngLat);
 
-        const content = renderCallback(properties as T);
+        const source = map.getSource(layerId) as GeoJSONSource;
+        const data = source.getData();
+        const properties = Object.assign(eventProps, {
+          // MapLibre Events will remove any non-string and non-numeric properties from object definition
+          // see https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/#querysourcefeatures
+          // We want to add them back because we use complex object and potential null values
+          // @ts-expect-error - MapLibre types are not accurate regarding feature properties
+          ...data.features?.find((f) => Number(f.id) === Number(id))
+            ?.properties,
+        }) as T;
+
+        const layerMetadata = map.getLayer(layerId)?.metadata as LayerMetadata;
+        const content = renderCallback(properties as T, layerMetadata);
         if (typeof content === "string") {
           popup.setHTML(content);
         } else {
