@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
+export type { PopupOptions } from "maplibre-gl";
+
 export { EVENTS } from "./events";
 export { createMap } from "./map/map";
 export type {
@@ -10,5 +12,3 @@ export type {
   FrictionlessSchema,
   LayerMetadata,
 } from "./types";
-
-export type { PopupOptions } from 'maplibre-gl';
