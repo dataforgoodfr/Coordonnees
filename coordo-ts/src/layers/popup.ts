@@ -101,7 +101,6 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
 
         const source = map.getSource(layerId) as GeoJSONSource;
         const data = await source.getData();
-        console.log("Source Data", data);
         const properties = Object.assign(eventProps, {
           // MapLibre Events will remove any non-string and non-numeric properties from object definition
           // see https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/#querysourcefeatures
@@ -111,7 +110,6 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
             ?.properties,
         }) as T;
 
-        console.log("Data Properties", properties)
         const layerMetadata = map.getLayer(layerId)?.metadata as LayerMetadata;
         const content = renderCallback(properties as T, layerMetadata);
         if (typeof content === "string") {
