@@ -31,6 +31,7 @@
       "resource": "inventaire_id",
       "columns": {
         "geom": "gps.merge().centroid()",
+        "test": "ind.list(0 if dhp3 > 0 and dhp4 > 0 else 2)",
         "aerial_biomass_volume": "ind.sum(0.0673 * (dens_bois.value * (dhp1 + dhp2 + dhp3 + dhp4 + dhp5 + dhp6 + dhp7 + dhp8 + dhp9 + dhp10)^2 * haut)^0.976 if etat = 1) / (20^2 * pi() / 10000)",
         "TREE_species_counts": "ind.histogram(ess_arb)",
         "EPF_tree_density": "ind.count(1 if etat = 2) / (20^2 * pi() / 10000)",
