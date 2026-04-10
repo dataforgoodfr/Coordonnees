@@ -10,3 +10,5 @@ export type {
   FrictionlessSchema,
   LayerMetadata,
 } from "./types";
+
+export type { PopupOptions } from 'maplibre-gl';
