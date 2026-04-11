@@ -9,14 +9,14 @@ from pygeofilter.ast import AstType, Node
 GRAMMAR = r"""
     ?start: expr
 
-    ?expr: sum ("if" boolean_expr ("else" expr)?)?
+    ?expr: sum ("if" condition ("else" expr)?)?
 
-    ?boolean_expr: boolean_or
+    ?condition: boolean_or -> bool_op
 
-    ?boolean_or: boolean_and BOOL_OR_OP boolean_or
+    ?boolean_or: boolean_and OR boolean_or -> bool_op
             | boolean_and
 
-    ?boolean_and: comparison BOOL_AND_OP boolean_and
+    ?boolean_and: comparison AND boolean_and -> bool_op
             | comparison
 
     SUM: "+" | "-"
@@ -56,8 +56,8 @@ GRAMMAR = r"""
 
     comparison: sum OP sum
 
-    BOOL_AND_OP: "and" | "&&"
-    BOOL_OR_OP: "or" | "||"
+    AND: "and" | "&&"
+    OR: "or" | "||"
     OP: ">" | "<" | "=" | "!=" | ">=" | "<=" | "in"
     QUOTED: /'[^']*'|"[^"]*"/
 
@@ -147,20 +147,12 @@ class SQLTransformer(Transformer):
     def expr(self, children):
         return Conditional(*children)
 
+    def bool_op(self, children):
+        if len(children) == 1:
+            return children[0]
+        return Comparison(*children)
+
     def comparison(self, children):
-        return Comparison(*children)
-
-    def boolean_expr(self, children):
-        return self.boolean_or(self, children)
-
-    def boolean_and(self, children):
-        if len(children) == 1:
-            return children[0]
-        return Comparison(*children)
-
-    def boolean_or(self, children):
-        if len(children) == 1:
-            return children[0]
         return Comparison(*children)
 
     def query(self, children):
