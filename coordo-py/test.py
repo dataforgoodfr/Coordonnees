@@ -8,7 +8,7 @@ from pathlib import Path
 
 def run_doctests(code):
     finder = DocTestFinder(recurse=False)
-    runner = DocTestRunner(optionflags=NORMALIZE_WHITESPACE)
+    runner = DocTestRunner(optionflags=NORMALIZE_WHITESPACE, verbose=True)
     for test in finder.find(code, "coordo-py", globs=globals()):
         result = runner.run(test)
         if result.failed:
@@ -38,3 +38,8 @@ for line in combined_code.splitlines():
             doctest_lines.append(line)
     else:
         exec_lines.append(line)
+
+if doctest_lines:
+    run_doctests(
+        "\n".join(doctest_lines),
+    )
