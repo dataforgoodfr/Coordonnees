@@ -23,6 +23,7 @@ export type SetLayerPopupParams<T> = {
     layerMetadata: LayerMetadata,
   ) => HTMLElement | string;
   popupConfig?: PopupOptions;
+  centerOnClick?: boolean;
 };
 
 export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
@@ -44,6 +45,7 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
    * @param {(properties: T) => HTMLElement | string} params.renderCallback - Callback that generates the popup content.
    *   Accepts the feature's properties and returns either a DOM element or a string of HTML.
    * @param {PopupOptions} [params.popupConfig] - Configuration for the popup (e.g., offset, anchor, className).
+   * @param {boolean} params.centerOnClick - Whether to center the map after clicking on a popup symbol
    *
    * @example
    * // Example with HTML string
@@ -62,7 +64,8 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
    *     className: "custom-popup",
    *     closeButton: true,
    *     anchor: "bottom",
-   *   }
+   *   },
+   *   centerOnClick: true,
    * });
    *
    * @example
@@ -77,6 +80,7 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
    *   layerId: "my-layer-id",
    *   trigger: "click",
    *   renderCallback: renderPopup,
+   *   centerOnClick: true
    * });
    */
   function setLayerPopup<T extends Record<string, unknown>>({
@@ -84,6 +88,7 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
     trigger,
     renderCallback,
     popupConfig,
+    centerOnClick,
   }: SetLayerPopupParams<T>) {
     if (layerId in popupRemovers) {
       // Cleanup precedent trigger
@@ -132,6 +137,62 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
     const onMouseLeave = () => {
       map.getCanvas().style.cursor = "";
     };
+
+    if (centerOnClick) {
+      /**
+       * @link https://maplibre.org/maplibre-gl-js/docs/examples/center-the-map-on-a-clicked-symbol/
+       */
+      map.on("click", layerId, (e) => {
+        const geometry = e?.features?.[0]?.geometry;
+        if (geometry && "coordinates" in geometry) {
+          let posX: number | undefined;
+          let posY: number | undefined;
+
+          if (geometry.type === "Point") {
+            /**
+             * Points coordinates
+             * [-90.3295,-0.6344474832838974]
+             * => fly to this position
+             */
+            const [coordo1, coordo2] = geometry.coordinates;
+            posX = coordo1;
+            posY = coordo2;
+          }
+
+          if (geometry.type === "Polygon") {
+            /**
+             * Polygon coordinates
+             * [[[XXX,YYY], [XXX,YYY], [XXX,YYY], ...]]
+             * => fly to the centroid, e.g. [mean of XXXs, mean of YYYs]
+             */
+            const polygonPoints = geometry.coordinates.flat();
+            const nbOfPoints = polygonPoints.length;
+            const { sumX, sumY } = polygonPoints.reduce<{
+              sumX: number;
+              sumY: number;
+            }>(
+              (acc, point) => {
+                const [pointX, pointY] = point;
+                return {
+                  sumX: acc.sumX + (pointX ?? 0),
+                  sumY: acc.sumY + (pointY ?? 0),
+                };
+              },
+              { sumX: 0, sumY: 0 },
+            );
+
+            posX = sumX / nbOfPoints;
+            posY = sumY / nbOfPoints;
+          }
+
+          if (posX != null && posY != null) {
+            map.flyTo({
+              center: [posX, posY],
+            });
+          }
+        }
+      });
+    }
 
     if (trigger.includes("click")) {
       map.on("mouseenter", layerId, onMouseEnter);
