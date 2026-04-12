@@ -14,6 +14,7 @@ from lark import Lark, Transformer
 from pyxform.xls2json import parse_file_to_json
 from shapely.geometry import Point
 
+from coordo import LoadingStrategy
 from coordo.datapackage import (
     DataPackage,
     Field,
@@ -134,11 +135,20 @@ def coords_to_point(coords):
         return Point(lon, lat, alt)
 
 
-def load(package: DataPackage, xlsform: Path, xlsdata: Path):
+def load(dp: DataPackage, xlsform: Path, xlsdata: Path, strategy: LoadingStrategy):
+    """
+    Loads a datapackage from an XLS form and XLS data file.
+    The xlsform is parsed with the pyxform.xls2json.parse_file_to_json function
+    while the xlsdata is parsed with pandas read_excel or read_csv functions.
+    """
+    # parse form from xlsform
+    print(f"Parsing form from {xlsform}")
     form = parse_file_to_json(str(xlsform))
     name = cast(str, form["id_string"].lower())
     main_resource = _create_resource(name)
-    _parse_form(package, form, main_resource)
+    _parse_form(dp, form, main_resource, strategy)
+
+    print(f"Parsing data from {xlsdata}")
     if xlsdata.suffix == ".xlsx":
         sheets_dict = pd.read_excel(xlsdata, sheet_name=None)
     elif xlsdata.suffix == ".csv":
@@ -153,9 +163,10 @@ def load(package: DataPackage, xlsform: Path, xlsdata: Path):
         }
     else:
         raise ValueError(f"Unsupported file format: {xlsdata}")
+
     for i, (sheet_name, sheet) in enumerate(sheets_dict.items()):
         table_name = main_resource.name if i == 0 else sheet_name.lower()
-        resource = next(r for r in package.resources if r.name == table_name)
+        resource = next(r for r in dp.resources if r.name == table_name)
         schema = safe(resource, "schema")
         sheet = (
             sheet.rename(
@@ -185,7 +196,7 @@ def load(package: DataPackage, xlsform: Path, xlsdata: Path):
 
         sheet = sheet[fields]
         sheet = sheet.replace({np.nan: None})
-        path = Path(package._basepath, table_name + ".parquet")
+        path = Path(dp._basepath, table_name + ".parquet")
         geo_cols = [f.name for f in schema.fields if f.type == "geojson"]
         if geo_cols:
             gdf = gpd.GeoDataFrame(sheet, geometry=geo_cols[0], crs="EPSG:4326")
@@ -200,7 +211,7 @@ def load(package: DataPackage, xlsform: Path, xlsdata: Path):
             sheet.to_parquet(path, index=False)
 
 
-def _create_resource(name) -> Resource:
+def _create_resource(name: str) -> Resource:
     return Resource(
         name=name,
         path=name + ".parquet",
@@ -211,20 +222,47 @@ def _create_resource(name) -> Resource:
     )
 
 
-def _parse_form(pkg: DataPackage, form, resource: Resource):
-    _parse_questions(pkg, form["children"], resource)
-    pkg.add_resource(resource)
+def _parse_form(pkg: DataPackage, form: dict[str, Any], resource: Resource, strategy: LoadingStrategy):
+    _parse_questions(pkg, form["children"], resource, strategy)
+    # print(resource)
+    pkg.add_resource(resource, strategy)
 
 
-def _parse_questions(pkg, questions: List[Dict[str, Any]], resource: Resource):
+def _parse_questions(
+    pkg: DataPackage, questions: List[Dict[str, Any]], resource: Resource, strategy: LoadingStrategy
+):
+    """
+    Parses questions (list of dictionaries) and adds them to the resource's schema.
+    Example of structure of questions:
+        [
+            {
+                'type': 'integer',
+                'name': '<name>',
+                'label': '<label>',
+                'bind': {'required': 'true', 'constraint': '. < 100', 'jr:constraintMsg': '<constraint message>'}
+            },
+            {
+                'type': 'group',
+                'name': '<name>',
+                'label': '<label>',
+                'control': {'appearance': 'field-list'},
+                'children': [
+                    {'type': 'text', 'name': 'name1', 'label': "Label1", ...},
+                    {'type': 'select one', 'name': 'name2', 'label': 'Label2', ...},
+                    {'type': 'integer', 'name': 'name3', 'label': 'Label233', ...}
+                ]
+            }
+        ]
+    For each question having a 'group' type, parses recursively the children questions.
+    """
     schema = safe(resource, "schema")
     for question in questions:
         qtype = question["type"]
         if qtype in METADATA_TYPES + IGNORE_TYPES:
-            print("Skipping :", qtype)
+            print("Skipping question type:", qtype)
             continue
         if qtype == "group":
-            _parse_questions(pkg, question["children"], resource)
+            _parse_questions(pkg, question["children"], resource, strategy)
             continue
         if qtype == "repeat":
             child_resource = _create_resource(question["name"].lower())
@@ -239,7 +277,7 @@ def _parse_questions(pkg, questions: List[Dict[str, Any]], resource: Resource):
                     ),
                 )
             ]
-            _parse_form(pkg, question, child_resource)
+            _parse_form(pkg, question, child_resource, strategy)
             continue
         if qtype in DP_FIELDS:
             kwargs = dict(name=question["name"], type=DP_FIELDS[qtype])

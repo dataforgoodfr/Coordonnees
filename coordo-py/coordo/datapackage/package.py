@@ -22,6 +22,7 @@ from dplib.models import (
 from dplib.plugins.sql.models import SqlSchema
 from pygeofilter.ast import AstType
 
+from coordo import LoadingStrategy
 from coordo.sql.builder import build_query, compile_query
 from coordo.sql.helpers import load_conn
 
@@ -91,26 +92,61 @@ class DataPackage(pydantic.BaseModel):
         )
 
     def remove_resource(self, name: str) -> None:
+        """
+        Remove a resource from the package:
+        - for all other resources in the current datapackage, remove any foreign keys pointing to this resource.
+        - remove the file associated with the resource.
+        Args:
+            name (str): the name of the resource to remove
+        """
+        print(f"Removing resource {name} from DataPackage {self.name}")
         resource = self.get_resource(name=name)
+        # looping over all resources in the current datapackage, other than <resource>
         for res in self.resources:
             if res.name == name:
                 continue
-            sm = safe(res, "schema")
-            if sm.foreignKeys:
-                for fk in sm.foreignKeys:
-                    assert fk.reference.resource != name, (
-                        f"Can't remove the resource {name} : {res.name} have a foreign key pointing to this resource."
-                    )
+            
+            # getting the schema of the resource
+            res_schema = safe(res, "schema")
+            
+            # removing all foreign keys pointing to <resource>, if any
+            # we do it in two steps: first collect all keys to remove, then remove them
+            # so that we don't modify the list while iterating over it
+            if res_schema.foreignKeys:
+                foreign_keys_to_remove = []
+                for fk in res_schema.foreignKeys:
+                    if fk.reference.resource == name:
+                        foreign_keys_to_remove.append(fk)
+                for fk in foreign_keys_to_remove:
+                    res.remove_foreignkey(fk)
+                    
         if resource.path:
             path = handle_path(resource.path)
             Path(self._basepath / path).unlink()
         self.resources = [res for res in self.resources if res.name != name]
 
-    def add_resource(self, resource: Resource) -> None:
+    def add_resource(self, resource: Resource, strategy: LoadingStrategy) -> None:
+        """
+        Add a resource to the DataPackage.
+
+        Args:
+            resource (Resource): The resource to add.
+            strategy (LoadingStrategy): The strategy to use when a resource with the same name already exists.
+        """
+        print(f"Adding resource {resource.name} to DataPackage {self.name} with strategy={strategy.name}")
         if any(res.name == resource.name for res in self.resources):
-            raise ValueError(
-                f"A resource named {resource.name} already exists in package {self.name}."
-            )
+            if strategy == LoadingStrategy.overwrite:
+                self.remove_resource(resource.name)
+            elif strategy == LoadingStrategy.merge:
+                pass
+            elif strategy == LoadingStrategy.raise_error:
+                raise ValueError(
+                    f"A resource named {resource.name} already exists in package {self.name}."
+                )
+            else:
+                raise ValueError(
+                    f"Unknown strategy {strategy} for resource {resource.name}."
+                )
         resource._package = self
         self.resources.append(resource)
 
