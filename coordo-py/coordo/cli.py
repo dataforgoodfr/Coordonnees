@@ -3,11 +3,12 @@
 
 import signal
 from pathlib import Path
+from typing import Annotated
 
 import typer
 from dplib.models.schema.foreignKey import ForeignKey, ForeignKeyReference
 
-from coordo import loaders, LoadingStrategy, StrategyType
+from coordo import loaders, LoadingStrategy
 from coordo.datapackage import DataPackage
 from coordo.sql.builder import build_query
 
@@ -84,7 +85,7 @@ def kobotoolbox(
     xlsform: Path,
     xlsdata: Path,
     package: Path = typer.Option(help="Path to the package directory"),
-    strategy: StrategyType = LoadingStrategy.raise_error,
+    strategy: Annotated[LoadingStrategy, typer.Option(help="Strategy to use in case of already existing resource")] = LoadingStrategy.raise_error,
 ):
     dp = DataPackage.from_path(package)
     loaders.kobotoolbox.load(dp, xlsform, xlsdata, strategy)    
@@ -95,7 +96,7 @@ def kobotoolbox(
 def file(
     path: Path,
     package: Path = typer.Option(".", help="Path to the package directory"),
-    strategy: StrategyType = LoadingStrategy.raise_error,
+    strategy: Annotated[LoadingStrategy, typer.Option(help="Strategy to use in case of already existing resource")] = LoadingStrategy.raise_error,
 ):
     dp = DataPackage.from_path(package)
     try:

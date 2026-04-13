@@ -41,6 +41,14 @@ def handle_path(path: str | list[str]) -> str:
     return path
 
 
+def check_resource_fields_match(res1: Resource, res2: Resource) -> None:
+    res1_field_names = [field.name for field in res1.schema.fields]
+    res2_field_names = [field.name for field in res2.schema.fields]
+    if set(res1_field_names) != set(res2_field_names):
+        raise ValueError(f"Field names do not match for resource {res1.name}: {sorted(res1_field_names)} != {sorted(res2_field_names)}")
+    
+
+
 class DataPackage(pydantic.BaseModel):
     id: Optional[str] = None
     name: str = pydantic.Field(pattern=r"^[a-z0-9._-]+$")
@@ -122,31 +130,55 @@ class DataPackage(pydantic.BaseModel):
                     
         if resource.path:
             path = handle_path(resource.path)
-            Path(self._basepath / path).unlink()
+            try:
+                Path(self._basepath / path).unlink()
+            except FileNotFoundError:
+                raise FileNotFoundError(
+                    f"File not found: {path}. It was meant to be removed anyway but there may be an issue."
+                )
+                
         self.resources = [res for res in self.resources if res.name != name]
 
-    def add_resource(self, resource: Resource, strategy: LoadingStrategy) -> None:
+    def add_resource_following_strategy(self, resource: Resource, strategy: LoadingStrategy) -> None:
         """
-        Add a resource to the DataPackage.
+        Add a resource to the DataPackage according to the given strategy.
 
         Args:
             resource (Resource): The resource to add.
             strategy (LoadingStrategy): The strategy to use when a resource with the same name already exists.
         """
         print(f"Adding resource {resource.name} to DataPackage {self.name} with strategy={strategy.name}")
-        if any(res.name == resource.name for res in self.resources):
-            if strategy == LoadingStrategy.overwrite:
+        if any(res.name == resource.name for res in self.resources): # resource already exists
+            
+            if strategy == LoadingStrategy.overwrite: # remove and overwrite
                 self.remove_resource(resource.name)
-            elif strategy == LoadingStrategy.merge:
+                self.add_resource(resource)
+            
+            elif strategy == LoadingStrategy.append: # do nothing for now
                 pass
+                
+            elif strategy == LoadingStrategy.append_strict: # just check that fields match
+                current_resource = self.get_resource(resource.name)
+                check_resource_fields_match(current_resource, resource)
+                
             elif strategy == LoadingStrategy.raise_error:
                 raise ValueError(
                     f"A resource named {resource.name} already exists in package {self.name}."
                 )
+                
             else:
                 raise ValueError(
                     f"Unknown strategy {strategy} for resource {resource.name}."
                 )
+                
+        else: # resource does not exist, just add it
+            self.add_resource(resource)
+    
+    def add_resource(self, resource: Resource) -> None:
+        if any(res.name == resource.name for res in self.resources): # check, just in case
+            raise ValueError(
+                f"A resource named {resource.name} already exists in package {self.name}."
+            )
         resource._package = self
         self.resources.append(resource)
 
@@ -206,3 +238,5 @@ class DataPackage(pydantic.BaseModel):
             df[col] = df[col].apply(lambda x: x.tolist() if x is not None else None)
 
         return df
+
+    
