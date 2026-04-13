@@ -6,6 +6,7 @@
 export type { PopupOptions } from "maplibre-gl";
 
 export { EVENTS } from "./events";
+export { getLayerSymbolId } from "./layers/symbol";
 export { createMap } from "./map/map";
 export type {
   FrictionlessField,
