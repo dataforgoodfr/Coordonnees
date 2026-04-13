@@ -30,5 +30,11 @@ coordo = "coordo.cli:app"
 
 [dependency-groups]
 dev = [
-    "ruff>=0.15.8",
+    "ruff>=0.15.8"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff"
 ]

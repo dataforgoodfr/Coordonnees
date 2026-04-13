@@ -146,10 +146,10 @@ def load(dp: DataPackage, xlsform: Path, xlsdata: Path, strategy: LoadingStrateg
     form = parse_file_to_json(str(xlsform))
     name = cast(str, form["id_string"].lower())
     main_resource = _create_resource(name)
-    
+
     # parses questions from JSON form and add resources to the datapackage
     _parse_form(dp, form, main_resource, strategy)
-    
+
     print(f"Parsing data from {xlsdata}")
     if xlsdata.suffix == ".xlsx":
         sheets_dict = pd.read_excel(xlsdata, sheet_name=None)
@@ -165,13 +165,12 @@ def load(dp: DataPackage, xlsform: Path, xlsdata: Path, strategy: LoadingStrateg
         }
     else:
         raise ValueError(f"Unsupported file format: {xlsdata}")
-    
+
     # determine append mode based on strategy
     append_mode = strategy in [LoadingStrategy.append, LoadingStrategy.append_strict]
 
     print("Processing sheets...")
     for i, (sheet_name, sheet) in enumerate(sheets_dict.items()):
-        
         table_name = main_resource.name if i == 0 else sheet_name.lower()
         resource = next(r for r in dp.resources if r.name == table_name)
         schema = safe(resource, "schema")
@@ -183,7 +182,7 @@ def load(dp: DataPackage, xlsform: Path, xlsdata: Path, strategy: LoadingStrateg
             .replace(np.nan, None)
         )
         sheet[PRIMARY_KEY] = sheet.index + 1
-        
+
         fields = []
         for field in schema.fields:
             if field.name in sheet.columns:
@@ -204,18 +203,18 @@ def load(dp: DataPackage, xlsform: Path, xlsdata: Path, strategy: LoadingStrateg
 
         sheet = sheet[fields]
         sheet = sheet.replace({np.nan: None})
-        
+
         path = Path(dp._basepath, table_name + ".parquet")
         print(f"Saving {sheet_name!r} to {path}")
-        
+
         geo_cols = [f.name for f in schema.fields if f.type == "geojson"]
         if geo_cols:
             gdf = gpd.GeoDataFrame(sheet, geometry=geo_cols[0], crs="EPSG:4326")
-            
+
             # if append_mode, try to read existing data and concatenate
             if append_mode:
                 pass
-               
+
             gdf.to_parquet(
                 path,
                 schema_version="1.1.0",
@@ -224,13 +223,12 @@ def load(dp: DataPackage, xlsform: Path, xlsdata: Path, strategy: LoadingStrateg
                 geometry_encoding="WKB",  # We use this because duckdb can't open geoarrow as geometries
             )
         else:
-            
             # if append_mode, try to read existing data and concatenate
             if append_mode:
                 pass
-                
+
             sheet.to_parquet(path, index=False)
-    
+
 
 def _create_resource(name: str) -> Resource:
     return Resource(
@@ -243,14 +241,22 @@ def _create_resource(name: str) -> Resource:
     )
 
 
-def _parse_form(pkg: DataPackage, form: dict[str, Any], resource: Resource, strategy: LoadingStrategy):
+def _parse_form(
+    pkg: DataPackage,
+    form: dict[str, Any],
+    resource: Resource,
+    strategy: LoadingStrategy,
+):
     _parse_questions(pkg, form["children"], resource, strategy)
     # print(resource)
     pkg.add_resource_following_strategy(resource, strategy)
 
 
 def _parse_questions(
-    pkg: DataPackage, questions: List[Dict[str, Any]], resource: Resource, strategy: LoadingStrategy
+    pkg: DataPackage,
+    questions: List[Dict[str, Any]],
+    resource: Resource,
+    strategy: LoadingStrategy,
 ):
     """
     Parses questions (list of dictionaries) and adds them to the resource's schema.

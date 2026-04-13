@@ -64,16 +64,15 @@ class Resource(pydantic.BaseModel):
         )
         field_names = [f.name for f in parent_resource.schema.fields]
         for f in fk.reference.fields:
-            assert (
-                f in field_names
-            ), f"Resource {parent_resource.name} has no field named {f}"
+            assert f in field_names, (
+                f"Resource {parent_resource.name} has no field named {f}"
+            )
         self.schema.foreignKeys.append(fk)
-    
+
     def remove_foreignkey(self, fk: ForeignKey) -> None:
         if fk not in self.schema.foreignKeys:
             raise ValueError(f"Foreign key {fk} not found in resource {self.name}")
-        self.schema.foreignKeys.remove(fk)
-        
+        self.schema.foreignKeys.remove(fk)        
 
     @model_validator(mode="after")
     def check_data_or_path(self) -> Self:

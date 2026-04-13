@@ -79,16 +79,18 @@ def serve(config_file: str):
 load = typer.Typer()
 
 
-
 @load.command()
 def kobotoolbox(
     xlsform: Path,
     xlsdata: Path,
     package: Path = typer.Option(help="Path to the package directory"),
-    strategy: Annotated[LoadingStrategy, typer.Option(help="Strategy to use in case of already existing resource")] = LoadingStrategy.raise_error,
+    strategy: Annotated[
+        LoadingStrategy,
+        typer.Option(help="Strategy to use in case of already existing resource"),
+    ] = LoadingStrategy.raise_error,
 ):
     dp = DataPackage.from_path(package)
-    loaders.kobotoolbox.load(dp, xlsform, xlsdata, strategy)    
+    loaders.kobotoolbox.load(dp, xlsform, xlsdata, strategy)
     dp.save()
 
 
@@ -96,7 +98,10 @@ def kobotoolbox(
 def file(
     path: Path,
     package: Path = typer.Option(".", help="Path to the package directory"),
-    strategy: Annotated[LoadingStrategy, typer.Option(help="Strategy to use in case of already existing resource")] = LoadingStrategy.raise_error,
+    strategy: Annotated[
+        LoadingStrategy,
+        typer.Option(help="Strategy to use in case of already existing resource"),
+    ] = LoadingStrategy.raise_error,
 ):
     dp = DataPackage.from_path(package)
     try:
