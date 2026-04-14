@@ -90,7 +90,7 @@ def kobotoolbox(
     ] = ResourceExistsStrategy.raise_error,
 ):
     KoboToolboxLoader(package, xlsform, xlsdata, strategy).etl()
-    
+
 
 @load.command()
 def file(

@@ -5,8 +5,4 @@ from .kobotoolbox_loader import KoboToolboxLoader
 from .file_loader import FileLoader
 
 
-__all__ = [
-    "KoboToolboxLoader", 
-    "FileLoader"
-]
-
+__all__ = ["KoboToolboxLoader", "FileLoader"]

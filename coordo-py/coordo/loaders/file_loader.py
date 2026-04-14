@@ -5,16 +5,15 @@ import shutil
 from pathlib import Path
 
 from coordo.loaders.loader import Loader, ResourceExistsStrategy
-from ..datapackage import DataPackage, Field, Resource, Schema
+from ..datapackage import Field, Resource, Schema
 from ..datapackage.db_helpers import prepare_path, to_dp_type
 
 
 class FileLoader(Loader):
-    
     def __init__(self, package: Path, path: Path, strategy: ResourceExistsStrategy):
         super().__init__(package, strategy)
         self.path = path
-        
+
     def extract(self):
         query = f"SELECT * FROM {prepare_path(self.path)}"
         conn, _ = self.dp.prepare_db()
@@ -30,9 +29,9 @@ class FileLoader(Loader):
             schema=schema,
         )
         self.resources = [resource]
-    
+
     def transform(self):
         pass
-    
+
     def load(self):
         shutil.copy(self.path, self.dp._basepath / self.path.name)

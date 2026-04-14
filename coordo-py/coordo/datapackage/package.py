@@ -158,7 +158,7 @@ class DataPackage(pydantic.BaseModel):
         )
         if self.resource_exists(resource.name):
             # resource already exists
-            
+
             if strategy == ResourceExistsStrategy.overwrite:
                 # remove and overwrite
                 self.remove_resource(resource.name)
@@ -189,7 +189,9 @@ class DataPackage(pydantic.BaseModel):
 
     def append_resource_if_not_exists(self, resource: Resource) -> None:
         if self.resource_exists(resource.name):
-            print(f"A resource named {resource.name} already exists in package {self.name}.")
+            print(
+                f"A resource named {resource.name} already exists in package {self.name}."
+            )
         else:
             resource._package = self
             self.resources.append(resource)
@@ -204,7 +206,7 @@ class DataPackage(pydantic.BaseModel):
         pass
         # resource = self.get_resource(name=resource_name)
         # schema = resource.get_schema()
-    
+
     def resource_exists(self, name: str) -> bool:
         return any(res.name == name for res in self.resources)
 

@@ -21,4 +21,3 @@ warnings.filterwarnings(
     module="coordo",
     message=REGEX_TO_IGNORE,
 )
-

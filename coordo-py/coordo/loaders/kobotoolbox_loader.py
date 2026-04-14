@@ -15,7 +15,6 @@ from pyxform.xls2json import parse_file_to_json
 from shapely.geometry import Point
 
 from coordo.datapackage import (
-    DataPackage,
     Field,
     ForeignKey,
     ForeignKeyReference,
@@ -153,8 +152,9 @@ def create_main_resource(xlsform: Path) -> Resource:
     return _create_resource(name)
 
 
-
-def _parse_questions(questions: List[Dict[str, Any]], resource: Resource) -> list[Resource]:
+def _parse_questions(
+    questions: List[Dict[str, Any]], resource: Resource
+) -> list[Resource]:
     """
     Parses questions (list of dictionaries) and adds them to the resource's schema.
     Example of structure of questions:
@@ -180,18 +180,18 @@ def _parse_questions(questions: List[Dict[str, Any]], resource: Resource) -> lis
     For each question having a 'group' type, parses recursively the children questions.
     """
     parsed_resources: list[Resource] = []
-    
+
     schema = safe(resource, "schema")
     for question in questions:
         qtype = question["type"]
-        
+
         if qtype in METADATA_TYPES + IGNORE_TYPES:
             print("Skipping question type:", qtype)
-            
+
         elif qtype == "group":
             parsed_children_resources = _parse_questions(question["children"], resource)
             parsed_resources += parsed_children_resources
-            
+
         elif qtype == "repeat":
             child_resource = _create_resource(question["name"].lower())
             schema = safe(child_resource, "schema")
@@ -207,9 +207,11 @@ def _parse_questions(questions: List[Dict[str, Any]], resource: Resource) -> lis
             ]
             parsed_resources.append(child_resource)
             # recursively parse questions and get children resources
-            parsed_children_resources = _parse_questions(question["children"], child_resource)
+            parsed_children_resources = _parse_questions(
+                question["children"], child_resource
+            )
             parsed_resources += parsed_children_resources
-            
+
         elif qtype in DP_FIELDS:
             kwargs = dict(name=question["name"], type=DP_FIELDS[qtype])
             if "label" in question:
@@ -241,12 +243,18 @@ class KoboToolboxLoader(Loader):
     main_resource: Resource
     sheets: dict[str, pd.DataFrame]
     processed_sheets: dict[str, pd.DataFrame]
-    
-    def __init__(self, package: Path, xlsform: Path, xlsdata: Path, strategy: ResourceExistsStrategy):
+
+    def __init__(
+        self,
+        package: Path,
+        xlsform: Path,
+        xlsdata: Path,
+        strategy: ResourceExistsStrategy,
+    ):
         super().__init__(package, strategy)
         self.xlsform = xlsform
         self.xlsdata = xlsdata
-        
+
     def extract(self):
         """
         The xlsform is parsed with the pyxform.xls2json.parse_file_to_json function
@@ -256,11 +264,11 @@ class KoboToolboxLoader(Loader):
         form = parse_file_to_json(str(self.xlsform))
         name = cast(str, form["id_string"].lower())
         self.main_resource = _create_resource(name)
-        # parses questions from JSON form and add resources to the datapackage 
+        # parses questions from JSON form and add resources to the datapackage
         parsed_resources = _parse_questions(form["children"], self.main_resource)
         # NOTE: we must add the main resource first so that foreign keys are resolved correctly
         self.resources = [self.main_resource] + parsed_resources
-        
+
         print(f"Parsing data from {self.xlsdata}")
         if self.xlsdata.suffix == ".xlsx":
             self.sheets = pd.read_excel(self.xlsdata, sheet_name=None)
@@ -276,7 +284,7 @@ class KoboToolboxLoader(Loader):
             }
         else:
             raise ValueError(f"Unsupported file format: {self.xlsdata}")
-            
+
     def transform(self):
         print("Processing sheets...")
         self.processed_sheets = {}
@@ -309,22 +317,22 @@ class KoboToolboxLoader(Loader):
                     )
                     sheet[field.name] = ""
                 fields.append(field.name)
-    
+
             sheet = sheet[fields]
             sheet = sheet.replace({np.nan: None})
             self.processed_sheets[table_name] = sheet
-    
-    
+
     def load(self):
+        print("Loading data...")
         for table_name, sheet in self.processed_sheets.items():
             resource = self.dp.get_resource(table_name)
             path = Path(self.dp._basepath, table_name + ".parquet")
             print(f"Saving {table_name!r} to {path}")
-    
+
             geo_cols = [f.name for f in resource.schema.fields if f.type == "geojson"]
             if geo_cols:
                 gdf = gpd.GeoDataFrame(sheet, geometry=geo_cols[0], crs="EPSG:4326")
-    
+
                 gdf.to_parquet(
                     path,
                     schema_version="1.1.0",
@@ -334,4 +342,3 @@ class KoboToolboxLoader(Loader):
                 )
             else:
                 sheet.to_parquet(path, index=False)
-    

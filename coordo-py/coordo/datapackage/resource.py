@@ -72,7 +72,7 @@ class Resource(pydantic.BaseModel):
     def remove_foreignkey(self, fk: ForeignKey) -> None:
         if fk not in self.schema.foreignKeys:
             raise ValueError(f"Foreign key {fk} not found in resource {self.name}")
-        self.schema.foreignKeys.remove(fk)        
+        self.schema.foreignKeys.remove(fk)
 
     @model_validator(mode="after")
     def check_data_or_path(self) -> Self:
