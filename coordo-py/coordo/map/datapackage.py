@@ -33,6 +33,7 @@ class DataPackageLayer(BaseLayerModel):
     filter: str | None = None
     groupby: list[str] | None = None
     columns: dict[str, str] | None = None
+    layerType: str | None = None
     popup: Popup | None = None
 
     def to_maplibre(self, base_path):
@@ -40,18 +41,7 @@ class DataPackageLayer(BaseLayerModel):
         resource = package.get_resource(name=self.resource)
         data = self.get_data(base_path=base_path)
 
-        # We check the type of the first non-null geometry, it doesn't support yet mixed geometries
-        geom_type = (
-            next(f["geometry"] for f in data["features"] if f["geometry"])["type"]
-            if data["features"]
-            else "Point"
-        )
-        if "Polygon" in geom_type:
-            layer_type = "fill"
-        elif "LineString" in geom_type:
-            layer_type = "line"
-        else:
-            layer_type = "circle"
+        layer_type = self.layerType or self.infer_layer_type(data["features"])
 
         source = GeoJSONSource(type="geojson", data=data)
         metadata = {
@@ -97,3 +87,20 @@ class DataPackageLayer(BaseLayerModel):
         )
         assert isinstance(df, GeoDataFrame), "No geometry column found."
         return df.to_geo_dict(show_bbox=True)  # type: ignore
+    
+    def infer_layer_type(self, features):
+        # We check the type of the first non-null geometry, it doesn't support yet mixed geometries
+        geom_type = (
+            next(f["geometry"] for f in features if f["geometry"])["type"]
+            if features
+                else "Point"
+        )
+        if "Polygon" in geom_type:
+            layer_type = "fill"
+        elif "LineString" in geom_type:
+            layer_type = "line"
+        else:
+            layer_type = "circle"
+
+        return layer_type
+
