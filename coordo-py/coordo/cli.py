@@ -8,8 +8,8 @@ from typing import Annotated
 import typer
 from dplib.models.schema.foreignKey import ForeignKey, ForeignKeyReference
 
-from coordo import loaders, LoadingStrategy
-from coordo.datapackage import DataPackage
+from coordo.loaders import KoboToolboxLoader, FileLoader
+from coordo.datapackage import DataPackage, ResourceExistsStrategy
 from coordo.sql.builder import build_query
 
 from .map import Map
@@ -85,32 +85,23 @@ def kobotoolbox(
     xlsdata: Path,
     package: Path = typer.Option(help="Path to the package directory"),
     strategy: Annotated[
-        LoadingStrategy,
+        ResourceExistsStrategy,
         typer.Option(help="Strategy to use in case of already existing resource"),
-    ] = LoadingStrategy.raise_error,
+    ] = ResourceExistsStrategy.raise_error,
 ):
-    dp = DataPackage.from_path(package)
-    loaders.kobotoolbox.load(dp, xlsform, xlsdata, strategy)
-    dp.save()
-
+    KoboToolboxLoader(package, xlsform, xlsdata, strategy).etl()
+    
 
 @load.command()
 def file(
     path: Path,
     package: Path = typer.Option(".", help="Path to the package directory"),
     strategy: Annotated[
-        LoadingStrategy,
+        ResourceExistsStrategy,
         typer.Option(help="Strategy to use in case of already existing resource"),
-    ] = LoadingStrategy.raise_error,
+    ] = ResourceExistsStrategy.raise_error,
 ):
-    dp = DataPackage.from_path(package)
-    try:
-        loaders.file.load(dp, path, strategy)
-    except ValueError as e:
-        raise typer.BadParameter(
-            f"{e} Add --overwrite if you wish to continue.", param_hint="path"
-        )
-    dp.save()
+    FileLoader(package, path, strategy).etl()
 
 
 app.add_typer(load, name="load")

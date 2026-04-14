@@ -3,6 +3,7 @@
 
 from pathlib import Path
 from typing import Iterable, Optional
+from enum import Enum
 
 import duckdb
 import geopandas as gpd
@@ -22,7 +23,6 @@ from dplib.models import (
 from dplib.plugins.sql.models import SqlSchema
 from pygeofilter.ast import AstType
 
-from coordo import LoadingStrategy
 from coordo.sql.builder import build_query, compile_query
 from coordo.sql.helpers import load_conn
 
@@ -48,6 +48,13 @@ def check_resource_fields_match(res1: Resource, res2: Resource) -> None:
         raise ValueError(
             f"Field names do not match for resource {res1.name}: {sorted(res1_field_names)} != {sorted(res2_field_names)}"
         )
+
+
+class ResourceExistsStrategy(str, Enum):
+    raise_error = "raise_error"
+    overwrite = "overwrite"
+    append = "append"
+    append_strict = "append_strict"
 
 
 class DataPackage(pydantic.BaseModel):
@@ -114,10 +121,8 @@ class DataPackage(pydantic.BaseModel):
         for res in self.resources:
             if res.name == name:
                 continue
-
             # getting the schema of the resource
             res_schema = safe(res, "schema")
-
             # removing all foreign keys pointing to <resource>, if any
             # we do it in two steps: first collect all keys to remove, then remove them
             # so that we don't modify the list while iterating over it
@@ -134,14 +139,12 @@ class DataPackage(pydantic.BaseModel):
             try:
                 Path(self._basepath / path).unlink()
             except FileNotFoundError:
-                raise FileNotFoundError(
-                    f"File not found: {path}. It was meant to be removed anyway but there may be an issue."
-                )
+                print(f"Could not remove {path}. File not found.")
 
         self.resources = [res for res in self.resources if res.name != name]
 
-    def add_resource_following_strategy(
-        self, resource: Resource, strategy: LoadingStrategy
+    def add_resource(
+        self, resource: Resource, strategy: ResourceExistsStrategy
     ) -> None:
         """
         Add a resource to the DataPackage according to the given strategy.
@@ -153,23 +156,24 @@ class DataPackage(pydantic.BaseModel):
         print(
             f"Adding resource {resource.name} to DataPackage {self.name} with strategy={strategy.name}"
         )
-        if any(
-            res.name == resource.name for res in self.resources
-        ):  # resource already exists
-            if strategy == LoadingStrategy.overwrite:  # remove and overwrite
+        if self.resource_exists(resource.name):
+            # resource already exists
+            
+            if strategy == ResourceExistsStrategy.overwrite:
+                # remove and overwrite
                 self.remove_resource(resource.name)
-                self.add_resource(resource)
+                self.append_resource_if_not_exists(resource)
 
-            elif strategy == LoadingStrategy.append:  # do nothing for now
-                pass
+            elif strategy == ResourceExistsStrategy.append:  # do nothing for now
+                self.append_resource_if_not_exists(resource)
 
-            elif (
-                strategy == LoadingStrategy.append_strict
-            ):  # just check that fields match
+            elif strategy == ResourceExistsStrategy.append_strict:
+                # just check that fields match
                 current_resource = self.get_resource(resource.name)
                 check_resource_fields_match(current_resource, resource)
+                self.append_resource_if_not_exists(resource)
 
-            elif strategy == LoadingStrategy.raise_error:
+            elif strategy == ResourceExistsStrategy.raise_error:
                 raise ValueError(
                     f"A resource named {resource.name} already exists in package {self.name}."
                 )
@@ -179,28 +183,30 @@ class DataPackage(pydantic.BaseModel):
                     f"Unknown strategy {strategy} for resource {resource.name}."
                 )
 
-        else:  # resource does not exist, just add it
-            self.add_resource(resource)
+        else:
+            # resource does not exist, just add it
+            self.append_resource_if_not_exists(resource)
 
-    def add_resource(self, resource: Resource) -> None:
-        if any(
-            res.name == resource.name for res in self.resources
-        ):  # check, just in case
-            raise ValueError(
-                f"A resource named {resource.name} already exists in package {self.name}."
-            )
-        resource._package = self
-        self.resources.append(resource)
+    def append_resource_if_not_exists(self, resource: Resource) -> None:
+        if self.resource_exists(resource.name):
+            print(f"A resource named {resource.name} already exists in package {self.name}.")
+        else:
+            resource._package = self
+            self.resources.append(resource)
 
     def get_resource(self, name: str) -> Resource:
-        resource = next(res for res in self.resources if res.name == name)
-        assert resource is not None, f"Resource {name} not found."
-        return resource
+        found_resources = [res for res in self.resources if res.name == name]
+        assert len(found_resources) <= 1, f"Multiple resources named {name} found."
+        assert len(found_resources) > 0, f"Resource {name} not found."
+        return found_resources[0]
 
     def write_resource(self, resource_name: str, it: Iterable[dict]):
         pass
         # resource = self.get_resource(name=resource_name)
         # schema = resource.get_schema()
+    
+    def resource_exists(self, name: str) -> bool:
+        return any(res.name == name for res in self.resources)
 
     def prepare_db(self) -> tuple[duckdb.DuckDBPyConnection, sa.MetaData]:
         conn = load_conn()

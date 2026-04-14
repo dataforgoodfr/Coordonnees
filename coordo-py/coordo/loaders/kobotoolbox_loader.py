@@ -14,7 +14,6 @@ from lark import Lark, Transformer
 from pyxform.xls2json import parse_file_to_json
 from shapely.geometry import Point
 
-from coordo import LoadingStrategy
 from coordo.datapackage import (
     DataPackage,
     Field,
@@ -24,6 +23,7 @@ from coordo.datapackage import (
     Schema,
 )
 from coordo.helpers import safe
+from coordo.loaders.loader import Loader, ResourceExistsStrategy
 
 CONSTRAINT_GRAMMAR = r"""
 ?start: expression
@@ -135,101 +135,6 @@ def coords_to_point(coords):
         return Point(lon, lat, alt)
 
 
-def load(dp: DataPackage, xlsform: Path, xlsdata: Path, strategy: LoadingStrategy):
-    """
-    Loads a datapackage from an XLS form and XLS data file.
-    The xlsform is parsed with the pyxform.xls2json.parse_file_to_json function
-    while the xlsdata is parsed with pandas read_excel or read_csv functions.
-    """
-    # parse form from xlsform
-    print(f"Parsing form from {xlsform}")
-    form = parse_file_to_json(str(xlsform))
-    name = cast(str, form["id_string"].lower())
-    main_resource = _create_resource(name)
-
-    # parses questions from JSON form and add resources to the datapackage
-    _parse_form(dp, form, main_resource, strategy)
-
-    print(f"Parsing data from {xlsdata}")
-    if xlsdata.suffix == ".xlsx":
-        sheets_dict = pd.read_excel(xlsdata, sheet_name=None)
-    elif xlsdata.suffix == ".csv":
-        # TODO: I think this encoding is not the one from Kobo we should verify
-        sheets_dict = {
-            name: pd.read_csv(
-                xlsdata,
-                sep=";",
-                encoding="windows-1252",
-                decimal=",",
-            )
-        }
-    else:
-        raise ValueError(f"Unsupported file format: {xlsdata}")
-
-    # determine append mode based on strategy
-    append_mode = strategy in [LoadingStrategy.append, LoadingStrategy.append_strict]
-
-    print("Processing sheets...")
-    for i, (sheet_name, sheet) in enumerate(sheets_dict.items()):
-        table_name = main_resource.name if i == 0 else sheet_name.lower()
-        resource = next(r for r in dp.resources if r.name == table_name)
-        schema = safe(resource, "schema")
-        sheet = (
-            sheet.rename(
-                columns={"_parent_index": "parent_id"},
-            )
-            .convert_dtypes()
-            .replace(np.nan, None)
-        )
-        sheet[PRIMARY_KEY] = sheet.index + 1
-
-        fields = []
-        for field in schema.fields:
-            if field.name in sheet.columns:
-                if field.type == "geojson":
-                    sheet[field.name] = sheet[field.name].apply(coords_to_point)
-                if field.type == "list":
-                    sheet[field.name] = sheet[field.name].apply(
-                        lambda string: str(string).split()
-                    )
-                if field.type in DTYPES:
-                    sheet[field.name] = sheet[field.name].astype(DTYPES[field.type])
-            else:
-                print(
-                    f"Field {field.name} not found in data. Filling with empty values"
-                )
-                sheet[field.name] = ""
-            fields.append(field.name)
-
-        sheet = sheet[fields]
-        sheet = sheet.replace({np.nan: None})
-
-        path = Path(dp._basepath, table_name + ".parquet")
-        print(f"Saving {sheet_name!r} to {path}")
-
-        geo_cols = [f.name for f in schema.fields if f.type == "geojson"]
-        if geo_cols:
-            gdf = gpd.GeoDataFrame(sheet, geometry=geo_cols[0], crs="EPSG:4326")
-
-            # if append_mode, try to read existing data and concatenate
-            if append_mode:
-                pass
-
-            gdf.to_parquet(
-                path,
-                schema_version="1.1.0",
-                index=False,
-                write_covering_bbox=True,
-                geometry_encoding="WKB",  # We use this because duckdb can't open geoarrow as geometries
-            )
-        else:
-            # if append_mode, try to read existing data and concatenate
-            if append_mode:
-                pass
-
-            sheet.to_parquet(path, index=False)
-
-
 def _create_resource(name: str) -> Resource:
     return Resource(
         name=name,
@@ -241,23 +146,15 @@ def _create_resource(name: str) -> Resource:
     )
 
 
-def _parse_form(
-    pkg: DataPackage,
-    form: dict[str, Any],
-    resource: Resource,
-    strategy: LoadingStrategy,
-):
-    _parse_questions(pkg, form["children"], resource, strategy)
-    # print(resource)
-    pkg.add_resource_following_strategy(resource, strategy)
+def create_main_resource(xlsform: Path) -> Resource:
+    print(f"Parsing form from {xlsform}")
+    form = parse_file_to_json(str(xlsform))
+    name = cast(str, form["id_string"].lower())
+    return _create_resource(name)
 
 
-def _parse_questions(
-    pkg: DataPackage,
-    questions: List[Dict[str, Any]],
-    resource: Resource,
-    strategy: LoadingStrategy,
-):
+
+def _parse_questions(questions: List[Dict[str, Any]], resource: Resource) -> list[Resource]:
     """
     Parses questions (list of dictionaries) and adds them to the resource's schema.
     Example of structure of questions:
@@ -282,16 +179,20 @@ def _parse_questions(
         ]
     For each question having a 'group' type, parses recursively the children questions.
     """
+    parsed_resources: list[Resource] = []
+    
     schema = safe(resource, "schema")
     for question in questions:
         qtype = question["type"]
+        
         if qtype in METADATA_TYPES + IGNORE_TYPES:
             print("Skipping question type:", qtype)
-            continue
-        if qtype == "group":
-            _parse_questions(pkg, question["children"], resource, strategy)
-            continue
-        if qtype == "repeat":
+            
+        elif qtype == "group":
+            parsed_children_resources = _parse_questions(question["children"], resource)
+            parsed_resources += parsed_children_resources
+            
+        elif qtype == "repeat":
             child_resource = _create_resource(question["name"].lower())
             schema = safe(child_resource, "schema")
             schema.add_field(Field(name="parent_id", type="integer"))
@@ -304,9 +205,12 @@ def _parse_questions(
                     ),
                 )
             ]
-            _parse_form(pkg, question, child_resource, strategy)
-            continue
-        if qtype in DP_FIELDS:
+            parsed_resources.append(child_resource)
+            # recursively parse questions and get children resources
+            parsed_children_resources = _parse_questions(question["children"], child_resource)
+            parsed_resources += parsed_children_resources
+            
+        elif qtype in DP_FIELDS:
             kwargs = dict(name=question["name"], type=DP_FIELDS[qtype])
             if "label" in question:
                 kwargs["title"] = stringify(question["label"])
@@ -329,3 +233,105 @@ def _parse_questions(
                     for choice in question["choices"]
                 ]
             schema.fields.append(Field(**kwargs))
+
+    return parsed_resources
+
+
+class KoboToolboxLoader(Loader):
+    main_resource: Resource
+    sheets: dict[str, pd.DataFrame]
+    processed_sheets: dict[str, pd.DataFrame]
+    
+    def __init__(self, package: Path, xlsform: Path, xlsdata: Path, strategy: ResourceExistsStrategy):
+        super().__init__(package, strategy)
+        self.xlsform = xlsform
+        self.xlsdata = xlsdata
+        
+    def extract(self):
+        """
+        The xlsform is parsed with the pyxform.xls2json.parse_file_to_json function
+        while the xlsdata is parsed with pandas read_excel or read_csv functions.
+        """
+        print(f"Parsing form from {self.xlsform}")
+        form = parse_file_to_json(str(self.xlsform))
+        name = cast(str, form["id_string"].lower())
+        self.main_resource = _create_resource(name)
+        # parses questions from JSON form and add resources to the datapackage 
+        parsed_resources = _parse_questions(form["children"], self.main_resource)
+        # NOTE: we must add the main resource first so that foreign keys are resolved correctly
+        self.resources = [self.main_resource] + parsed_resources
+        
+        print(f"Parsing data from {self.xlsdata}")
+        if self.xlsdata.suffix == ".xlsx":
+            self.sheets = pd.read_excel(self.xlsdata, sheet_name=None)
+        elif self.xlsdata.suffix == ".csv":
+            # TODO: I think this encoding is not the one from Kobo we should verify
+            self.sheets = {
+                self.main_resource.name: pd.read_csv(
+                    self.xlsdata,
+                    sep=";",
+                    encoding="windows-1252",
+                    decimal=",",
+                )
+            }
+        else:
+            raise ValueError(f"Unsupported file format: {self.xlsdata}")
+            
+    def transform(self):
+        print("Processing sheets...")
+        self.processed_sheets = {}
+        for i, (sheet_name, sheet) in enumerate(self.sheets.items()):
+            table_name = self.main_resource.name if i == 0 else sheet_name.lower()
+            resource = self.dp.get_resource(table_name)
+            schema = safe(resource, "schema")
+            sheet = (
+                sheet.rename(
+                    columns={"_parent_index": "parent_id"},
+                )
+                .convert_dtypes()
+                .replace(np.nan, None)
+            )
+            sheet[PRIMARY_KEY] = sheet.index + 1
+            fields = []
+            for field in schema.fields:
+                if field.name in sheet.columns:
+                    if field.type == "geojson":
+                        sheet[field.name] = sheet[field.name].apply(coords_to_point)
+                    if field.type == "list":
+                        sheet[field.name] = sheet[field.name].apply(
+                            lambda string: str(string).split()
+                        )
+                    if field.type in DTYPES:
+                        sheet[field.name] = sheet[field.name].astype(DTYPES[field.type])
+                else:
+                    print(
+                        f"Field {field.name} not found in data. Filling with empty values"
+                    )
+                    sheet[field.name] = ""
+                fields.append(field.name)
+    
+            sheet = sheet[fields]
+            sheet = sheet.replace({np.nan: None})
+            self.processed_sheets[table_name] = sheet
+    
+    
+    def load(self):
+        for table_name, sheet in self.processed_sheets.items():
+            resource = self.dp.get_resource(table_name)
+            path = Path(self.dp._basepath, table_name + ".parquet")
+            print(f"Saving {table_name!r} to {path}")
+    
+            geo_cols = [f.name for f in resource.schema.fields if f.type == "geojson"]
+            if geo_cols:
+                gdf = gpd.GeoDataFrame(sheet, geometry=geo_cols[0], crs="EPSG:4326")
+    
+                gdf.to_parquet(
+                    path,
+                    schema_version="1.1.0",
+                    index=False,
+                    write_covering_bbox=True,
+                    geometry_encoding="WKB",  # We use this because duckdb can't open geoarrow as geometries
+                )
+            else:
+                sheet.to_parquet(path, index=False)
+    

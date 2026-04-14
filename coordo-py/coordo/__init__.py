@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import warnings
-from enum import Enum
 
 
 # ignore warnings due to shadowing of Pydantic's "schema" field in "Resource"
@@ -23,9 +22,3 @@ warnings.filterwarnings(
     message=REGEX_TO_IGNORE,
 )
 
-
-class LoadingStrategy(str, Enum):
-    raise_error = "raise_error"
-    overwrite = "overwrite"
-    append = "append"
-    append_strict = "append_strict"
