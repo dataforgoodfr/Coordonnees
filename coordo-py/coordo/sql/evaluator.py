@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from pygeofilter.ast import AstType
-from sqlalchemy import Integer, and_, case, cast, func, select, text
+from sqlalchemy import Integer, and_, case, cast, func, or_, select, text
 
 from coordo.sql.helpers import AGGREGATES, SPATIAL_FUNCTIONS
 from coordo.sql.mapper import FieldMapper
@@ -127,6 +127,10 @@ class SQLEvaluator:
                 expr = lhs.expr <= rhs.expr
             case "in":
                 expr = rhs.expr.contains(lhs.expr)
+            case "or" | "||":
+                expr = or_(lhs.expr, rhs.expr)
+            case "and" | "&&":
+                expr = and_(lhs.expr, rhs.expr)
             case _:
                 raise ValueError("Unsupported comparison :", node.op)
 
@@ -177,7 +181,7 @@ class SQLEvaluator:
         if node.name.lower() in AGGREGATES:
             query = self.base_query
             for join, on in joins:
-                query = query.join(join, on)
+                query = query.join(join, on, isouter=True)
             cte = query.add_columns(f.label("value")).cte()
             return Context(
                 cte.columns["value"],
