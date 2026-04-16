@@ -42,11 +42,9 @@ def handle_path(path: str | list[str]) -> str:
 
 
 def check_resource_fields_match(res1: Resource, res2: Resource) -> None:
-    res1_field_names = [field.name for field in res1.schema.fields]
-    res2_field_names = [field.name for field in res2.schema.fields]
-    if set(res1_field_names) != set(res2_field_names):
+    if not res1.has_same_schema_as(res2):
         raise ValueError(
-            f"Field names do not match for resource {res1.name}: {sorted(res1_field_names)} != {sorted(res2_field_names)}"
+            f"Schemas do not match for resources {res1.name!r} and {res2.name!r}"
         )
 
 
@@ -136,10 +134,7 @@ class DataPackage(pydantic.BaseModel):
 
         if resource.path:
             path = handle_path(resource.path)
-            try:
-                Path(self._basepath / path).unlink()
-            except FileNotFoundError:
-                print(f"Could not remove {path}. File not found.")
+            Path(self._basepath / path).unlink()
 
         self.resources = [res for res in self.resources if res.name != name]
 

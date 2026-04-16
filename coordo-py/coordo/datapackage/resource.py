@@ -81,3 +81,9 @@ class Resource(pydantic.BaseModel):
         if count != 1:
             raise ValueError("Exactly one of 'data' or 'path' must be provided.")
         return self
+
+    def has_same_schema_as(self, other: Self) -> bool:
+        for attr in vars(self.schema):
+            if getattr(self.schema, attr) != getattr(other.schema, attr):
+                return False
+        return True
