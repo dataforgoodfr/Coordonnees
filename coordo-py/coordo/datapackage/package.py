@@ -3,7 +3,6 @@
 
 from pathlib import Path
 from typing import Iterable, Optional
-from enum import Enum
 
 import duckdb
 import geopandas as gpd
@@ -46,13 +45,6 @@ def check_resource_fields_match(res1: Resource, res2: Resource) -> None:
         raise ValueError(
             f"Schemas do not match for resources {res1.name!r} and {res2.name!r}"
         )
-
-
-class ResourceExistsStrategy(str, Enum):
-    raise_error = "raise_error"
-    overwrite = "overwrite"
-    append = "append"
-    append_strict = "append_strict"
 
 
 class DataPackage(pydantic.BaseModel):
@@ -107,94 +99,51 @@ class DataPackage(pydantic.BaseModel):
 
     def remove_resource(self, name: str) -> None:
         """
-        Remove a resource from the package:
-        - for all other resources in the current datapackage, remove any foreign keys pointing to this resource.
-        - remove the file associated with the resource.
+        Remove a resource from the package.
+        For all other resources in the current datapackage, check if they have a foreign key pointing to this resource
+        and raise error it if so.
         Args:
             name (str): the name of the resource to remove
         """
-        print(f"Removing resource {name} from DataPackage {self.name}")
+        print(f"Removing resource {name!r} from DataPackage {self.name!r}")
         resource = self.get_resource(name=name)
         # looping over all resources in the current datapackage, other than <resource>
         for res in self.resources:
             if res.name == name:
                 continue
-            # getting the schema of the resource
             res_schema = safe(res, "schema")
-            # removing all foreign keys pointing to <resource>, if any
-            # we do it in two steps: first collect all keys to remove, then remove them
-            # so that we don't modify the list while iterating over it
             if res_schema.foreignKeys:
-                foreign_keys_to_remove = []
                 for fk in res_schema.foreignKeys:
                     if fk.reference.resource == name:
-                        foreign_keys_to_remove.append(fk)
-                for fk in foreign_keys_to_remove:
-                    res.remove_foreignkey(fk)
-
+                        raise ValueError(
+                            f"Can't remove the resource {name!r} : {res.name!r} has a foreign key pointing to this resource. "
+                            "Please remove this foreign key before removing this resource."
+                        )
+        # remove the file associated with the resource
         if resource.path:
             path = handle_path(resource.path)
             Path(self._basepath / path).unlink()
-
+        # update resources list
         self.resources = [res for res in self.resources if res.name != name]
 
-    def add_resource(
-        self, resource: Resource, strategy: ResourceExistsStrategy
-    ) -> None:
-        """
-        Add a resource to the DataPackage according to the given strategy.
-
-        Args:
-            resource (Resource): The resource to add.
-            strategy (LoadingStrategy): The strategy to use when a resource with the same name already exists.
-        """
-        print(
-            f"Adding resource {resource.name} to DataPackage {self.name} with strategy={strategy.name}"
-        )
+    def add_resource(self, resource: Resource) -> None:
+        print(f"Adding resource {resource.name!r} to package {self.name!r}")
         if self.resource_exists(resource.name):
-            # resource already exists
-
-            if strategy == ResourceExistsStrategy.overwrite:
-                # remove and overwrite
-                self.remove_resource(resource.name)
-                self.append_resource_if_not_exists(resource)
-
-            elif strategy == ResourceExistsStrategy.append:  # do nothing for now
-                self.append_resource_if_not_exists(resource)
-
-            elif strategy == ResourceExistsStrategy.append_strict:
-                # just check that fields match
-                current_resource = self.get_resource(resource.name)
-                check_resource_fields_match(current_resource, resource)
-                self.append_resource_if_not_exists(resource)
-
-            elif strategy == ResourceExistsStrategy.raise_error:
-                raise ValueError(
-                    f"A resource named {resource.name} already exists in package {self.name}."
-                )
-
-            else:
-                raise ValueError(
-                    f"Unknown strategy {strategy} for resource {resource.name}."
-                )
-
-        else:
-            # resource does not exist, just add it
-            self.append_resource_if_not_exists(resource)
-
-    def append_resource_if_not_exists(self, resource: Resource) -> None:
-        if self.resource_exists(resource.name):
-            print(
-                f"A resource named {resource.name} already exists in package {self.name}."
+            raise ValueError(
+                f"A resource named {resource.name!r} already exists in package {self.name!r}. "
+                "Please remove the existing resource before adding a new one."
             )
         else:
             resource._package = self
             self.resources.append(resource)
 
+    def update_resource(self, resource: Resource) -> None:
+        pass
+
     def get_resource(self, name: str) -> Resource:
         found_resources = [res for res in self.resources if res.name == name]
-        assert len(found_resources) <= 1, f"Multiple resources named {name} found."
-        assert len(found_resources) > 0, f"Resource {name} not found."
+        assert len(found_resources) <= 1, f"Multiple resources named {name!r} found."
+        assert len(found_resources) > 0, f"Resource {name!r} not found."
         return found_resources[0]
 
     def write_resource(self, resource_name: str, it: Iterable[dict]):

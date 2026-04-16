@@ -4,14 +4,14 @@
 import shutil
 from pathlib import Path
 
-from coordo.loaders.loader import Loader, ResourceExistsStrategy
+from coordo.loaders.loader import Loader, ResourceAction
 from ..datapackage import Field, Resource, Schema
 from ..datapackage.db_helpers import prepare_path, to_dp_type
 
 
 class FileLoader(Loader):
-    def __init__(self, package: Path, path: Path, strategy: ResourceExistsStrategy):
-        super().__init__(package, strategy)
+    def __init__(self, package: Path, path: Path, action: ResourceAction):
+        super().__init__(package, action)
         self.path = path
 
     def extract(self):

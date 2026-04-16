@@ -22,7 +22,7 @@ from coordo.datapackage import (
     Schema,
 )
 from coordo.helpers import safe
-from coordo.loaders.loader import Loader, ResourceExistsStrategy
+from coordo.loaders.loader import Loader, ResourceAction
 
 CONSTRAINT_GRAMMAR = r"""
 ?start: expression
@@ -249,9 +249,9 @@ class KoboToolboxLoader(Loader):
         package: Path,
         xlsform: Path,
         xlsdata: Path,
-        strategy: ResourceExistsStrategy,
+        action: ResourceAction,
     ):
-        super().__init__(package, strategy)
+        super().__init__(package, action)
         self.xlsform = xlsform
         self.xlsdata = xlsdata
 

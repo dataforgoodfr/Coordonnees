@@ -3,27 +3,40 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
+from enum import Enum
 
-from ..datapackage import DataPackage, ResourceExistsStrategy
+from ..datapackage import DataPackage
 from ..datapackage.resource import Resource
 
 
-class Loader(ABC):
-    def __init__(self, package: Path, strategy: ResourceExistsStrategy):
-        self.dp = DataPackage.from_path(package)
-        self.strategy = strategy
-        self.resources: list[Resource] = []
+class ResourceAction(str, Enum):
+    ADD = "add"
+    UPDATE = "update"
+    REMOVE = "remove"
 
-    def add_resources_to_datapackage(self):
-        for resource in self.resources:
-            self.dp.add_resource(resource, self.strategy)
+
+class Loader(ABC):
+    def __init__(self, package: Path, action: ResourceAction):
+        self.dp = DataPackage.from_path(package)
+        self.action = action
+        self.resources: list[Resource] = []
 
     def etl(self):
         self.extract()
-        self.add_resources_to_datapackage()
-        self.transform()
-        self.load()
+        self.handle_resources()
+        if self.action in [ResourceAction.ADD, ResourceAction.UPDATE]:
+            self.transform()
+            self.load()
         self.dp.save()
+
+    def handle_resources(self):
+        for resource in self.resources:
+            if self.action == ResourceAction.ADD:
+                self.dp.add_resource(resource)
+            elif self.action == ResourceAction.UPDATE:
+                self.dp.update_resource(resource)
+            elif self.action == ResourceAction.REMOVE:
+                self.dp.remove_resource(resource.name)
 
     @abstractmethod
     def extract(self):
