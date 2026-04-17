@@ -51,7 +51,7 @@ class DataPackageLayer(BaseLayerModel):
         elif "LineString" in geom_type:
             layer_type = "line"
         else:
-            layer_type = "circle"
+            layer_type = "symbol"
 
         source = GeoJSONSource(type="geojson", data=data)
         metadata = {
