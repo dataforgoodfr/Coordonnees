@@ -116,6 +116,24 @@ def add_foreignkey(
         foreign_resource=foreign_resource,
     )
     dp.save()
+    
+@app.command()
+def remove_foreignkey(
+    from_: str,
+    to: str,
+    package: Path = typer.Option(".", help="Path to the package directory"),
+):
+    dp = DataPackage.from_path(package)
+    resource, field = from_.split(".")
+    foreign_resource, foreign_field = to.split(".")
+    dp.get_resource(
+        resource,
+    ).remove_foreignkey(
+        fields=[field],
+        foreign_fields=[foreign_field],
+        foreign_resource=foreign_resource,
+    )
+    dp.save()
 
 
 dp = typer.Typer()

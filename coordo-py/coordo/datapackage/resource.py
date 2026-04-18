@@ -60,15 +60,12 @@ class Resource(pydantic.BaseModel):
         )
         fk_part_names_str = " & ".join(self.get_fk_names(fk))
         print(f"Adding foreign key {fk_part_names_str}")
-        
         if not self._package:
             raise ValueError("You can't add a foreign key to an orphan resource.")
-            
         field_names = [f.name for f in self.schema.fields]
         for f in fk.fields:
             if f not in field_names:
                 raise ValueError(f"Resource {self.name} has no field named {f}")
-                
         parent_resource = (
             self._package.get_resource(name=fk.reference.resource)
             if fk.reference.resource
@@ -79,15 +76,22 @@ class Resource(pydantic.BaseModel):
             assert f in field_names, (
                 f"Resource {parent_resource.name} has no field named {f}"
             )
-        
         if fk in self.schema.foreignKeys:
             raise ValueError(f"Foreign key {fk_part_names_str} already exists in resource {self.name}")
-            
         self.schema.foreignKeys.append(fk)
 
-    def remove_foreignkey(self, fk: ForeignKey) -> None:
+    def remove_foreignkey(self, fields: list[str], foreign_fields: list[str], foreign_resource: str) -> None:
+        fk = ForeignKey(
+            fields=fields,
+            reference=ForeignKeyReference(
+                fields=foreign_fields,
+                resource=None if self.name == foreign_resource else foreign_resource,
+            )
+        )
+        fk_part_names_str = " & ".join(self.get_fk_names(fk))
+        print(f"Removing foreign key {fk_part_names_str}")
         if fk not in self.schema.foreignKeys:
-            raise ValueError(f"Foreign key {fk} not found in resource {self.name}")
+            raise ValueError(f"Foreign key {fk_part_names_str} not found in resource {self.name}")
         self.schema.foreignKeys.remove(fk)
 
     @model_validator(mode="after")
