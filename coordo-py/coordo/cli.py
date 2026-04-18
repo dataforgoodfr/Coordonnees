@@ -5,7 +5,6 @@ import signal
 from pathlib import Path
 
 import typer
-from dplib.models.schema.foreignKey import ForeignKey, ForeignKeyReference
 
 from coordo.loaders import ResourceAction, KoboToolboxLoader, FileLoader
 from coordo.datapackage import DataPackage
@@ -112,13 +111,9 @@ def add_foreignkey(
     dp.get_resource(
         resource,
     ).add_foreignkey(
-        ForeignKey(
-            fields=[field],
-            reference=ForeignKeyReference(
-                fields=[foreign_field],
-                resource=None if resource == foreign_resource else foreign_resource,
-            ),
-        ),
+        fields=[field],
+        foreign_fields=[foreign_field],
+        foreign_resource=foreign_resource,
     )
     dp.save()
 

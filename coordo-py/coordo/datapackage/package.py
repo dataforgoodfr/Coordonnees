@@ -115,12 +115,8 @@ class DataPackage(pydantic.BaseModel):
             if res_schema.foreignKeys:
                 for fk in res_schema.foreignKeys:
                     if fk.reference.resource == name:
-                        # build the list of foreign key field pairs
-                        fk_part_names = [
-                            f"'{res.name}.{field}' -> '{fk.reference.resource}.{reference_field}'"
-                            for field, reference_field in zip(fk.fields, fk.reference.fields)
-                        ]
-                        fk_part_names_str = "\n".join(fk_part_names)
+                        # build a string containing the list of foreign key field pairs 
+                        fk_part_names_str = "\n".join(res.get_fk_names(fk))
                         raise ValueError(
                             f"Can't remove the resource {name!r} : {res.name!r} has a foreign key pointing to this resource. "
                             f"Please remove the following foreign keys beforehand:\n{fk_part_names_str}"
