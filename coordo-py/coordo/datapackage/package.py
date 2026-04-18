@@ -40,6 +40,13 @@ def handle_path(path: str | list[str]) -> str:
     return path
 
 
+def check_resource_fields_match(res1: Resource, res2: Resource) -> None:
+    if not res1.has_same_schema_as(res2):
+        raise ValueError(
+            f"Schemas do not match for resources {res1.name!r} and {res2.name!r}"
+        )
+
+
 class DataPackage(pydantic.BaseModel):
     id: Optional[str] = None
     name: str = pydantic.Field(pattern=r"^[a-z0-9._-]+$")
@@ -91,38 +98,63 @@ class DataPackage(pydantic.BaseModel):
         )
 
     def remove_resource(self, name: str) -> None:
+        """
+        Remove a resource from the package.
+        For all other resources in the current datapackage, check if they have a foreign key pointing to this resource
+        and raise error it if so.
+        Args:
+            name (str): the name of the resource to remove
+        """
+        print(f"Removing resource {name!r} from DataPackage {self.name!r}")
         resource = self.get_resource(name=name)
+        # looping over all resources in the current datapackage, other than <resource>
         for res in self.resources:
             if res.name == name:
                 continue
-            sm = safe(res, "schema")
-            if sm.foreignKeys:
-                for fk in sm.foreignKeys:
-                    assert fk.reference.resource != name, (
-                        f"Can't remove the resource {name} : {res.name} have a foreign key pointing to this resource."
-                    )
+            res_schema = safe(res, "schema")
+            if res_schema.foreignKeys:
+                for fk in res_schema.foreignKeys:
+                    if fk.reference.resource == name:
+                        # build a string containing the list of foreign key field pairs 
+                        fk_part_names_str = "\n".join(res.get_fk_names(fk))
+                        raise ValueError(
+                            f"Can't remove the resource {name!r} : {res.name!r} has a foreign key pointing to this resource. "
+                            f"Please remove the following foreign keys beforehand:\n{fk_part_names_str}"
+                        )
+        # remove the file associated with the resource
         if resource.path:
             path = handle_path(resource.path)
             Path(self._basepath / path).unlink()
+        # update resources list
         self.resources = [res for res in self.resources if res.name != name]
 
     def add_resource(self, resource: Resource) -> None:
-        if any(res.name == resource.name for res in self.resources):
+        print(f"Adding resource {resource.name!r} to package {self.name!r}")
+        if self.resource_exists(resource.name):
             raise ValueError(
-                f"A resource named {resource.name} already exists in package {self.name}."
+                f"A resource named {resource.name!r} already exists in package {self.name!r}. "
+                "Please remove the existing resource before adding a new one."
             )
-        resource._package = self
-        self.resources.append(resource)
+        else:
+            resource._package = self
+            self.resources.append(resource)
+
+    def update_resource(self, resource: Resource) -> None:
+        pass
 
     def get_resource(self, name: str) -> Resource:
-        resource = next(res for res in self.resources if res.name == name)
-        assert resource is not None, f"Resource {name} not found."
-        return resource
+        found_resources = [res for res in self.resources if res.name == name]
+        assert len(found_resources) <= 1, f"Multiple resources named {name!r} found."
+        assert len(found_resources) > 0, f"Resource {name!r} not found."
+        return found_resources[0]
 
     def write_resource(self, resource_name: str, it: Iterable[dict]):
         pass
         # resource = self.get_resource(name=resource_name)
         # schema = resource.get_schema()
+
+    def resource_exists(self, name: str) -> bool:
+        return any(res.name == name for res in self.resources)
 
     def prepare_db(self) -> tuple[duckdb.DuckDBPyConnection, sa.MetaData]:
         conn = load_conn()

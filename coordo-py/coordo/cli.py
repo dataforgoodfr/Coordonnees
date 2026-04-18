@@ -5,9 +5,8 @@ import signal
 from pathlib import Path
 
 import typer
-from dplib.models.schema.foreignKey import ForeignKey, ForeignKeyReference
 
-from coordo import loaders
+from coordo.loaders import ResourceAction, KoboToolboxLoader, FileLoader
 from coordo.datapackage import DataPackage
 from coordo.sql.builder import build_query
 
@@ -83,25 +82,18 @@ def kobotoolbox(
     xlsform: Path,
     xlsdata: Path,
     package: Path = typer.Option(help="Path to the package directory"),
+    action: ResourceAction = typer.Option(help="Action to perform on resource"),
 ):
-    dp = DataPackage.from_path(package)
-    loaders.kobotoolbox.load(dp, xlsform, xlsdata)
-    dp.save()
+    KoboToolboxLoader(package, xlsform, xlsdata, action).etl()
 
 
 @load.command()
 def file(
     path: Path,
     package: Path = typer.Option(".", help="Path to the package directory"),
+    action: ResourceAction = typer.Option(help="Action to perform on resource"),
 ):
-    dp = DataPackage.from_path(package)
-    try:
-        loaders.file.load(dp, path)
-    except ValueError as e:
-        raise typer.BadParameter(
-            f"{e} Add --overwrite if you wish to continue.", param_hint="path"
-        )
-    dp.save()
+    FileLoader(package, path, action).etl()
 
 
 app.add_typer(load, name="load")
@@ -119,13 +111,27 @@ def add_foreignkey(
     dp.get_resource(
         resource,
     ).add_foreignkey(
-        ForeignKey(
-            fields=[field],
-            reference=ForeignKeyReference(
-                fields=[foreign_field],
-                resource=None if resource == foreign_resource else foreign_resource,
-            ),
-        ),
+        fields=[field],
+        foreign_fields=[foreign_field],
+        foreign_resource=foreign_resource,
+    )
+    dp.save()
+    
+@app.command()
+def remove_foreignkey(
+    from_: str,
+    to: str,
+    package: Path = typer.Option(".", help="Path to the package directory"),
+):
+    dp = DataPackage.from_path(package)
+    resource, field = from_.split(".")
+    foreign_resource, foreign_field = to.split(".")
+    dp.get_resource(
+        resource,
+    ).remove_foreignkey(
+        fields=[field],
+        foreign_fields=[foreign_field],
+        foreign_resource=foreign_resource,
     )
     dp.save()
 
