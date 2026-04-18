@@ -58,7 +58,7 @@ class Resource(pydantic.BaseModel):
                 resource=None if self.name == foreign_resource else foreign_resource,
             )
         )
-        fk_part_names_str = ", ".join(self.get_fk_names(fk))
+        fk_part_names_str = " & ".join(self.get_fk_names(fk))
         print(f"Adding foreign key {fk_part_names_str}")
         
         if not self._package:
@@ -79,6 +79,9 @@ class Resource(pydantic.BaseModel):
             assert f in field_names, (
                 f"Resource {parent_resource.name} has no field named {f}"
             )
+        
+        if fk in self.schema.foreignKeys:
+            raise ValueError(f"Foreign key {fk_part_names_str} already exists in resource {self.name}")
             
         self.schema.foreignKeys.append(fk)
 
