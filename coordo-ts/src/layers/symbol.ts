@@ -16,8 +16,10 @@ function getLayerSymbolPictureId({ layerId }: { layerId: string }) {
 export function makeSetLayerSymbol({ map }: { map: MapLibreMap }) {
   /**
    * Update the icon-image of a Layer Layout.
+   * To use an image from your sprite, use spriteId.
    * To use an external image, use symbolUrl.
-   * To use an image from your sprite, use spriteId
+   * To use an svg image, use svg.
+   * Use only one provider. You can provide an additional fallback image via fallbackId.
    * @param params.layerId —  The ID of the layer to set the layout property in.
    * @param params.imageUrl — The URL of the image file. Image file must be in png, webp, or jpg format.
    * @param params.spriteId — The ID of the image to load from the sprite attached to the map instance.
@@ -26,7 +28,7 @@ export function makeSetLayerSymbol({ map }: { map: MapLibreMap }) {
    * @param params.fallbackId — The ID of a picture (from a sprite or from addImage)
    * to use as fallback when the main image couldn't load.
    */
-  async function setLayerSymbolViaProperty({
+  async function setLayerSymbol({
     layerId,
     iconSize = 1,
     fallbackId,
@@ -42,17 +44,26 @@ export function makeSetLayerSymbol({ map }: { map: MapLibreMap }) {
     | { spriteId: string; imageUrl?: null; svg?: null }
     | { svg: string; imageUrl?: null; spriteId?: null }
   )) {
-    let pictureId: string = "";
+    function setLayerIconImage(pictureId: string) {
+      const finalId = fallbackId
+        ? ["coalesce", ["image", pictureId], ["image", fallbackId]]
+        : pictureId;
+      map.setLayoutProperty(layerId, "icon-image", finalId);
+      map.setLayoutProperty(layerId, "icon-size", iconSize);
+    }
 
     if (spriteId) {
-      pictureId = spriteId;
+      setLayerIconImage(spriteId);
+      return;
     }
 
     if (imageUrl) {
       const image = await map.loadImage(imageUrl);
       const imageId = getLayerSymbolPictureId({ layerId });
       map.addImage(imageId, image.data);
-      pictureId = imageId;
+
+      setLayerIconImage(imageId);
+      return;
     }
 
     if (svg) {
@@ -65,15 +76,13 @@ export function makeSetLayerSymbol({ map }: { map: MapLibreMap }) {
       await promise; // Wait for the image to load
       const imageId = getLayerSymbolPictureId({ layerId });
       map.addImage(imageId, image);
-      pictureId = imageId;
+
+      setLayerIconImage(imageId);
+      return;
     }
 
-    const finalId = fallbackId
-      ? ["coalesce", ["image", pictureId], ["image", fallbackId]]
-      : pictureId;
-    map.setLayoutProperty(layerId, "icon-image", finalId);
-    map.setLayoutProperty(layerId, "icon-size", iconSize);
+    console.warn("[setLayerSymbol] Provide one of: spriteId, imageUrl, svg");
   }
 
-  return setLayerSymbolViaProperty;
+  return setLayerSymbol;
 }
