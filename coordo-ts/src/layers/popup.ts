@@ -103,7 +103,7 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
       console.log("Popup trigger event :", ev);
       console.log(`On point ${id} with properties ${JSON.stringify(eventProps)} and geometry ${JSON.stringify(lngLat)}`);
       console.log(`Condition satisfied : ${lngLat && id && eventProps}`);
-      if (lngLat && id && eventProps) {
+      if (lngLat && Number(id) >= 0 && eventProps) {
         console.log("Entered in popup defintion.");
         /** @todo Remove "any" casting  */
         const popup = new Popup(popupConfig).setLngLat(lngLat);
