@@ -11,7 +11,7 @@ import type {
   Map as MapLibreMap,
   PopupOptions,
 } from "maplibre-gl";
-import { Popup } from "maplibre-gl";
+import { LngLat, Popup } from "maplibre-gl";
 
 import type { LayerMetadata } from "../types";
 
@@ -97,16 +97,21 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
     }
 
     const onTrigger = async (ev: MapLayerMouseEvent | MapLayerTouchEvent) => {
-      const geometry = ev.features?.[0]?.geometry;
+      const lngLat = ev.lngLat;
       const eventProps = ev.features?.[0]?.properties;
       const id = ev.features?.[0]?.id;
-      console.log(`Popup trigger event on point ${id} with properties ${eventProps}`)
-      if (geometry && id && eventProps) {
+      console.log("Popup trigger event :", ev);
+      console.log(`On point ${id} with properties ${JSON.stringify(eventProps)} and geometry ${JSON.stringify(lngLat)}`);
+      console.log(`Condition satisfied : ${lngLat && id && eventProps}`);
+      if (lngLat && id && eventProps) {
+        console.log("Entered in popup defintion.");
         /** @todo Remove "any" casting  */
-        const popup = new Popup(popupConfig).setLngLat(ev.lngLat);
-
+        const popup = new Popup(popupConfig).setLngLat(lngLat);
+        console.log(`popup created at ${lngLat}, ${JSON.stringify(popup)}`);
         const source = map.getSource(layerId) as GeoJSONSource;
+        console.log("Source found: ", source);
         const data = await source.getData();
+        console.log("Data found", data);
         const properties = Object.assign(eventProps, {
           // MapLibre Events will remove any non-string and non-numeric properties from object definition
           // see https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/#querysourcefeatures
@@ -116,7 +121,7 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
             ?.properties,
         }) as T;
 
-        console.log(`Retrieved properties from data source: ${properties}`)
+        console.log(`Retrieved properties from data source: ${JSON.stringify(properties)}`)
         const layerMetadata = map.getLayer(layerId)?.metadata as LayerMetadata;
         const content = renderCallback(properties as T, layerMetadata);
         if (typeof content === "string") {
@@ -126,7 +131,10 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
         }
 
         popup.addTo(map);
+      } else {
+        console.warn(`One missing property : id = ${id} properties = ${JSON.stringify(eventProps)} or lngLat = ${JSON.stringify(lngLat)}`);
       }
+      console.log("After condition")
     };
 
     // Add "trigger" listener
