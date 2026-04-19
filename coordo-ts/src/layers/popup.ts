@@ -126,10 +126,12 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
         popup.addTo(map);
       } else if (!lngLat) {
         console.warn("Missing property lngLat on event : ", ev);
+      } else if (!ev.features) {
+        console.warn("Event features not found");
       } else if (!(Number(id) >= 0)) {
         console.warn("event feature id is invalid: ", id);
       } else if (!eventProps) {
-        console.warn("Event Props not found", eventProps);
+        console.warn("Event feature properties not found", eventProps);
       }
     };
 
