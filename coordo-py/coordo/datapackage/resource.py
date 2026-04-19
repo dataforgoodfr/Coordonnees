@@ -51,6 +51,10 @@ class Resource(pydantic.BaseModel):
         conn.execute(query)
 
     def add_foreignkey(self, fields: list[str], foreign_fields: list[str], foreign_resource: str) -> None:
+        # TODO: remove this check when addition of multiple fields at once is supported
+        if len(fields) > 1 or len(foreign_fields) > 1:
+            raise ValueError("Adding a foreign key with multiple fields is not supported yet.")
+        
         fk = ForeignKey(
             fields=fields,
             reference=ForeignKeyReference(
@@ -60,6 +64,7 @@ class Resource(pydantic.BaseModel):
         )
         fk_part_names_str = " & ".join(self.get_fk_names(fk))
         print(f"Adding foreign key {fk_part_names_str}")
+        
         if not self._package:
             raise ValueError("You can't add a foreign key to an orphan resource.")
         field_names = [f.name for f in self.schema.fields]
