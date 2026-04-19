@@ -41,6 +41,7 @@ class DataPackageLayer(BaseLayerModel):
         resource = package.get_resource(name=self.resource)
         data = self.get_data(base_path=base_path)
 
+        print(f"layer type set = {self.layerType}")
         layer_type = self.layerType or self.infer_layer_type(data["features"])
 
         source = GeoJSONSource(type="geojson", data=data)

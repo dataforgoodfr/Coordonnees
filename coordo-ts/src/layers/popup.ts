@@ -100,6 +100,7 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
       const geometry = ev.features?.[0]?.geometry;
       const eventProps = ev.features?.[0]?.properties;
       const id = ev.features?.[0]?.id;
+      console.log(`Popup trigger event on point ${id} with properties ${eventProps}`)
       if (geometry && id && eventProps) {
         /** @todo Remove "any" casting  */
         const popup = new Popup(popupConfig).setLngLat(ev.lngLat);
@@ -115,6 +116,7 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
             ?.properties,
         }) as T;
 
+        console.log(`Retrieved properties from data source: ${properties}`)
         const layerMetadata = map.getLayer(layerId)?.metadata as LayerMetadata;
         const content = renderCallback(properties as T, layerMetadata);
         if (typeof content === "string") {

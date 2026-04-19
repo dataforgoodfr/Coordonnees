@@ -29,6 +29,7 @@
       "type": "datapackage",
       "path": "../catalog/inventaire/datapackage.json",
       "resource": "inventaire_id",
+      "layerType": "symbol",
       "columns": {
         "geom": "gps.merge().centroid()",
         "for": "for",
