@@ -11,6 +11,7 @@ import "../index.css";
 import { EVENTS } from "../events";
 import { makeSetLayerFilters } from "../layers/filters";
 import { makeSetLayerPopup } from "../layers/popup";
+import { makeSetLayerSymbol } from "../layers/symbol";
 import { addStyleDataListener } from "./style-data";
 
 const DEFAULT_MAP_OPTIONS: Partial<maplibregl.MapOptions> = {
@@ -55,9 +56,13 @@ export function createMap(
     return map.getCenter().toArray();
   }
 
+  const addSprite = map.addSprite;
+
   const setLayerFilters = makeSetLayerFilters({ baseUrl, map });
 
   const setLayerPopup = makeSetLayerPopup({ map });
+
+  const setLayerSymbol = makeSetLayerSymbol({ map });
 
   function addEventListener<T extends keyof maplibregl.MapEventType>(
     type: T,
@@ -83,6 +88,7 @@ export function createMap(
 
   return {
     addEventListener,
+    addSprite,
     getCenter,
     getLayerMetadata,
     getZoom,
@@ -90,6 +96,7 @@ export function createMap(
     mapInstance: map,
     setLayerFilters,
     setLayerPopup,
+    setLayerSymbol,
     showLayer,
   };
 }
