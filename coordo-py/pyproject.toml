@@ -28,7 +28,11 @@ coordo = "coordo.cli:app"
 [tool.setuptools.package-data]
 "coordo" = ["static/*", "**/*.sql"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [dependency-groups]
 dev = [
     "ruff>=0.15.8",
+    "pytest>=8.0",
 ]
