@@ -30,6 +30,7 @@ coordo = "coordo.cli:app"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = ["-s"]
 
 [dependency-groups]
 dev = [
