@@ -90,3 +90,18 @@ FROM parents LEFT OUTER JOIN children ON parents.id = children.parent_id)
  SELECT anon_1.avg_1
 FROM anon_1
 ```
+
+
+## Development
+
+### Data types
+
+#### KoboToolbox
+
+For surveys, Kobotoolbox uses the standard XLSForm format.
+Briefly, each `xlsx` file contains 3 sheets:
+- `survey`
+- `choices`
+- `settings`
+
+All information can be found at https://support.kobotoolbox.org/edit_forms_excel.html
