@@ -34,5 +34,12 @@ export type LayerMetadata = {
     trigger: string;
     html?: string;
   };
-  schema?: FrictionlessSchema;
+  resource?: {
+    schema?: FrictionlessSchema;
+  },
+  references?: [{
+    name: string,
+    schema: FrictionlessSchema
+  }
+  ]
 };
