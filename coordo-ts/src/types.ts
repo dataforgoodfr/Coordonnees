@@ -36,10 +36,11 @@ export type LayerMetadata = {
   };
   resource?: {
     schema?: FrictionlessSchema;
-  },
-  references?: [{
-    name: string,
-    schema: FrictionlessSchema
-  }
-  ]
+  };
+  references?: [
+    {
+      name: string;
+      schema: FrictionlessSchema;
+    },
+  ];
 };
