@@ -5,8 +5,6 @@
 
 import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 
-import type { LayerMetadata } from "../types";
-
 export type SetLayerFiltersParams<T> = {
   layerId: string;
   filters: T;
@@ -47,11 +45,6 @@ export function makeSetLayerFilters({
       throw new Error(`[FILTERS] Layer ${layerId} doesn't exist.`);
     }
 
-    // Retrieve dataUrl froom layer configuration
-    const schema = (layer.metadata as LayerMetadata).schema;
-    if (!schema) {
-      throw new Error(`[FILTERS] Layer ${layer.id} can't be filtered.`);
-    }
     const dataUrl = new URL(layerId, baseUrl).toString();
 
     // Fetch data based on filters

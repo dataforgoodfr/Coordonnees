@@ -45,9 +45,12 @@ class DataPackageLayer(BaseLayerModel):
 
         source = GeoJSONSource(type="geojson", data=data)
         metadata = {
-            "schema": safe(resource, "schema").model_dump(
-                exclude_none=True, warnings="none"
-            ),
+            "resource": {
+                "schema": safe(resource, "schema").model_dump(
+                    exclude_none=True, warnings="none"
+                ),
+            },
+            "references": self.findAllResourceReferences(resource, package)
         }
         if self.popup:
             metadata.update(popup=self.popup.model_dump())
@@ -103,4 +106,19 @@ class DataPackageLayer(BaseLayerModel):
             layer_type = "circle"
 
         return layer_type
+    
+    def findAllResourceReferences(self, resource, package):
+        references = []
+        added_references = []
+        for res in package.resources:
+            for fk in res.schema.foreignKeys:
+                if fk.reference.resource == resource.name and res.name not in added_references:
+                    references.append({
+                        "name": res.name,
+                        "schema": safe(res, "schema").model_dump(
+                            exclude_none=True, warnings="none"
+                        )
+                    })
+                    added_references.append(res.name)
+        return references
 
