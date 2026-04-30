@@ -91,9 +91,9 @@ class SQLEvaluator:
             case "-":
                 expr = coalesce(lhs.expr, 0) - coalesce(rhs.expr, 0)
             case "/":
-                expr = coalesce(lhs.expr, 0) / coalesce(rhs.expr, 0)
+                expr = coalesce(lhs.expr, 0) / coalesce(rhs.expr, 1)
             case "*":
-                expr = coalesce(lhs.expr, 0) * coalesce(rhs.expr, 0)
+                expr = coalesce(lhs.expr, 1) * coalesce(rhs.expr, 1)
             case "^":
                 expr = func.pow(coalesce(lhs.expr, 0), coalesce(rhs.expr, 1))
             case _:
