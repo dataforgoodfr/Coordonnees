@@ -43,7 +43,7 @@
         "EPF_vertical_distribution": "ind.gini(haut) * 10",
         "EPF_dominant_height": "ind.avg(haut if haut > percentile(haut, 80))",
         "EPF_dendro_unique": "ind.list(dmh).flatten().list_unique() / 16 * 10",
-        "SOIL_structure": "2 * sum(ep1*int(not1) + ep2 * int(not2) + ep3 * int(not3) + ep4 * int(not4) + ep5 * int(not5)) / sum(ep1 + ep2 + ep3 + ep4 + ep5)",
+        "SOIL_structure": "2 * sum(ep1*int(not1) + ep2 * int(not2) + ep3 * int(not3) + ep4 * int(not4) + ep5 * int(not5)) / (sum(ep1 + ep2 + ep3 + ep4 + ep5) if sum(ep1 + ep2 + ep3 + ep4 + ep5) > 0 else 1)",
         "SOIL_stability": "(int(slak1) + int(slak2) + int(slak3)) / 3",
         "SOIL_infiltration_speed": "600 * 300 / ((beer1 + beer2 + beer3 + beer4 + beer5 + beer6 + beer7 + beer8 + beer9 + beer10) * pi() * 30^2) if beer1 != 0 else 0",
         "SURFACE_species_counts": "list_aggregate(list_concat(list(barba_001.concat_ws('-', tax1_barbA, tax2_barbA, tax3_barbA)), list(barbb_001.concat_ws('-', tax1_barbB, tax2_barbB, tax3_barbB)), list(barbc_001.concat_ws('-', tax1_barbC, tax2_barbC, tax3_barbC))), 'histogram')",
