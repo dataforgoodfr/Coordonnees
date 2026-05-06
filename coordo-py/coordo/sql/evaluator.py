@@ -91,11 +91,11 @@ class SQLEvaluator:
             case "-":
                 expr = coalesce(lhs.expr, 0) - coalesce(rhs.expr, 0)
             case "/":
-                expr = coalesce(lhs.expr, 0) / coalesce(rhs.expr, 1)
+                expr = lhs.expr / rhs.expr
             case "*":
                 expr = coalesce(lhs.expr, 1) * coalesce(rhs.expr, 1)
             case "^":
-                expr = func.pow(coalesce(lhs.expr, 0), coalesce(rhs.expr, 1))
+                expr = func.pow(lhs.expr, rhs.expr)
             case _:
                 raise ValueError("Unsupported operation :", node.op)
 
