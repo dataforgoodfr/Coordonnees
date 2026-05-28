@@ -91,8 +91,7 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
     centerOnClick,
   }: SetLayerPopupParams<T>) {
     if (layerId in popupRemovers) {
-      // Cleanup precedent trigger
-      popupRemovers[layerId]?.();
+      popupRemovers[layerId]?.(); // Cleanup precedent trigger
       delete popupRemovers[layerId];
     }
 
@@ -107,9 +106,11 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
         const source = map.getSource(layerId) as GeoJSONSource;
         const data = await source.getData();
         const properties = Object.assign(eventProps, {
-          // MapLibre Events will remove any non-string and non-numeric properties from object definition
-          // see https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/#querysourcefeatures
-          // We want to add them back because we use complex object and potential null values
+          /**
+           * MapLibre Events will remove any non-string and non-numeric properties from object definition
+           * see https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/#querysourcefeatures
+           * We want to add them back because we use complex object and potential null values
+           */
           // @ts-expect-error - MapLibre types are not accurate regarding feature properties
           ...data.features?.find((f) => Number(f.id) === Number(id))
             ?.properties,
@@ -122,7 +123,6 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
         } else {
           popup.setDOMContent(content);
         }
-
         popup.addTo(map);
       } else if (!lngLat) {
         console.warn("Missing property lngLat on event : ", ev);
@@ -138,7 +138,7 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
     // Add "trigger" listener
     map.on(trigger, layerId, onTrigger);
 
-    // Add Mouse listeners
+    //  Add Mouse listeners
     const onMouseEnter = () => {
       map.getCanvas().style.cursor = "pointer";
     };
@@ -157,22 +157,16 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
           let posY: number | undefined;
 
           if (geometry.type === "Point") {
-            /**
-             * Points coordinates
-             * [-90.3295,-0.6344474832838974]
-             * => fly to this position
-             */
+            /** Points coordinates: [-90.3295,-0.6344474832838974]
+             * => fly to this position */
             const [coordo1, coordo2] = geometry.coordinates;
             posX = coordo1;
             posY = coordo2;
           }
 
           if (geometry.type === "Polygon") {
-            /**
-             * Polygon coordinates
-             * [[[XXX,YYY], [XXX,YYY], [XXX,YYY], ...]]
-             * => fly to the centroid, e.g. [mean of XXXs, mean of YYYs]
-             */
+            /** Polygon coordinates: [[[XXX,YYY], [XXX,YYY], [XXX,YYY], ...]]
+             * => fly to the centroid, e.g. [mean of XXXs, mean of YYYs] */
             const polygonPoints = geometry.coordinates.flat();
             const nbOfPoints = polygonPoints.length;
             const { sumX, sumY } = polygonPoints.reduce<{
@@ -210,7 +204,6 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
     // Define cleanup function
     const removeListeners = () => {
       map.off(trigger, layerId, onTrigger);
-
       if (trigger.includes("click")) {
         map.off("mouseenter", layerId, onMouseEnter);
         map.off("mouseleave", layerId, onMouseLeave);

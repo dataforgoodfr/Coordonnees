@@ -6,8 +6,13 @@
 export type { PopupOptions } from "maplibre-gl";
 
 export { EVENTS } from "./events";
+export {
+  LAYER_CONTROL_ELEMENTS,
+  type LayerControlRenderAnchor,
+  type LayerControlRenderLayerRow,
+} from "./layers/controls";
 export { getLayerSymbolId } from "./layers/symbol";
-export { createMap } from "./map/map";
+export { type CreateMapOptions, createMap } from "./map/map";
 export type {
   FrictionlessField,
   FrictionlessSchema,
