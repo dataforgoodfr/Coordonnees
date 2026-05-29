@@ -11,7 +11,7 @@ def prepare_path(path: Path):
     from_ = str(path)
     if path.suffix in (".geojson", ".zip"):
         if path.suffix == ".zip":
-            from_ = "/vsizip/" + from_
+            from_ = f"/vsizip/{path.absolute()}"
         from_ = f"ST_Read('{from_}')"
     else:
         from_ = f'"{from_}"'

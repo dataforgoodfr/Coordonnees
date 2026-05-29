@@ -1,6 +1,6 @@
 [project]
 name = "coordo"
-version = "0.1.0"
+version = "0.3.2"
 description = "A set of modules to help with using spatio-temporal data and creating maps"
 requires-python = ">=3.11"
 dependencies = [
