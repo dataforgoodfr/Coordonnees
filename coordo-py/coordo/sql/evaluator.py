@@ -6,6 +6,7 @@ from typing import Any
 
 from pygeofilter.ast import AstType
 from sqlalchemy import Integer, and_, case, cast, func, or_, select, text
+from sqlalchemy.sql.functions import coalesce
 
 from coordo.sql.helpers import AGGREGATES, SPATIAL_FUNCTIONS
 from coordo.sql.mapper import FieldMapper
@@ -86,9 +87,9 @@ class SQLEvaluator:
     def arithmetic(self, node, lhs, rhs, *, mapper: FieldMapper):
         match node.op:
             case "+":
-                expr = lhs.expr + rhs.expr
+                expr = coalesce(lhs.expr, 0) + coalesce(rhs.expr, 0)
             case "-":
-                expr = lhs.expr - rhs.expr
+                expr = coalesce(lhs.expr, 0) - coalesce(rhs.expr, 0)
             case "/":
                 expr = lhs.expr / rhs.expr
             case "*":

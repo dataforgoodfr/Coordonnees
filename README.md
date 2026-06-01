@@ -111,5 +111,5 @@ make catalog
 Serve a config file
 
 ```
-uv run coordo serve data/config.json
+uv run coordo serve configs/all4trees_config.json
 ```
