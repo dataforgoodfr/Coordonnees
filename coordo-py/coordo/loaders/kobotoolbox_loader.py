@@ -369,10 +369,11 @@ class KoboToolboxLoader(Loader):
             path = Path(self.dp._basepath, table_name + ".parquet")
             print(f"Saving {table_name!r} to {path}")
 
+            saved = False
             geo_cols = [f.name for f in resource.schema.fields if f.type == "geojson"]
 
             index = 0
-            while(index < len(geo_cols)):
+            while(index < len(geo_cols) and not saved):
                 try: 
                     gdf = gpd.GeoDataFrame(sheet, geometry=geo_cols[index], crs="EPSG:4326")
 
@@ -383,10 +384,12 @@ class KoboToolboxLoader(Loader):
                         write_covering_bbox=True,
                         geometry_encoding="WKB",  # We use this because duckdb can't open geoarrow as geometries
                     )
-                    return
+                    saved = True
                 except Exception as e:
                     print(f"Error saving {table_name!r} with geometry column {geo_cols[index]!r}: {e}")
-                    index += 1
+
+                index += 1
             
-            # if no geometry column could be saved, save without geometry
-            sheet.to_parquet(path, index=False)
+            if(not saved):
+                sheet.to_parquet(path, index=False)
+                saved = True
