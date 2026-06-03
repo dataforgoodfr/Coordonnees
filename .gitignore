@@ -3,3 +3,4 @@ uv.lock
 catalog/
 data/
 .vscode/
+*.bak

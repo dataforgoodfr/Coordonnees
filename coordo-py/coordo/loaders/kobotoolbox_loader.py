@@ -26,11 +26,25 @@ from coordo.loaders.loader import Loader, ResourceAction
 
 CONSTRAINT_GRAMMAR = r"""
 ?start: expression
-expression: comparison (AND comparison)*
-comparison: DOT OP NUMBER
+expression: func_call | comparison (BOOL comparison)*
+comparison: DOT COMP_OP expr
+
+?expr: expr ARITHMETIC term
+    | term
+
+?term: NUMBER | VAR
+
+func_call: CNAME "(" DOT "," arg_list? ")"
+arg_list: STRING*
+
 DOT: "."
-OP: "<=" | ">=" | "<" | ">"
-AND: "and"
+COMP_OP: "<=" | ">=" | "<" | ">"
+BOOL: "and" | "or"
+ARITHMETIC: "+" | "-" | "*" | "/"
+STRING: /("[^"]*")|'[^"]*'/
+VAR: "${" /[A-Za-z_][A-Za-z_0-9]*/ "}"
+
+%import common.CNAME
 %import common.NUMBER
 %import common.WS
 %ignore WS
@@ -38,17 +52,38 @@ AND: "and"
 
 
 class RangeTransformer(Transformer):
+    def arg_list(self, items):
+        return items
+
+    def STRING(self, token):
+        return token.value
+
+    def CNAME(self, token):
+        return token.value
+
+    def NUMBER(self, token):
+        return float(token.value)
+
+    def expr(self, items):
+        return "".join(str(item) for item in items)
+
     def comparison(self, items):
-        op, number = items[1], float(items[2])
+        op, expr = items[1], items[2]
         match op:
             case ">=":
-                return {"minimum": number}
+                return {"minimum": expr}
             case "<=":
-                return {"maximum": number}
+                return {"maximum": expr}
             case ">":
-                return {"exclusiveMinimum": number}
+                return {"exclusiveMinimum": expr}
             case "<":
-                return {"exclusiveMaximum": number}
+                return {"exclusiveMaximum": expr}
+
+    def func_call(self, items):
+        funcName, args = items[0], items[2]
+        match funcName:
+            case "regex":
+                return {"regex": args[0]}
 
     def expression(self, items):
         result = {}
@@ -226,8 +261,13 @@ def _parse_questions(
                 if "required" in bind:
                     constraints["required"] = bind["required"] == "true"
                 if "constraint" in bind:
-                    constraint = constraint_parser.parse(bind["constraint"])
-                    constraints.update(constraint)  # type: ignore
+                    try:
+                        constraint = constraint_parser.parse(bind["constraint"])
+                        constraints.update(constraint)  # type: ignore
+                    # Fallback in case of unsupported constraint syntax
+                    except Exception as e:
+                        print(f"Error parsing constraint for question {question['name']}: {e}")
+                        constraints.update({"unknownConstraint": bind["constraint"]})
             kwargs["constraints"] = constraints
             if "choices" in question:
                 kwargs["categories"] = [
@@ -330,15 +370,23 @@ class KoboToolboxLoader(Loader):
             print(f"Saving {table_name!r} to {path}")
 
             geo_cols = [f.name for f in resource.schema.fields if f.type == "geojson"]
-            if geo_cols:
-                gdf = gpd.GeoDataFrame(sheet, geometry=geo_cols[0], crs="EPSG:4326")
 
-                gdf.to_parquet(
-                    path,
-                    schema_version="1.1.0",
-                    index=False,
-                    write_covering_bbox=True,
-                    geometry_encoding="WKB",  # We use this because duckdb can't open geoarrow as geometries
-                )
-            else:
-                sheet.to_parquet(path, index=False)
+            index = 0
+            while(index < len(geo_cols)):
+                try: 
+                    gdf = gpd.GeoDataFrame(sheet, geometry=geo_cols[index], crs="EPSG:4326")
+
+                    gdf.to_parquet(
+                        path,
+                        schema_version="1.1.0",
+                        index=False,
+                        write_covering_bbox=True,
+                        geometry_encoding="WKB",  # We use this because duckdb can't open geoarrow as geometries
+                    )
+                    return
+                except Exception as e:
+                    print(f"Error saving {table_name!r} with geometry column {geo_cols[index]!r}: {e}")
+                    index += 1
+            
+            # if no geometry column could be saved, save without geometry
+            sheet.to_parquet(path, index=False)
