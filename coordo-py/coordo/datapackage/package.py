@@ -168,7 +168,10 @@ class DataPackage(pydantic.BaseModel):
                     table_name=resource.name,
                 ).table.to_metadata(metadata)
 
-                resource.load_table(conn)
+                try:
+                    resource.load_table(conn)
+                except Exception as e:
+                    print(f"[WARN] Error occurred while loading table for resource {resource.name}: {e}")
 
         return conn, metadata
 
