@@ -109,13 +109,11 @@ METADATA_TYPES = [
     "username",
     "email",
     "audit",
-    "calculate",
     "note",
 ]
 
 IGNORE_TYPES = [
     "note",
-    "calculate",
 ]
 
 
@@ -134,6 +132,7 @@ DP_FIELDS = {
     "date": "date",
     "time": "time",
     "dateTime": "datetime",
+    "calculate": "string",
     # "photo": peewee.ImageField,
     # "audio": peewee.FileField,
     # "background-audio": peewee.FileField,
@@ -387,8 +386,7 @@ class KoboToolboxLoader(Loader):
                     saved = True
                 except Exception as e:
                     print(f"Error saving {table_name!r} with geometry column {geo_cols[index]!r}: {e}")
-
-                index += 1
+                    index += 1
             
             if(not saved):
                 sheet.to_parquet(path, index=False)
