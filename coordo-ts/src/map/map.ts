@@ -9,6 +9,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "../index.css";
 
 import { EVENTS } from "../events";
+import type { LayerControlConstructorProps } from "../layers/controls";
 import { makeSetLayerFilters } from "../layers/filters";
 import { makeSetLayerPopup } from "../layers/popup";
 import { makeSetLayerSymbol } from "../layers/symbol";
@@ -19,10 +20,17 @@ const DEFAULT_MAP_OPTIONS: Partial<maplibregl.MapOptions> = {
   zoom: 1,
 };
 
+export type CreateMapOptions = Partial<maplibregl.MapOptions> & {
+  controlLayerProps?: Pick<
+    LayerControlConstructorProps,
+    "renderAnchor" | "renderLayerRow"
+  >;
+};
+
 export function createMap(
   target: string | HTMLElement,
   styleUrl = "https://demotiles.maplibre.org/globe.json",
-  options?: Partial<maplibregl.MapOptions>,
+  options?: CreateMapOptions,
 ) {
   const el =
     typeof target === "string"
@@ -35,13 +43,17 @@ export function createMap(
 
   const baseUrl = new URL(".", new URL(styleUrl, window.location.href));
 
-  const mergedOptions = { ...DEFAULT_MAP_OPTIONS, ...options };
+  const { controlLayerProps, ...providedMapLibreOptions } = options ?? {};
+  const mergedMapLibreOptions = {
+    ...DEFAULT_MAP_OPTIONS,
+    ...providedMapLibreOptions,
+  };
 
   const map = new maplibregl.Map({
-    center: mergedOptions.center,
+    center: mergedMapLibreOptions.center,
     container: el,
     style: styleUrl,
-    zoom: mergedOptions.zoom,
+    zoom: mergedMapLibreOptions.zoom,
   });
 
   function getLayerMetadata(layerId: string) {
@@ -80,7 +92,10 @@ export function createMap(
   }
 
   const { hideLayer, showLayer } = addStyleDataListener({
-    dispatchEventToConsumer,
+    controlLayerProps: {
+      dispatchEventToConsumer,
+      ...(controlLayerProps ?? {}),
+    },
     map,
     onSuccess: init,
     setLayerPopup,

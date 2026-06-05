@@ -12,7 +12,12 @@ import type {
 } from "maplibre-gl";
 import { LngLatBounds, NavigationControl, ScaleControl } from "maplibre-gl";
 
-import { CONTROLS, LAYER_VISIBILITY, LayerControl } from "../layers/controls";
+import {
+  CONTROLS,
+  LAYER_VISIBILITY,
+  LayerControl,
+  type LayerControlConstructorProps,
+} from "../layers/controls";
 import type { SetLayerPopupParams } from "../layers/popup";
 import type { LayerMetadata } from "../types";
 
@@ -28,20 +33,20 @@ function renderTemplate(html: string, vars: Record<string, string>) {
 }
 
 export function addStyleDataListener({
-  dispatchEventToConsumer,
   map,
   setLayerPopup,
   onSuccess,
+  controlLayerProps,
 }: {
-  dispatchEventToConsumer: (event: CustomEvent) => void;
   map: MapLibreMap;
   setLayerPopup: (params: SetLayerPopupParams<Record<string, string>>) => void;
   onSuccess?: () => void;
+  controlLayerProps: LayerControlConstructorProps;
 }) {
   let style: StyleSpecification | undefined;
   let controlsAdded = false;
 
-  const layerControl = new LayerControl({ dispatchEventToConsumer });
+  const layerControl = new LayerControl(controlLayerProps);
 
   map.on("styledata", () => {
     if (controlsAdded) {
@@ -55,6 +60,7 @@ export function addStyleDataListener({
      * Configure Controls based on metadata
      */
     const controls = (style.metadata as StyleMetaData).controls || [];
+
     controls.forEach((config) => {
       switch (config.type) {
         case CONTROLS.COMPASS:

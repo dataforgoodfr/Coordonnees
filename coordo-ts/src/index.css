@@ -28,3 +28,11 @@
 .maplibregl-popup-tip {
   display: none;
 }
+
+.coordo__w-full {
+  width: 100%;
+}
+
+.coordo__ml-xs {
+  margin-left: 4px;
+}
