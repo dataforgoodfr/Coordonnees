@@ -21,7 +21,7 @@ from coordo.datapackage import (
     Resource,
     Schema,
 )
-from coordo.helpers import safe
+from coordo.helpers import safe, removeQuotes
 from coordo.loaders.loader import Loader, ResourceAction
 
 CONSTRAINT_GRAMMAR = r"""
@@ -49,7 +49,6 @@ VAR: "${" /[A-Za-z_][A-Za-z_0-9]*/ "}"
 %import common.WS
 %ignore WS
 """
-
 
 class RangeTransformer(Transformer):
     def arg_list(self, items):
@@ -83,7 +82,7 @@ class RangeTransformer(Transformer):
         funcName, args = items[0], items[2]
         match funcName:
             case "regex":
-                return {"regex": args[0]}
+                return {"pattern": removeQuotes(args[0])}
 
     def expression(self, items):
         result = {}
