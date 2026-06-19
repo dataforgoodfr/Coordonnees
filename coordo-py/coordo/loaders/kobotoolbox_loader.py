@@ -50,6 +50,9 @@ VAR: "${" /[A-Za-z_][A-Za-z_0-9]*/ "}"
 %ignore WS
 """
 
+def isCustomConstraint(constraint: str) -> bool:
+        return not (isinstance(constraint, float) or isinstance(constraint, int))
+
 class RangeTransformer(Transformer):
     def arg_list(self, items):
         return items
@@ -68,15 +71,18 @@ class RangeTransformer(Transformer):
 
     def comparison(self, items):
         op, expr = items[1], items[2]
+        constraintName = "custom_" if isCustomConstraint(expr) else ""
         match op:
             case ">=":
-                return {"minimum": expr}
+                constraintName += "minimum"
             case "<=":
-                return {"maximum": expr}
+                constraintName +="maximum"
             case ">":
-                return {"exclusiveMinimum": expr}
+                constraintName += "exclusiveMinimum"
             case "<":
-                return {"exclusiveMaximum": expr}
+                constraintName +="exclusiveMaximum"
+        
+        return {constraintName: expr}
 
     def func_call(self, items):
         funcName, args = items[0], items[2]
