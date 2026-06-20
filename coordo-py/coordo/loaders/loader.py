@@ -14,7 +14,12 @@ class ResourceAction(str, Enum):
     UPDATE = "update"
     REMOVE = "remove"
 
-
+class Separator(str, Enum):
+    COMMA = ","
+    SEMICOLON = ";"
+    TAB = "\t"
+    PIPE = "|"
+    DOT = "."
 class Loader(ABC):
     def __init__(self, package: Path, action: ResourceAction):
         self.dp = DataPackage.from_path(package)
