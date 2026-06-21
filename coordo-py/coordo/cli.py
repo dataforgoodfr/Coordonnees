@@ -6,7 +6,7 @@ from pathlib import Path
 
 import typer
 
-from coordo.loaders import ResourceAction, KoboToolboxLoader, FileLoader
+from coordo.loaders import ResourceAction, KoboToolboxLoader, FileLoader, Separator
 from coordo.datapackage import DataPackage
 from coordo.sql.builder import build_query
 
@@ -92,8 +92,10 @@ def file(
     path: Path,
     package: Path = typer.Option(".", help="Path to the package directory"),
     action: ResourceAction = typer.Option(help="Action to perform on resource"),
+    sep: Separator = typer.Option(Separator.COMMA, help="Separator for the file"),
+    decimal_sep: Separator = typer.Option(Separator.DOT, help="Decimal separator for the file"),
 ):
-    FileLoader(package, path, action).etl()
+    FileLoader(package, path, action, sep, decimal_sep).etl()
 
 
 app.add_typer(load, name="load")
