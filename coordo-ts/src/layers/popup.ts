@@ -2,6 +2,8 @@
  * Copyright COORDONNÉES 2025, 2026
  * SPDX-License-Identifier: MPL-2.0
  */
+/** biome-ignore-all lint/complexity/noExcessiveLinesPerFunction: <hard to read on vscode> */
+/** @todo Refactor the file to have a class and separate in subfunction each step */
 
 import type {
   GeoJSONSource,
@@ -22,6 +24,7 @@ export type SetLayerPopupParams<T> = {
     properties: T,
     layerMetadata: LayerMetadata,
   ) => HTMLElement | string;
+  zoomThresholds?: Array<number>;
   popupConfig?: PopupOptions;
   centerOnClick?: boolean;
 };
@@ -46,6 +49,10 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
    *   Accepts the feature's properties and returns either a DOM element or a string of HTML.
    * @param {PopupOptions} [params.popupConfig] - Configuration for the popup (e.g., offset, anchor, className).
    * @param {boolean} params.centerOnClick - Whether to center the map after clicking on a popup symbol
+   * @param {number[]} params.zoomThresholds - If specified, and the current zoom level is lower than one of the threshold,
+   * the action performed by the onclick will be a zoom in to the next threshold level instead of popup rendering.
+   * This is useful when the points rendered on the map are optimized by maplibre and only a few points are displayed at a
+   * low zoom level.
    *
    * @example
    * // Example with HTML string
@@ -66,6 +73,7 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
    *     anchor: "bottom",
    *   },
    *   centerOnClick: true,
+   *   zoomThresholds: [5, 7.5, 10, 12.5]
    * });
    *
    * @example
@@ -80,13 +88,15 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
    *   layerId: "my-layer-id",
    *   trigger: "click",
    *   renderCallback: renderPopup,
-   *   centerOnClick: true
+   *   centerOnClick: true,
+   *   zoomThresholds: [5, 7.5, 10, 12.5]
    * });
    */
   function setLayerPopup<T extends Record<string, unknown>>({
     layerId,
     trigger,
     renderCallback,
+    zoomThresholds,
     popupConfig,
     centerOnClick,
   }: SetLayerPopupParams<T>) {
@@ -99,6 +109,25 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
       const lngLat = ev.lngLat;
       const eventProps = ev.features?.[0]?.properties;
       const id = ev.features?.[0]?.id;
+
+      if (zoomThresholds?.length) {
+        const currentZoom = map.getZoom();
+
+        let hasZoomed = false;
+        zoomThresholds.forEach((zoomLevel) => {
+          if (currentZoom + 0.2 < zoomLevel && !hasZoomed) {
+            // Zoom to the threshold (+0.2 e.g. 1% error)
+            map.setZoom(zoomLevel);
+            // End the rendering function => zoom takes over rendering
+            hasZoomed = true;
+            return;
+          }
+        });
+
+        if (hasZoomed) {
+          return;
+        }
+      }
       if (lngLat && Number(id) >= 0 && eventProps) {
         /** @todo Remove "any" casting  */
         const popup = new Popup(popupConfig).setLngLat(ev.lngLat);
@@ -190,6 +219,7 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
           if (posX != null && posY != null) {
             map.flyTo({
               center: [posX, posY],
+              maxDuration: 300,
             });
           }
         }
