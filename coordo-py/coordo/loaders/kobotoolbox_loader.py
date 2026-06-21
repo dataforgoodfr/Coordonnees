@@ -233,9 +233,10 @@ def _parse_questions(
 
         elif qtype == "repeat":
             child_resource = _create_resource(question["name"].lower())
-            schema = safe(child_resource, "schema")
-            schema.add_field(Field(name="parent_id", type="integer"))
-            schema.foreignKeys = [
+            # Use a different variable name to not change the schema used in the for loop
+            child_schema = safe(child_resource, "schema")
+            child_schema.add_field(Field(name="parent_id", type="integer"))
+            child_schema.foreignKeys = [
                 ForeignKey(
                     fields=["parent_id"],
                     reference=ForeignKeyReference(

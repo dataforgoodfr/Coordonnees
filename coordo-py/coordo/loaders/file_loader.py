@@ -47,7 +47,7 @@ class FileLoader(Loader):
         sheets = pd.read_excel(self.path, sheet_name=None)
         for i, (sheet_name, sheet) in enumerate(sheets.items()):
             path = Path(self.dp._basepath, sheet_name + '.parquet')
-            sheet['_index'] = sheet.index
+            sheet['_index'] = sheet.index + 1
             # to_parquet method fails if column names contain dots
             sheet.columns = [col.replace('.', '_') for col in sheet.columns]
             sheet.to_parquet(path, index=False)
