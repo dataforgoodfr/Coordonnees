@@ -12,6 +12,7 @@ import type {
 } from "maplibre-gl";
 import { LngLatBounds, NavigationControl, ScaleControl } from "maplibre-gl";
 
+import { setupClustering } from "../layers/cluster";
 import {
   CONTROLS,
   LAYER_VISIBILITY,
@@ -108,6 +109,9 @@ export function addStyleDataListener({
         });
       }
     });
+
+    // Render cluster layers for any source declared with cluster: true
+    setupClustering({ map, style });
 
     const totalBounds = new LngLatBounds();
     Object.values(style.sources).forEach((source) => {
