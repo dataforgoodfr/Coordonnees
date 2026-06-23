@@ -24,6 +24,14 @@ class Popup(BaseModel):
     html: str | None = None
 
 
+class ClusterConfig(BaseModel):
+    # Presence of this block on a layer enables clustering on its source.
+    # Mirrors the MapLibre GeoJSON source cluster options.
+    radius: int = 50
+    maxZoom: float = 12.5
+    minPoints: int | None = None
+
+
 class DataPackageLayer(BaseLayerModel):
     model_config = ConfigDict(extra='allow')  # Allows arbitrary extra fields
 
@@ -35,6 +43,17 @@ class DataPackageLayer(BaseLayerModel):
     columns: dict[str, str] | None = None
     layerType: str | None = None
     popup: Popup | None = None
+    cluster: ClusterConfig | None = None
+
+    def _build_source(self, data) -> GeoJSONSource:
+        source = GeoJSONSource(type="geojson", data=data)
+        if self.cluster:
+            source["cluster"] = True
+            source["clusterRadius"] = self.cluster.radius
+            source["clusterMaxZoom"] = self.cluster.maxZoom
+            if self.cluster.minPoints is not None:
+                source["clusterMinPoints"] = self.cluster.minPoints
+        return source
 
     def to_maplibre(self, base_path):
         package = DataPackage.from_path(base_path / self.path)
@@ -43,7 +62,7 @@ class DataPackageLayer(BaseLayerModel):
 
         layer_type = self.layerType or self.infer_layer_type(data["features"])
 
-        source = GeoJSONSource(type="geojson", data=data)
+        source = self._build_source(data)
         metadata = {
             "resource": {
                 "schema": safe(resource, "schema").model_dump(
