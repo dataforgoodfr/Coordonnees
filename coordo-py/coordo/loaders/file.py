@@ -3,10 +3,14 @@
 
 from pathlib import Path
 import shutil
+import logging
+
 
 from coordo.loaders import Loader
 from ..datapackage import Field, Resource, Schema
 from ..datapackage.db_helpers import to_dp_type
+
+logger = logging.getLogger(__name__)
 
 
 class FileLoader(Loader):
@@ -17,6 +21,8 @@ class FileLoader(Loader):
     ):
         super().__init__(package)
         self.path = path
+        if not self.path.exists():
+            raise FileNotFoundError(f"File not found: {self.path}")
         
 
     def get_resource(self, path: Path, query: str) -> Resource:
@@ -39,5 +45,5 @@ class FileLoader(Loader):
     def load(self):
         resource = self.resources[0]
         target = self.dp._basepath / self.path.name
-        print(f"Saving resource '{resource.name}' to {target}")
+        logger.info(f"Saving resource '{resource.name}' to {target}")
         shutil.copy(self.path, target)

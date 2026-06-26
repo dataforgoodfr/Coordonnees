@@ -6,6 +6,7 @@ from datetime import date, datetime
 from pathlib import Path
 from time import time
 from typing import Any, Dict, List, cast
+import logging
 
 import geopandas as gpd
 import numpy as np
@@ -49,6 +50,9 @@ VAR: "${" /[A-Za-z_][A-Za-z_0-9]*/ "}"
 %import common.WS
 %ignore WS
 """
+
+logger = logging.getLogger(__name__)
+
 
 def isCustomConstraint(constraint: str) -> bool:
         return not (isinstance(constraint, float) or isinstance(constraint, int))
@@ -200,7 +204,7 @@ class KoboToolboxLoader(Loader):
         """
         The xlsform is parsed with the pyxform.xls2json.parse_file_to_json function
         """
-        print(f"Parsing form from {self.xlsform}")
+        logger.info(f"Parsing form from {self.xlsform}")
         form = parse_file_to_json(str(self.xlsform))
         name = cast(str, form["id_string"].lower())
         self.main_resource = self.get_resource(name)
@@ -213,7 +217,7 @@ class KoboToolboxLoader(Loader):
         """
         The xlsdata is parsed with pandas read_excel or read_csv functions.
         """
-        print(f"Parsing data from {self.xlsdata}")
+        logger.info(f"Parsing data from {self.xlsdata}")
         if self.xlsdata.suffix == ".xlsx":
             self.sheets = pd.read_excel(self.xlsdata, sheet_name=None)
         elif self.xlsdata.suffix == ".csv":
@@ -272,7 +276,7 @@ class KoboToolboxLoader(Loader):
             qtype = question["type"]
     
             if qtype in METADATA_TYPES + IGNORE_TYPES:
-                print("Skipping question type:", qtype)
+                logger.info(f"Skipping question type: {qtype}")
     
             elif qtype == "group":
                 parsed_children_resources = self.parse_questions(question["children"], resource)
@@ -318,7 +322,7 @@ class KoboToolboxLoader(Loader):
                             constraints.update(constraint)  # type: ignore
                         # Fallback in case of unsupported constraint syntax
                         except Exception as e:
-                            print(f"Error parsing constraint for question {question['name']}: {e}")
+                            logger.error(f"Error parsing constraint for question {question['name']}: {e}")
                             constraints.update({"unknownConstraint": bind["constraint"]})
                 kwargs["constraints"] = constraints
                 if "choices" in question:
@@ -331,7 +335,7 @@ class KoboToolboxLoader(Loader):
         return parsed_resources
 
     def transform(self):
-        print("Processing sheets...")
+        logger.info("Processing sheets...")
         self.processed_sheets = {}
         for i, (sheet_name, sheet) in enumerate(self.sheets.items()):
             table_name = self.main_resource.name if i == 0 else sheet_name.lower()
@@ -357,7 +361,7 @@ class KoboToolboxLoader(Loader):
                     if field.type in DTYPES:
                         sheet[field.name] = sheet[field.name].astype(DTYPES[field.type])
                 else:
-                    print(
+                    logger.warning(
                         f"Field {field.name} not found in data. Filling with empty values"
                     )
                     sheet[field.name] = ""
@@ -368,11 +372,11 @@ class KoboToolboxLoader(Loader):
             self.processed_sheets[table_name] = sheet
 
     def load(self):
-        print("Loading data...")
+        logger.info("Loading data...")
         for table_name, sheet in self.processed_sheets.items():
             resource = self.dp.get_resource(table_name)
             path = Path(self.dp._basepath, table_name + ".parquet")
-            print(f"Saving resource '{table_name}' to {path}")
+            logger.info(f"Saving resource '{table_name}' to {path}")
 
             saved = False
             geo_cols = [f.name for f in resource.schema.fields if f.type == "geojson"]
@@ -391,7 +395,7 @@ class KoboToolboxLoader(Loader):
                     )
                     saved = True
                 except Exception as e:
-                    print(f"Error saving '{table_name}' with geometry column '{geo_cols[index]}': {e}")
+                    logger.error(f"Error saving '{table_name}' with geometry column '{geo_cols[index]}': {e}")
                     index += 1
             
             if(not saved):

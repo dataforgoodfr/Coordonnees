@@ -96,10 +96,10 @@ FROM anon_1
 
 ### Testing
 
-To run the pytest tests, use the following command:
+To run the pytest tests, simply run in `coordo-py` directory:
 
 ```bash
-pytest -s
+pytest
 ```
 
 ### Data types
