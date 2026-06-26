@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from pygeofilter.ast import AstType
-from sqlalchemy import Float, Integer, and_, case, cast, func, or_, select, text, Interval
+from sqlalchemy import Float, Integer, and_, case, cast, func, or_, select, text
 from sqlalchemy.sql.functions import coalesce
 
 from coordo.sql.helpers import AGGREGATES, SPATIAL_FUNCTIONS
