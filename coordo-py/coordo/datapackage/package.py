@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional
 
 import duckdb
 import geopandas as gpd
