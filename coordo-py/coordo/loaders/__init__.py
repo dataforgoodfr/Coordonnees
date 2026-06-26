@@ -1,14 +1,13 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
-from pathlib import Path
 from typing import Type
 
 from .loader import Separator, Loader
-from .file_loader import FileLoader
-from .kobotoolbox_loader import KoboToolboxLoader
-from .csv_file_loader import CSVFileLoader
-from .excel_file_loader import ExcelFileLoader
+from .file import FileLoader
+from .kobotoolbox import KoboToolboxLoader
+from .csv_file import CSVFileLoader
+from .excel_file import ExcelFileLoader
 
 
 __all__ = ["Separator", "Loader", "FileLoader", "KoboToolboxLoader", "CSVFileLoader", "ExcelFileLoader"]
@@ -40,4 +39,9 @@ def check_params_are_attributes(cls: Type[Loader], kwargs: dict):
 
 
 def get_static_attributes(cls: Type[Loader]) -> list:
+    """
+    Returns the static instance attributes (defined in __init__) of the loader class.
+    There is no direct way to get the static attributes of a class in Python,
+    so we use the `__static_attributes__`, which should work.
+    """
     return list(vars(cls)["__static_attributes__"])
