@@ -94,6 +94,14 @@ FROM anon_1
 
 ## Development
 
+### Testing
+
+To run the pytest tests, use the following command:
+
+```bash
+pytest -s
+```
+
 ### Data types
 
 #### KoboToolbox

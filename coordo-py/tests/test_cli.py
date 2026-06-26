@@ -3,31 +3,45 @@
 
 import shutil
 from typer.testing import CliRunner
-from coordo.cli import app 
+from coordo.cli.main import app 
 
 runner = CliRunner()
 
-def get_output_and_check_exitcode(result):
+def run(command: list):
+    result = runner.invoke(app, command)
     print(result.stdout_bytes.decode())
     assert result.exit_code == 0
 
 def test_add_data_to_package(inventory_package, inventory_inquiry, inventory_data, inventory_file):
     """
     Test the following workflow:
-    - Load data from a kobotoolbox inquiry and a file into a package.
+    - Load data from a kobotoolbox inquiry 
+    - Remove the foreign key pointing to it
+    - Remove it
+    - Add it again
+    - Load a file into the package
+    - Remove it
+    - Add it again
     - Add a foreign key between two fields.
     - Remove the foreign key.
     - Add the foreign key again.
     """
-    result = runner.invoke(app, ["load", "kobotoolbox", str(inventory_inquiry), str(inventory_data), "--package", inventory_package, "--action", "add"])
-    get_output_and_check_exitcode(result)
-    result = runner.invoke(app, ["load", "file", str(inventory_file), "--package", inventory_package, "--action", "add"])
-    get_output_and_check_exitcode(result)
-    result = runner.invoke(app, ["add-foreignkey", "ind.ess_arb", "file.ess_arb", "--package", inventory_package])
-    get_output_and_check_exitcode(result)
-    result = runner.invoke(app, ["remove-foreignkey", "ind.ess_arb", "file.ess_arb", "--package", inventory_package])
-    get_output_and_check_exitcode(result)
-    result = runner.invoke(app, ["add-foreignkey", "ind.ess_arb", "file.ess_arb", "--package", inventory_package])
-    get_output_and_check_exitcode(result)
-    print(f"Removing package '{inventory_package}'")
-    shutil.rmtree(inventory_package)
+    try:
+        run(["add", "kobotoolbox", inventory_inquiry, inventory_data, "--package", inventory_package])
+        run(["remove", "foreignkey", "reg.parent_id", "inventaire_id._id", "--package", inventory_package])
+        run(["remove", "foreignkey", "ind.parent_id", "inventaire_id._id", "--package", inventory_package])
+        run(["remove", "foreignkey", 'tsbf_001.parent_id', "inventaire_id._id", "--package", inventory_package])
+        run(["remove", "foreignkey", 'barba_001.parent_id', "inventaire_id._id", "--package", inventory_package])
+        run(["remove", "foreignkey", 'barbb_001.parent_id', "inventaire_id._id", "--package", inventory_package])
+        run(["remove", "foreignkey", 'barbc_001.parent_id', "inventaire_id._id", "--package", inventory_package])
+        run(["remove", "foreignkey", 'barbd_001.parent_id', "inventaire_id._id", "--package", inventory_package])
+        run(["remove", "kobotoolbox", inventory_inquiry, inventory_data, "--package", inventory_package])
+        run(["add", "kobotoolbox", inventory_inquiry, inventory_data, "--package", inventory_package])
+        run(["add", "file", inventory_file, "--package", inventory_package])
+        run(["remove", "file", inventory_file, "--package", inventory_package])
+        run(["add", "file", inventory_file, "--package", inventory_package])
+        run(["add", "foreignkey", "ind.ess_arb", "file.ess_arb", "--package", inventory_package])
+        run(["remove", "foreignkey", "ind.ess_arb", "file.ess_arb", "--package", inventory_package])
+    finally:
+        print(f"Removing package '{inventory_package}'")
+        shutil.rmtree(inventory_package)

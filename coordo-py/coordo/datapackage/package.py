@@ -43,7 +43,7 @@ def handle_path(path: str | list[str]) -> str:
 def check_resource_fields_match(res1: Resource, res2: Resource) -> None:
     if not res1.has_same_schema_as(res2):
         raise ValueError(
-            f"Schemas do not match for resources {res1.name!r} and {res2.name!r}"
+            f"Schemas do not match for resources '{res1.name}' and '{res2.name}'"
         )
 
 
@@ -105,10 +105,11 @@ class DataPackage(pydantic.BaseModel):
         Args:
             name (str): the name of the resource to remove
         """
-        print(f"Removing resource {name!r} from DataPackage {self.name!r}")
+        print(f"Removing resource '{name}' from DataPackage '{self.name}'")
         resource = self.get_resource(name=name)
         # looping over all resources in the current datapackage, other than <resource>
         # check if they have a foreign key pointing to this resource and raise error if so
+        blocking_fks = []
         for res in self.resources:
             if res.name == name:
                 continue
@@ -116,12 +117,14 @@ class DataPackage(pydantic.BaseModel):
             if res_schema.foreignKeys:
                 for fk in res_schema.foreignKeys:
                     if fk.reference.resource == name:
-                        # build a string containing the list of foreign key field pairs 
-                        fk_part_names_str = "\n".join(res.get_fk_names(fk))
-                        raise ValueError(
-                            f"Can't remove the resource {name!r} : {res.name!r} has a foreign key pointing to this resource. "
-                            f"Please remove the following foreign keys beforehand:\n{fk_part_names_str}"
-                        )
+                        formated_fks = res.get_fk_names(fk) # list of strings
+                        blocking_fks += formated_fks
+        if blocking_fks:
+            # build a string containing the list of foreign key field pairs 
+            fk_part_names_str = "\n - ".join(blocking_fks)
+            msg = f"Can't remove the resource '{name}' because other resources have foreign keys pointing to it:\n - {fk_part_names_str}"
+            raise ValueError(msg)
+            
         # remove the file associated with the resource
         if resource.path:
             path = handle_path(resource.path)
@@ -135,10 +138,10 @@ class DataPackage(pydantic.BaseModel):
         The resource is added to the package's resources list and its `_package` attribute is set to this package.
         However, the resource's data are not added physically to the package.
         """
-        print(f"Attaching resource {resource.name!r} to package {self.name!r}")
+        print(f"Attaching resource '{resource.name}' to package '{self.name}'")
         if self.resource_exists(resource.name):
             raise ValueError(
-                f"A resource named {resource.name!r} already exists in package {self.name!r}. "
+                f"A resource named '{resource.name}' already exists in package '{self.name}'. "
                 "Please remove the existing resource before adding a new one."
             )
         else:
@@ -147,8 +150,8 @@ class DataPackage(pydantic.BaseModel):
 
     def get_resource(self, name: str) -> Resource:
         found_resources = [res for res in self.resources if res.name == name]
-        assert len(found_resources) <= 1, f"Multiple resources named {name!r} found."
-        assert len(found_resources) > 0, f"Resource {name!r} not found."
+        assert len(found_resources) <= 1, f"Multiple resources named '{name}' found."
+        assert len(found_resources) > 0, f"Resource '{name}' not found."
         return found_resources[0]
 
     def resource_exists(self, name: str) -> bool:
