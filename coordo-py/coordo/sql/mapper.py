@@ -1,10 +1,14 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
+import logging
+
 from collections import UserDict
 from functools import cached_property
 
 from sqlalchemy import Column, MetaData
+
+logger = logging.getLogger(__name__)
 
 
 class FieldDict(UserDict):
@@ -33,7 +37,7 @@ class FieldMapper:
         for fk in self.table.foreign_keys:
             tbl = fk.column.table
             if self.table == tbl:
-                print("Self-referencing foreign keys are not yet supported.")
+                logger.warning("Self-referencing foreign keys are not yet supported.")
             else:
                 field_map[tbl.name] = FieldMapper(tbl.name, self.metadata)
 

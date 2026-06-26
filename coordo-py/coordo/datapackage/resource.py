@@ -1,6 +1,7 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
+import logging
 from typing import TYPE_CHECKING, Any, Optional, Self
 
 import duckdb
@@ -9,6 +10,8 @@ from dplib.models import Contributor, Dialect, ForeignKey, ForeignKeyReference, 
 from pydantic import model_validator
 
 from .db_helpers import prepare_path
+
+logger = logging.getLogger(__name__)
 
 
 class Resource(pydantic.BaseModel):
@@ -63,7 +66,7 @@ class Resource(pydantic.BaseModel):
             )
         )
         fk_part_names_str = " & ".join(self.get_fk_names(fk))
-        print(f"Adding foreign key {fk_part_names_str}")
+        logger.info(f"Adding foreign key {fk_part_names_str}")
         
         if not self._package:
             raise ValueError("You can't add a foreign key to an orphan resource.")
@@ -94,7 +97,7 @@ class Resource(pydantic.BaseModel):
             )
         )
         fk_part_names_str = " & ".join(self.get_fk_names(fk))
-        print(f"Removing foreign key {fk_part_names_str}")
+        logger.info(f"Removing foreign key {fk_part_names_str}")
         if fk not in self.schema.foreignKeys:
             raise ValueError(f"Foreign key {fk_part_names_str} not found in resource {self.name}")
         self.schema.foreignKeys.remove(fk)

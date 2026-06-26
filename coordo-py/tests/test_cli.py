@@ -4,12 +4,16 @@
 import shutil
 from typer.testing import CliRunner
 from coordo.cli.main import app 
+import logging
+
+
+logger = logging.getLogger(__name__)
+
 
 runner = CliRunner()
 
 def run(command: list):
     result = runner.invoke(app, command)
-    print(result.stdout_bytes.decode())
     assert result.exit_code == 0
 
 def test_add_data_to_package(inventory_package, inventory_inquiry, inventory_data, inventory_file):
@@ -43,5 +47,5 @@ def test_add_data_to_package(inventory_package, inventory_inquiry, inventory_dat
         run(["add", "foreignkey", "ind.ess_arb", "file.ess_arb", "--package", inventory_package])
         run(["remove", "foreignkey", "ind.ess_arb", "file.ess_arb", "--package", inventory_package])
     finally:
-        print(f"Removing package '{inventory_package}'")
+        logger.info(f"Removing package '{inventory_package}'")
         shutil.rmtree(inventory_package)

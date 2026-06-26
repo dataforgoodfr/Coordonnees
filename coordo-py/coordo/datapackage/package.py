@@ -3,6 +3,7 @@
 
 from pathlib import Path
 from typing import Optional
+import logging
 
 import duckdb
 import geopandas as gpd
@@ -29,6 +30,8 @@ from ..helpers import safe
 from .resource import Resource
 
 field_adapter = pydantic.TypeAdapter(models.IField)
+
+logger = logging.getLogger(__name__)
 
 
 def Field(**kwargs):
@@ -75,13 +78,13 @@ class DataPackage(pydantic.BaseModel):
             path = path / "datapackage.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         if path.exists():
-            print(f"Loading package from {path}")
+            logger.info(f"Loading package from {path}")
             return cls.model_validate_json(
                 path.read_bytes(),
                 context={"_basepath": path.parent},
             )
         else:
-            print(f"Creating new package at {path}")
+            logger.info(f"Creating new package at {path}")
             return cls.model_validate(
                 {"name": path.parent.name},
                 context={"_basepath": path.parent},
@@ -105,7 +108,7 @@ class DataPackage(pydantic.BaseModel):
         Args:
             name (str): the name of the resource to remove
         """
-        print(f"Removing resource '{name}' from DataPackage '{self.name}'")
+        logger.info(f"Removing resource '{name}' from DataPackage '{self.name}'")
         resource = self.get_resource(name=name)
         # looping over all resources in the current datapackage, other than <resource>
         # check if they have a foreign key pointing to this resource and raise error if so
@@ -138,7 +141,7 @@ class DataPackage(pydantic.BaseModel):
         The resource is added to the package's resources list and its `_package` attribute is set to this package.
         However, the resource's data are not added physically to the package.
         """
-        print(f"Attaching resource '{resource.name}' to package '{self.name}'")
+        logger.info(f"Attaching resource '{resource.name}' to package '{self.name}'")
         if self.resource_exists(resource.name):
             raise ValueError(
                 f"A resource named '{resource.name}' already exists in package '{self.name}'. "
@@ -172,7 +175,7 @@ class DataPackage(pydantic.BaseModel):
                 try:
                     resource.load_table(conn)
                 except Exception as e:
-                    print(f"[WARN] Error occurred while loading table for resource {resource.name}: {e}")
+                    logger.error(f"Error occurred while loading table for resource {resource.name}: {e}")
 
         return conn, metadata
 
