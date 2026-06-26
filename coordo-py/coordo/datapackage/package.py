@@ -99,7 +99,7 @@ class DataPackage(pydantic.BaseModel):
 
     def remove_resource(self, name: str) -> None:
         """
-        Remove a resource from the package.
+        Remove physically a resource from the package.
         For all other resources in the current datapackage, check if they have a foreign key pointing to this resource
         and raise error it if so.
         Args:
@@ -108,6 +108,7 @@ class DataPackage(pydantic.BaseModel):
         print(f"Removing resource {name!r} from DataPackage {self.name!r}")
         resource = self.get_resource(name=name)
         # looping over all resources in the current datapackage, other than <resource>
+        # check if they have a foreign key pointing to this resource and raise error if so
         for res in self.resources:
             if res.name == name:
                 continue
@@ -128,8 +129,13 @@ class DataPackage(pydantic.BaseModel):
         # update resources list
         self.resources = [res for res in self.resources if res.name != name]
 
-    def add_resource(self, resource: Resource) -> None:
-        print(f"Adding resource {resource.name!r} to package {self.name!r}")
+    def attach_resource(self, resource: Resource) -> None:
+        """
+        Attach a resource to the package.
+        The resource is added to the package's resources list and its `_package` attribute is set to this package.
+        However, the resource's data are not added physically to the package.
+        """
+        print(f"Attaching resource {resource.name!r} to package {self.name!r}")
         if self.resource_exists(resource.name):
             raise ValueError(
                 f"A resource named {resource.name!r} already exists in package {self.name!r}. "
@@ -139,19 +145,11 @@ class DataPackage(pydantic.BaseModel):
             resource._package = self
             self.resources.append(resource)
 
-    def update_resource(self, resource: Resource) -> None:
-        pass
-
     def get_resource(self, name: str) -> Resource:
         found_resources = [res for res in self.resources if res.name == name]
         assert len(found_resources) <= 1, f"Multiple resources named {name!r} found."
         assert len(found_resources) > 0, f"Resource {name!r} not found."
         return found_resources[0]
-
-    def write_resource(self, resource_name: str, it: Iterable[dict]):
-        pass
-        # resource = self.get_resource(name=resource_name)
-        # schema = resource.get_schema()
 
     def resource_exists(self, name: str) -> bool:
         return any(res.name == name for res in self.resources)
