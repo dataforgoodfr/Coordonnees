@@ -4,7 +4,7 @@
 from pathlib import Path
 import shutil
 
-from coordo.loaders import Loader, ResourceAction
+from coordo.loaders import Loader
 from ..datapackage import Field, Resource, Schema
 from ..datapackage.db_helpers import to_dp_type
 
@@ -13,11 +13,11 @@ class FileLoader(Loader):
     def __init__(
         self,
         package: Path,
-        path: Path,
-        action: ResourceAction
+        path: Path
     ):
-        super().__init__(package, action)
+        super().__init__(package)
         self.path = path
+        
 
     def get_resource(self, path: Path, query: str) -> Resource:
         schema = Schema()
@@ -37,4 +37,7 @@ class FileLoader(Loader):
         )
 
     def load(self):
-        shutil.copy(self.path, self.dp._basepath / self.path.name)
+        resource = self.resources[0]
+        target = self.dp._basepath / self.path.name
+        print(f"Saving resource '{resource.name}' to {target}")
+        shutil.copy(self.path, target)

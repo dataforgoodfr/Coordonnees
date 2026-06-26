@@ -3,20 +3,20 @@
 
 from pathlib import Path
 import pandas as pd
-import shutil
 
-from coordo.loaders import FileLoader, ResourceAction
+from coordo.loaders import FileLoader
 from ..datapackage.db_helpers import prepare_path
 
 
 class ExcelFileLoader(FileLoader):
+    EXTENSIONS = ['.xlsx', '.xls']
+    
     def __init__(
         self,
         package: Path,
-        path: Path,
-        action: ResourceAction
+        path: Path
     ):
-        super().__init__(package, path, action)
+        super().__init__(package, path)
 
     def extract_and_get_resources(self):
         sheets = pd.read_excel(self.path, sheet_name=None)

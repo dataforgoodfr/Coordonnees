@@ -23,7 +23,7 @@ dependencies = [
 ]
 
 [project.scripts]
-coordo = "coordo.cli:app"
+coordo = "coordo.cli.main:app"
 
 [tool.setuptools.package-data]
 "coordo" = ["static/*", "**/*.sql"]

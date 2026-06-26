@@ -6,11 +6,10 @@ from pathlib import Path
 
 import typer
 
-from coordo.loaders import ResourceAction, KoboToolboxLoader, FileLoader, Separator
 from coordo.datapackage import DataPackage
 from coordo.sql.builder import build_query
-
-from .map import Map
+from .datapackage import add, remove
+from ..map import Map
 
 app = typer.Typer()
 options = {}
@@ -72,74 +71,24 @@ def serve(config_file: str):
         return send_from_directory(static_dir, filename)
 
     app.run(debug=True)
-
-
-load = typer.Typer()
-
-
-@load.command()
-def kobotoolbox(
-    xlsform: Path,
-    xlsdata: Path,
-    package: Path = typer.Option(help="Path to the package directory"),
-    action: ResourceAction = typer.Option(help="Action to perform on resource"),
-):
-    KoboToolboxLoader(package, xlsform, xlsdata, action).etl()
-
-
-@load.command()
-def file(
-    path: Path,
-    package: Path = typer.Option(".", help="Path to the package directory"),
-    action: ResourceAction = typer.Option(help="Action to perform on resource"),
-    sep: Separator = typer.Option(Separator.COMMA, help="Separator for the file"),
-    decimal_sep: Separator = typer.Option(Separator.DOT, help="Decimal separator for the file"),
-):
-    FileLoader(package, path, action, sep, decimal_sep).etl()
-
-
-app.add_typer(load, name="load")
-
-
-@app.command()
-def add_foreignkey(
-    from_: str,
-    to: str,
-    package: Path = typer.Option(".", help="Path to the package directory"),
-):
-    dp = DataPackage.from_path(package)
-    resource, field = from_.split(".")
-    foreign_resource, foreign_field = to.split(".")
-    dp.get_resource(
-        resource,
-    ).add_foreignkey(
-        fields=[field],
-        foreign_fields=[foreign_field],
-        foreign_resource=foreign_resource,
-    )
-    dp.save()
     
-@app.command()
-def remove_foreignkey(
-    from_: str,
-    to: str,
-    package: Path = typer.Option(".", help="Path to the package directory"),
-):
-    dp = DataPackage.from_path(package)
-    resource, field = from_.split(".")
-    foreign_resource, foreign_field = to.split(".")
-    dp.get_resource(
-        resource,
-    ).remove_foreignkey(
-        fields=[field],
-        foreign_fields=[foreign_field],
-        foreign_resource=foreign_resource,
-    )
-    dp.save()
 
+#################################################
+# Loaders
+# Load data from various sources into the datapackage.
+##################################################
+
+# Add a subcommand for each resource action.
+app.add_typer(add.app, name="add", help="Add a resource to the package")
+app.add_typer(remove.app, name="remove", help="Remove a resource from the package")
+
+
+
+#################################################
+# Interaction with datapackage
+##################################################
 
 dp = typer.Typer()
-
 
 @dp.command()
 def query(
