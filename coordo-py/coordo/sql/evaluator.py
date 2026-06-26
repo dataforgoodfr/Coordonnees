@@ -178,6 +178,8 @@ class SQLEvaluator:
                 f = cast(args[0], Float)
             case "unique":
                 f = args[0].distinct()
+            case "interval":
+                f = text(f"{args[0]}::INTERVAL")
             case _:
                 f = getattr(func, node.name)(*args)
 
