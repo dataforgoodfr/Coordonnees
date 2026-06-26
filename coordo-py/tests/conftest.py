@@ -13,12 +13,12 @@ def inventory_package():
 
 @pytest.fixture
 def inventory_inquiry():
-    return INVENTORY_DIR / "inquiry.xlsx"
+    return str(INVENTORY_DIR / "inquiry.xlsx")
 
 @pytest.fixture
 def inventory_data():
-    return INVENTORY_DIR / "data.xlsx"
+    return str(INVENTORY_DIR / "data.xlsx")
 
 @pytest.fixture
 def inventory_file():
-    return INVENTORY_DIR / "file.csv"
+    return str(INVENTORY_DIR / "file.csv")
