@@ -22,7 +22,7 @@ from coordo.datapackage import (
     Schema,
 )
 from coordo.helpers import safe, removeQuotes
-from coordo.loaders.loader import Loader, ResourceAction
+from coordo.loaders import Loader
 
 CONSTRAINT_GRAMMAR = r"""
 ?start: expression
@@ -187,14 +187,17 @@ class KoboToolboxLoader(Loader):
         self,
         package: Path,
         xlsform: Path,
-        xlsdata: Path,
-        action: ResourceAction,
+        xlsdata: Path
     ):
-        super().__init__(package, action)
+        super().__init__(package)
         self.xlsform = xlsform
         self.xlsdata = xlsdata
 
     def extract_and_get_resources(self):
+        if not self.xlsform.exists():
+            raise FileNotFoundError(f"XLSform not found: {self.xlsform}")
+        if not self.xlsdata.exists():
+            raise FileNotFoundError(f"XLSdata not found: {self.xlsdata}")
         self.parse_xlsform_and_get_resources()
         self.extract_xlsdata()
 
@@ -374,7 +377,7 @@ class KoboToolboxLoader(Loader):
         for table_name, sheet in self.processed_sheets.items():
             resource = self.dp.get_resource(table_name)
             path = Path(self.dp._basepath, table_name + ".parquet")
-            print(f"Saving {table_name!r} to {path}")
+            print(f"Saving resource '{table_name}' to {path}")
 
             geo_cols = [
                 f.name

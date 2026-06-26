@@ -8,12 +8,6 @@ from enum import Enum
 from ..datapackage import DataPackage
 from ..datapackage.resource import Resource
 
-
-class ResourceAction(str, Enum):
-    ADD = "add"
-    UPDATE = "update"
-    REMOVE = "remove"
-
 class Separator(str, Enum):
     COMMA = ","
     SEMICOLON = ";"
@@ -22,9 +16,8 @@ class Separator(str, Enum):
     DOT = "."
     
 class Loader(ABC):
-    def __init__(self, package: Path, action: ResourceAction):
+    def __init__(self, package: Path):
         self.dp = DataPackage.from_path(package)
-        self.action = action
         self.resources: list[Resource] = []
 
     def add(self):

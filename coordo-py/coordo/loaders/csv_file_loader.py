@@ -3,20 +3,21 @@
 
 from pathlib import Path
 
-from coordo.loaders import FileLoader, ResourceAction, Separator
+from coordo.loaders import FileLoader, Separator
 from ..datapackage.db_helpers import prepare_path
 
 
 class CSVFileLoader(FileLoader):
+    EXTENSIONS = ['.csv', '.tsv', '.tab']
+    
     def __init__(
         self,
         package: Path,
         path: Path,
-        action: ResourceAction,
         sep: Separator = Separator.COMMA,
         decimal_sep: Separator = Separator.DOT
     ):
-        super().__init__(package, path, action)
+        super().__init__(package, path)
         self.sep = sep
         self.decimal_sep = decimal_sep
 
