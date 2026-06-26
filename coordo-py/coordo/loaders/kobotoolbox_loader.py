@@ -173,117 +173,6 @@ def coords_to_point(coords):
         return Point(lon, lat, alt)
 
 
-def _create_resource(name: str) -> Resource:
-    return Resource(
-        name=name,
-        path=name + ".parquet",
-        schema=Schema(
-            fields=[Field(name=PRIMARY_KEY, type="integer")],
-            primaryKey=[PRIMARY_KEY],
-        ),
-    )
-
-
-def create_main_resource(xlsform: Path) -> Resource:
-    print(f"Parsing form from {xlsform}")
-    form = parse_file_to_json(str(xlsform))
-    name = cast(str, form["id_string"].lower())
-    return _create_resource(name)
-
-
-def _parse_questions(
-    questions: List[Dict[str, Any]], resource: Resource
-) -> list[Resource]:
-    """
-    Parses questions (list of dictionaries) and adds them to the resource's schema.
-    Example of structure of questions:
-        [
-            {
-                'type': 'integer',
-                'name': '<name>',
-                'label': '<label>',
-                'bind': {'required': 'true', 'constraint': '. < 100', 'jr:constraintMsg': '<constraint message>'}
-            },
-            {
-                'type': 'group',
-                'name': '<name>',
-                'label': '<label>',
-                'control': {'appearance': 'field-list'},
-                'children': [
-                    {'type': 'text', 'name': 'name1', 'label': "Label1", ...},
-                    {'type': 'select one', 'name': 'name2', 'label': 'Label2', ...},
-                    {'type': 'integer', 'name': 'name3', 'label': 'Label233', ...}
-                ]
-            }
-        ]
-    For each question having a 'group' type, parses recursively the children questions.
-    """
-    parsed_resources: list[Resource] = []
-
-    schema = safe(resource, "schema")
-    for question in questions:
-        qtype = question["type"]
-
-        if qtype in METADATA_TYPES + IGNORE_TYPES:
-            print("Skipping question type:", qtype)
-
-        elif qtype == "group":
-            parsed_children_resources = _parse_questions(question["children"], resource)
-            parsed_resources += parsed_children_resources
-
-        elif qtype == "repeat":
-            child_resource = _create_resource(question["name"].lower())
-            # Use a different variable name to not change the schema used in the for loop
-            child_schema = safe(child_resource, "schema")
-            child_schema.add_field(Field(name="parent_id", type="integer"))
-            child_schema.foreignKeys = [
-                ForeignKey(
-                    fields=["parent_id"],
-                    reference=ForeignKeyReference(
-                        resource=resource.name,
-                        fields=[PRIMARY_KEY],
-                    ),
-                )
-            ]
-            parsed_resources.append(child_resource)
-            # recursively parse questions and get children resources
-            parsed_children_resources = _parse_questions(
-                question["children"], child_resource
-            )
-            parsed_resources += parsed_children_resources
-
-        elif qtype in DP_FIELDS:
-            kwargs = dict(name=question["name"], type=DP_FIELDS[qtype])
-            if "label" in question:
-                kwargs["title"] = stringify(question["label"])
-            constraints = {"required": False}
-            if qtype == "integer":
-                constraints["minimum"] = 0
-            if qtype == "select all that apply":
-                kwargs["itemType"] = "string"
-            if "bind" in question:
-                bind = question["bind"]
-                if "required" in bind:
-                    constraints["required"] = bind["required"] == "true"
-                if "constraint" in bind:
-                    try:
-                        constraint = constraint_parser.parse(bind["constraint"])
-                        constraints.update(constraint)  # type: ignore
-                    # Fallback in case of unsupported constraint syntax
-                    except Exception as e:
-                        print(f"Error parsing constraint for question {question['name']}: {e}")
-                        constraints.update({"unknownConstraint": bind["constraint"]})
-            kwargs["constraints"] = constraints
-            if "choices" in question:
-                kwargs["categories"] = [
-                    dict(value=choice["name"], label=stringify(choice["label"]))
-                    for choice in question["choices"]
-                ]
-            schema.fields.append(Field(**kwargs))
-
-    return parsed_resources
-
-
 class KoboToolboxLoader(Loader):
     main_resource: Resource
     sheets: dict[str, pd.DataFrame]
@@ -300,20 +189,27 @@ class KoboToolboxLoader(Loader):
         self.xlsform = xlsform
         self.xlsdata = xlsdata
 
-    def extract(self):
+    def extract_and_get_resources(self):
+        self.parse_xlsform_and_get_resources()
+        self.extract_xlsdata()
+
+    def parse_xlsform_and_get_resources(self):
         """
         The xlsform is parsed with the pyxform.xls2json.parse_file_to_json function
-        while the xlsdata is parsed with pandas read_excel or read_csv functions.
         """
         print(f"Parsing form from {self.xlsform}")
         form = parse_file_to_json(str(self.xlsform))
         name = cast(str, form["id_string"].lower())
-        self.main_resource = _create_resource(name)
+        self.main_resource = self.get_resource(name)
         # parses questions from JSON form and add resources to the datapackage
-        parsed_resources = _parse_questions(form["children"], self.main_resource)
+        parsed_resources = self.parse_questions(form["children"], self.main_resource)
         # NOTE: we must add the main resource first so that foreign keys are resolved correctly
         self.resources = [self.main_resource] + parsed_resources
 
+    def extract_xlsdata(self):
+        """
+        The xlsdata is parsed with pandas read_excel or read_csv functions.
+        """
         print(f"Parsing data from {self.xlsdata}")
         if self.xlsdata.suffix == ".xlsx":
             self.sheets = pd.read_excel(self.xlsdata, sheet_name=None)
@@ -329,6 +225,107 @@ class KoboToolboxLoader(Loader):
             }
         else:
             raise ValueError(f"Unsupported file format: {self.xlsdata}")
+        
+    @staticmethod
+    def get_resource(name: str) -> Resource:
+        return Resource(
+            name=name,
+            path=name + ".parquet",
+            schema=Schema(
+                fields=[Field(name=PRIMARY_KEY, type="integer")],
+                primaryKey=[PRIMARY_KEY],
+            ),
+        )
+
+    def parse_questions(self, questions: List[Dict[str, Any]], resource: Resource) -> list[Resource]:
+        """
+        Parses questions (list of dictionaries) and adds them to the resource's schema.
+        Example of structure of questions:
+            [
+                {
+                    'type': 'integer',
+                    'name': '<name>',
+                    'label': '<label>',
+                    'bind': {'required': 'true', 'constraint': '. < 100', 'jr:constraintMsg': '<constraint message>'}
+                },
+                {
+                    'type': 'group',
+                    'name': '<name>',
+                    'label': '<label>',
+                    'control': {'appearance': 'field-list'},
+                    'children': [
+                        {'type': 'text', 'name': 'name1', 'label': "Label1", ...},
+                        {'type': 'select one', 'name': 'name2', 'label': 'Label2', ...},
+                        {'type': 'integer', 'name': 'name3', 'label': 'Label233', ...}
+                    ]
+                }
+            ]
+        For each question having a 'group' type, parses recursively the children questions.
+        """
+        parsed_resources: list[Resource] = []
+    
+        schema = safe(resource, "schema")
+        for question in questions:
+            qtype = question["type"]
+    
+            if qtype in METADATA_TYPES + IGNORE_TYPES:
+                print("Skipping question type:", qtype)
+    
+            elif qtype == "group":
+                parsed_children_resources = self.parse_questions(question["children"], resource)
+                parsed_resources += parsed_children_resources
+    
+            elif qtype == "repeat":
+                child_resource = self.get_resource(question["name"].lower())
+                # Use a different variable name to not change the schema used in the for loop
+                child_schema = safe(child_resource, "schema")
+                child_schema.add_field(Field(name="parent_id", type="integer"))
+                child_schema.foreignKeys = [
+                    ForeignKey(
+                        fields=["parent_id"],
+                        reference=ForeignKeyReference(
+                            resource=resource.name,
+                            fields=[PRIMARY_KEY],
+                        ),
+                    )
+                ]
+                parsed_resources.append(child_resource)
+                # recursively parse questions and get children resources
+                parsed_children_resources = self.parse_questions(
+                    question["children"], child_resource
+                )
+                parsed_resources += parsed_children_resources
+    
+            elif qtype in DP_FIELDS:
+                kwargs = dict(name=question["name"], type=DP_FIELDS[qtype])
+                if "label" in question:
+                    kwargs["title"] = stringify(question["label"])
+                constraints = {"required": False}
+                if qtype == "integer":
+                    constraints["minimum"] = 0
+                if qtype == "select all that apply":
+                    kwargs["itemType"] = "string"
+                if "bind" in question:
+                    bind = question["bind"]
+                    if "required" in bind:
+                        constraints["required"] = bind["required"] == "true"
+                    if "constraint" in bind:
+                        try:
+                            constraint = constraint_parser.parse(bind["constraint"])
+                            constraints.update(constraint)  # type: ignore
+                        # Fallback in case of unsupported constraint syntax
+                        except Exception as e:
+                            print(f"Error parsing constraint for question {question['name']}: {e}")
+                            constraints.update({"unknownConstraint": bind["constraint"]})
+                kwargs["constraints"] = constraints
+                if "choices" in question:
+                    kwargs["categories"] = [
+                        dict(value=choice["name"], label=stringify(choice["label"]))
+                        for choice in question["choices"]
+                    ]
+                schema.fields.append(Field(**kwargs))
+    
+        return parsed_resources
 
     def transform(self):
         print("Processing sheets...")
