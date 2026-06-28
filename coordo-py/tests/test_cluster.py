@@ -1,6 +1,9 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
+import pytest
+from pydantic import ValidationError
+
 from coordo.map.datapackage import DataPackageLayer
 
 EMPTY_FC = {"type": "FeatureCollection", "features": []}
@@ -45,3 +48,44 @@ def test_no_cluster_by_default():
     source = layer._build_source(EMPTY_FC)
     assert "cluster" not in source
     assert source["type"] == "geojson"
+
+
+def test_cluster_render_style_in_metadata():
+    layer = make_layer(
+        cluster={
+            "colors": ["#99D6C2", "#009966", "#006B47"],
+            "radii": [20, 30, 40],
+            "steps": [100, 750],
+        }
+    )
+    meta = layer._cluster_metadata()
+    assert meta == {
+        "colors": ["#99D6C2", "#009966", "#006B47"],
+        "radii": [20, 30, 40],
+        "steps": [100, 750],
+    }
+    # Render style stays out of the source (not a valid MapLibre source option)
+    source = layer._build_source(EMPTY_FC)
+    assert "colors" not in source
+
+
+def test_cluster_metadata_omits_unset_style_keys():
+    layer = make_layer(cluster={"colors": ["#a", "#b", "#c"], "steps": [10, 20]})
+    assert layer._cluster_metadata() == {
+        "colors": ["#a", "#b", "#c"],
+        "steps": [10, 20],
+    }
+
+
+def test_cluster_metadata_is_none_without_style():
+    # Clustering enabled but no render style -> nothing for the frontend metadata
+    assert make_layer(cluster={})._cluster_metadata() is None
+    assert make_layer(cluster={"radius": 50})._cluster_metadata() is None
+    assert make_layer()._cluster_metadata() is None
+
+
+def test_cluster_rejects_inconsistent_lengths():
+    with pytest.raises(ValidationError):
+        make_layer(cluster={"colors": ["#a", "#b"], "steps": [10, 20]})  # need 3 colors
+    with pytest.raises(ValidationError):
+        make_layer(cluster={"colors": ["#a", "#b", "#c"], "radii": [1, 2]})
