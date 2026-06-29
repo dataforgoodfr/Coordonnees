@@ -5,7 +5,7 @@ from typing import Literal
 
 from geojson import FeatureCollection
 from geopandas.geodataframe import GeoDataFrame
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 from pygeofilter.ast import And
 from pygeofilter.parsers.cql2_text import parse as parse_filter
 
@@ -24,6 +24,39 @@ class Popup(BaseModel):
     html: str | None = None
 
 
+class ClusterConfig(BaseModel):
+    # Presence of this block on a layer enables clustering on its source.
+    # MapLibre GeoJSON *source* cluster options:
+    radius: int = 50
+    maxZoom: float = 12.5
+    minPoints: int | None = None
+    # Cluster bubble *rendering* style, consumed by coordo-ts via layer metadata.
+    # colors/radii are per-bucket; steps are the point_count thresholds between
+    # buckets, so len(steps) == len(colors) - 1.
+    colors: list[str] | None = None
+    radii: list[int] | None = None
+    steps: list[int] | None = None
+
+    @model_validator(mode="after")
+    def _check_style_lengths(self):
+        for name, seq in (("colors", self.colors), ("radii", self.radii)):
+            if (
+                seq is not None
+                and self.steps is not None
+                and len(seq) != len(self.steps) + 1
+            ):
+                raise ValueError(
+                    f"cluster.{name} must have exactly len(steps)+1 entries"
+                )
+        if (
+            self.colors is not None
+            and self.radii is not None
+            and len(self.colors) != len(self.radii)
+        ):
+            raise ValueError("cluster.colors and cluster.radii must have equal length")
+        return self
+
+
 class DataPackageLayer(BaseLayerModel):
     model_config = ConfigDict(extra='allow')  # Allows arbitrary extra fields
 
@@ -35,6 +68,33 @@ class DataPackageLayer(BaseLayerModel):
     columns: dict[str, str] | None = None
     layerType: str | None = None
     popup: Popup | None = None
+    cluster: ClusterConfig | None = None
+
+    def _build_source(self, data) -> GeoJSONSource:
+        source = GeoJSONSource(type="geojson", data=data)
+        if self.cluster:
+            source["cluster"] = True
+            source["clusterRadius"] = self.cluster.radius
+            source["clusterMaxZoom"] = self.cluster.maxZoom
+            if self.cluster.minPoints is not None:
+                source["clusterMinPoints"] = self.cluster.minPoints
+        return source
+
+    def _cluster_metadata(self) -> dict | None:
+        # Cluster bubble rendering style for coordo-ts. Only emit keys that are set;
+        # the frontend fills the rest with its defaults.
+        if not self.cluster:
+            return None
+        style = {
+            key: value
+            for key, value in {
+                "colors": self.cluster.colors,
+                "radii": self.cluster.radii,
+                "steps": self.cluster.steps,
+            }.items()
+            if value is not None
+        }
+        return style or None
 
     def to_maplibre(self, base_path):
         package = DataPackage.from_path(base_path / self.path)
@@ -43,7 +103,7 @@ class DataPackageLayer(BaseLayerModel):
 
         layer_type = self.layerType or self.infer_layer_type(data["features"])
 
-        source = GeoJSONSource(type="geojson", data=data)
+        source = self._build_source(data)
         metadata = {
             "resource": {
                 "schema": safe(resource, "schema").model_dump(
@@ -54,6 +114,9 @@ class DataPackageLayer(BaseLayerModel):
         }
         if self.popup:
             metadata.update(popup=self.popup.model_dump())
+        cluster_metadata = self._cluster_metadata()
+        if cluster_metadata:
+            metadata["cluster"] = cluster_metadata
 
         layer: Layer = {
             "id": self.id,
