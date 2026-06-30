@@ -3,9 +3,9 @@
 
 import typer
 
-from coordo.loaders import KoboToolboxLoader, Separator, get_file_loader, get_supplementary_params
+from coordo.loaders import Loader, KoboToolboxLoader, Separator, get_file_loader, get_supplementary_params
 from coordo.datapackage import DataPackage
-from .annotations import Package, From, To, XlsForm, XlsData, FilePath, Sep, DecimalSep
+from .annotations import Package, ResourceName, From, To, XlsForm, XlsData, FilePath, Sep, DecimalSep
 
 
 app = typer.Typer()
@@ -26,6 +26,17 @@ def file(
     params = get_supplementary_params()
     file_loader_cls = get_file_loader(path, params)
     file_loader_cls(package, path, **params).remove()
+
+
+@app.command()
+def resource(
+    resource_name: str, 
+    package: Package, 
+):
+    """
+    Remove a resource from the package by its name.
+    """
+    Loader.remove_one_resource(package, resource_name)
 
 
 @app.command()

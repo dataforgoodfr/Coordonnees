@@ -32,8 +32,8 @@ class FileLoader(Loader):
         Returns the SQL query to extract the schema from the file.
         """
         raise NotImplementedError()
-        
 
-    def check_resource_not_exists(self):
-        if self.dp.resource_exists(self.path.stem):
-            raise ValueError(f"Resource already exists: '{self.path.stem}'")
+
+    def load(self):
+        for resource in self.resources:
+            self.write_to_package(self.dataframes[resource.name], resource)
