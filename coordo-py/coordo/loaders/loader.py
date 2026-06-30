@@ -12,7 +12,7 @@ import shutil
 import re
 
 
-from ..datapackage import DataPackage, Resource, Schema, Field
+from ..datapackage import DataPackage, Resource, Schema
 from ..sql.helpers import load_conn
 
 
