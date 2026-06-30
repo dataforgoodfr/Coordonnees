@@ -39,22 +39,22 @@ class ExcelFileLoader(FileLoader):
         The parsing is performed with pandas instead of duckdb because duckdb only support '.xlsx' files
         while pandas supports multiple formats
         """
-        sheets = pd.read_excel(self.path, sheet_name=None)
-        for i, (sheet_name, sheet) in enumerate(sheets.items()):
+        table_name_to_df_dict: dict[str, pd.DataFrame] = pd.read_excel(self.path, sheet_name=None)
+        for i, (sheet_name, sheet_df) in enumerate(table_name_to_df_dict.items()):
             path = self.dp.get_path() / (sheet_name + '.parquet')
-            sheet['_index'] = sheet.index + 1
+            sheet_df['_index'] = sheet_df.index + 1
             
             schema = Schema()
             # to_parquet method fails if column names contain dots
-            sheet.columns = [col.replace('.', '_') for col in sheet.columns]
+            sheet_df.columns = [col.replace('.', '_') for col in sheet_df.columns]
             # parse schema from the SQL query result
-            for name, type in sheet.dtypes.items():
+            for name, type in sheet_df.dtypes.items():
                 schema.add_field(Field(name=name, **pandas_type_to_dp_type(type)))
                 
             # creating a new resource
             resource = self.create_resource(path.stem, schema)
             # writing the data parsed from the file to the raw staging directory as a parquet file
-            self.write_to_staging(sheet, resource.name)
+            self.dataframes[resource.name] = sheet_df
             self.resources.append(resource)
 
 
@@ -64,13 +64,3 @@ class ExcelFileLoader(FileLoader):
 
     def replace_data(self, resource_name: str | None = None):
         pass
-
-
-    def transform(self, resource_name: str | None = None):
-        pass
-
-
-    def load(self):
-        for resource in self.resources:
-            df = self.read_from_staging(resource.name)
-            self.write_to_package(df, resource)

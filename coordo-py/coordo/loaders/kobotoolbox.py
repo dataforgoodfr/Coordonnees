@@ -177,11 +177,9 @@ class KoboToolboxLoader(Loader):
         "datetime": datetime,
     }
 
-    
     main_resource: Resource
-    sheets: dict[str, pd.DataFrame]
-    processed_sheets: dict[str, pd.DataFrame]
-
+    
+    
     def __init__(
         self,
         package: Path,
@@ -191,7 +189,7 @@ class KoboToolboxLoader(Loader):
         super().__init__(package)
         self.xlsform = xlsform
         self.xlsdata = xlsdata
-        
+
 
     def parse_input(self):
         if not self.xlsform.exists():
@@ -238,32 +236,31 @@ class KoboToolboxLoader(Loader):
         suffix = self.xlsdata.suffix
         
         if suffix == ".xlsx":
-            sheet_name_to_df: dict[str, pd.DataFrame] = pd.read_excel(self.xlsdata, sheet_name=None)
+            
+            table_name_to_df_dict: dict[str, pd.DataFrame] = pd.read_excel(self.xlsdata, sheet_name=None)
             resource_names = [resource.name for resource in self.resources]
-            for i, (sheet_name, df) in enumerate(sheet_name_to_df.items()):
-                if i == 0:
-                    # the first sheet may have a different name
-                    # and it's anyway linked to the main resource
-                    sheet_name = self.main_resource.name
-                else:
-                    if sheet_name not in resource_names:
-                        raise ValueError(f"Sheet name '{sheet_name}' not found in resources")
-                self.write_to_staging(df, sheet_name)
+            
+            for i, (sheet_name, df) in enumerate(table_name_to_df_dict.items()):
+                table_name = self.main_resource.name if i == 0 else sheet_name.lower()
+                if table_name not in resource_names:
+                    logger.warning(f"Sheet name '{sheet_name}' not found in resources")
+                # store the dataframe in the sheets dictionary
+                self.dataframes[table_name] = df
                 
         elif suffix == ".csv":
             # TODO: I think this encoding is not the one from Kobo we should verify
-            df = pd.read_csv(
-                    self.xlsdata,
-                    sep=";",
-                    encoding="windows-1252",
-                    decimal=",",
-            )
-            self.write_to_staging(df, self.main_resource.name)
+            self.dataframes = {
+                self.main_resource.name: pd.read_csv(
+                        self.xlsdata,
+                        sep=";",
+                        encoding="windows-1252",
+                        decimal=",",
+                )
+            }
             
         else:
             raise ValueError(f"Unsupported file format: {suffix}")
         
-
 
     def get_foreignkey_to(self, parent_resource: Resource) -> ForeignKey:
         return ForeignKey(
@@ -364,8 +361,8 @@ class KoboToolboxLoader(Loader):
 
     def transform(self):
         logger.info("Processing sheets...")
-        for resource in self.resources:
-            df = self.read_from_staging(resource.name)
+        for name, df in self.dataframes.items():
+            resource = self.dp.get_resource(name)
             schema = safe(resource, "schema")
             
             df = (
@@ -397,14 +394,20 @@ class KoboToolboxLoader(Loader):
 
             df = df[fields]
             df = df.replace({np.nan: None})
-            
-            self.write_to_staging(df, resource.name)
+
+            # storing transformed dataframe
+            self.dataframes[name] = df
 
 
     def load(self):
         logger.info("Loading data in package")
         for resource in self.resources:
-            df = self.read_from_staging(resource.name)
+            
+            if resource.name not in self.dataframes:
+                logger.warning(f"Resource '{resource.name}' not found in stored dataframes")
+                continue
+
+            df = self.dataframes[resource.name]
 
             saved = False
             geo_cols = [f.name for f in resource.schema.fields if f.type == "geojson"]
@@ -413,7 +416,7 @@ class KoboToolboxLoader(Loader):
             while index < len(geo_cols) and not saved:
                 try: 
                     gdf = gpd.GeoDataFrame(df, geometry=geo_cols[index], crs="EPSG:4326")
-                    self.write_to_package(gdf, resource, is_geo=True)
+                    self.write_to_package(gdf, resource, geo=True)
                     saved = True
                 except Exception as e:
                     logger.error(f"Error saving '{resource.name}' to parquet with geometry column '{geo_cols[index]}': {e}")

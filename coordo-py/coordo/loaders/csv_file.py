@@ -26,6 +26,7 @@ class CSVFileLoader(FileLoader):
         self.sep = sep
         self.decimal_sep = decimal_sep
 
+
     def get_sql_query(self, path: Path) -> str:
         """
         Returns the SQL query to extract the schema from the file.
@@ -36,7 +37,7 @@ class CSVFileLoader(FileLoader):
         """
 
 
-    def parse_file(self, path: Path) -> Resource:
+    def parse_file(self, path: Path) -> tuple[Resource, pd.DataFrame]:
         """
         Parse a file and infer its schema using a SQL query.
         The DuckDB engine can read both parquet and CSV files.
@@ -55,16 +56,18 @@ class CSVFileLoader(FileLoader):
     
             # creating a new resource
             resource = self.create_resource(path.stem, schema)
-            # writing the data parsed from the file to the raw staging directory as a parquet file
-            self.write_to_staging(rel.to_df(), resource.name)
+            # parsing data from the file
+            df = rel.to_df()
         
-        return resource
+        return resource, df
 
 
     def parse_input(self):
-        self.resource = self.parse_file(self.path)
+        self.resource, df = self.parse_file(self.path)
         self.resources = [self.resource]
-    
+        # storing parsed dataframe
+        self.dataframes[self.resource.name] = df
+        
 
     def transform(self):
         # TODO: if needed, implement transformation logic here
@@ -74,24 +77,23 @@ class CSVFileLoader(FileLoader):
 
     def append_data(self, resource_name: str | None = None):
         logger.info(f"Appending data to resource '{self.resource.name}'")
-        
         existing_resource = self.dp.get_resource(self.resource.name)
         current_df = self.dp.read_resource(existing_resource.name)
-        new_df = self.read_from_staging(self.resource.name)
         # concatenating current and new data
-        df = pd.concat([current_df, new_df], ignore_index=True)
+        df = pd.concat([
+            current_df, 
+            self.dataframes[self.resource.name]
+        ], ignore_index=True)
         # saving concatenated data back to the current resource's path
         self.write_to_package(df, existing_resource)
 
 
     def replace_data(self, resource_name: str | None = None):
         existing_resource = self.dp.get_resource(self.resource.name)
-        new_df = self.read_from_staging(self.resource.name)
         # saving concatenated data back to the current resource's path
-        self.write_to_package(new_df, existing_resource)
+        self.write_to_package(
+            self.dataframes[self.resource.name],
+            existing_resource
+        )
 
-
-    def load(self):
-        df = self.read_from_staging(self.resource.name)
-        self.write_to_package(df, self.resource)
         

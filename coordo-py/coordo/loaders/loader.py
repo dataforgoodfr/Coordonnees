@@ -54,6 +54,7 @@ class Loader(ABC):
     def __init__(self, package: Path):
         self.dp = DataPackage.from_path(package)
         self.resources: list[Resource] = []
+        self.dataframes: dict[str, pd.DataFrame] = {}
 
 
     @abstractmethod
@@ -64,12 +65,11 @@ class Loader(ABC):
         raise NotImplementedError()
 
 
-    @abstractmethod
     def transform(self):
         """
-        Write raw data to staging directory (after optionally transforming it).
+        Apply any necessary transformations to the data before loading it into the staging directory.
         """
-        raise NotImplementedError()
+        pass
 
 
     @abstractmethod
@@ -110,6 +110,16 @@ class Loader(ABC):
         for resource in self.resources:
             self.dp.remove_resource(resource.name)
         self.save()
+
+
+    @staticmethod
+    def remove_one_resource(package: Path, resource_name: str):
+        """
+        Remove the specified resource from the package.
+        """
+        dp = DataPackage.from_path(package)
+        dp.remove_resource(resource_name)
+        dp.save()
 
 
     def update(self, resource_name: str | None, method: UpdateMethod):
