@@ -5,7 +5,7 @@ import typer
 
 from coordo.loaders import Loader, KoboToolboxLoader, Separator, get_file_loader, get_supplementary_params
 from coordo.datapackage import DataPackage
-from .annotations import Package, ResourceName, From, To, XlsForm, XlsData, FilePath, Sep, DecimalSep
+from .annotations import Package, From, To, XlsForm, XlsData, FilePath, Sep, DecimalSep
 
 
 app = typer.Typer()
