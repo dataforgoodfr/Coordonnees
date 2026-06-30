@@ -3,7 +3,7 @@
 
 from pathlib import Path
 
-from dplib.models.field.types import IField
+#from dplib.models.field.types import IField
 from duckdb.sqltypes import DuckDBPyType
 
 
@@ -17,7 +17,7 @@ def prepare_path(path: Path):
         from_ = f'"{from_}"'
     return from_
 
-
+"""
 def to_db_type(field: IField):
     match field.type:
         case "integer":
@@ -32,10 +32,27 @@ def to_db_type(field: IField):
             return "DATE"
         case "list":
             return field.itemType + "[]"
+"""
 
 
-def to_dp_type(type: DuckDBPyType):
+def duckdb_type_to_dp_type(type: DuckDBPyType) -> dict:
     match type.id:
+        case "bigint" | "integer":
+            return {"type": "integer"}
+        case "geometry":
+            return {"type": "geojson"}
+        case "double":
+            return {"type": "number"}
+        case "date":
+            return {"type": "date"}
+        case "list":
+            return {"type": "list", "itemType": type.children[0]}
+        case _:
+            return {"type": "string"}
+
+
+def pandas_type_to_dp_type(type: str) -> dict:
+    match str(type):
         case "bigint" | "integer":
             return {"type": "integer"}
         case "geometry":

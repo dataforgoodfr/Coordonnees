@@ -8,7 +8,7 @@ import typer
 
 from coordo.datapackage import DataPackage
 from coordo.sql.builder import build_query
-from .datapackage import add, remove
+from .datapackage import add, remove, append, replace, delete
 from ..map import Map
 
 app = typer.Typer()
@@ -78,11 +78,12 @@ def serve(config_file: str):
 # Load data from various sources into the datapackage.
 ##################################################
 
-# Add a subcommand for each resource action.
+# Add a subcommand for each type of action with loaders
 app.add_typer(add.app, name="add", help="Add a resource to the package")
 app.add_typer(remove.app, name="remove", help="Remove a resource from the package")
-
-
+app.add_typer(append.app, name="append", help="Append data of a resource in the package with new data")
+app.add_typer(replace.app, name="replace", help="Replace data of a resource with new data")
+app.add_typer(delete.app, name="delete", help="Delete the data of a resource")
 
 #################################################
 # Interaction with datapackage

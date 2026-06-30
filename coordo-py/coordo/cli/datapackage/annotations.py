@@ -10,6 +10,7 @@ from coordo.loaders import Separator
 
 # general arguments
 Package = Annotated[Path, typer.Option(help="Path to the package directory")]
+ResourceName = Annotated[str | None, typer.Option(help="Name of the resource (if not provided, the file name will be used)")]
 From = Annotated[str, "Foreign key source"]
 To = Annotated[str, "Foreign key target"]
 
