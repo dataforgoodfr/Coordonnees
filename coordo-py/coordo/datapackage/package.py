@@ -43,13 +43,6 @@ def handle_path(path: str | list[str]) -> str:
     return path
 
 
-def check_resource_fields_match(res1: Resource, res2: Resource) -> None:
-    if not res1.has_same_schema_as(res2):
-        raise ValueError(
-            f"Schemas do not match for resources '{res1.name}' and '{res2.name}'"
-        )
-
-
 class DataPackage(pydantic.BaseModel):
     id: Optional[str] = None
     name: str = pydantic.Field(pattern=r"^[a-z0-9._-]+$")
@@ -67,10 +60,16 @@ class DataPackage(pydantic.BaseModel):
 
     _basepath: Path
 
+
     def model_post_init(self, context):
         self._basepath = context["_basepath"]
         for resource in self.resources:
             resource._package = self
+
+
+    def get_path(self) -> Path:
+        return Path(self._basepath)
+
 
     @classmethod
     def from_path(cls, path: Path) -> "DataPackage":
@@ -90,6 +89,7 @@ class DataPackage(pydantic.BaseModel):
                 context={"_basepath": path.parent},
             )
 
+
     def save(self):
         Path(self._basepath, "datapackage.json").write_text(
             self.model_dump_json(
@@ -99,6 +99,7 @@ class DataPackage(pydantic.BaseModel):
                 round_trip=True,
             )
         )
+
 
     def remove_resource(self, name: str) -> None:
         """
@@ -135,6 +136,7 @@ class DataPackage(pydantic.BaseModel):
         # update resources list
         self.resources = [res for res in self.resources if res.name != name]
 
+
     def attach_resource(self, resource: Resource) -> None:
         """
         Attach a resource to the package.
@@ -151,33 +153,55 @@ class DataPackage(pydantic.BaseModel):
             resource._package = self
             self.resources.append(resource)
 
+
+    def check_schema_is_compatible(self, resource: Resource) -> bool:
+        """
+        Check if the new resource is compatible with the current resource in the package.
+        """
+        if not self.resource_exists(resource.name):
+            raise ValueError(
+                f"No resource named '{resource.name}' exists in package '{self.name}'. "
+                "Please add the resource instead of updating it."
+            )
+        current_datapackage_resource = self.get_resource(resource.name)
+        # check if the new  resource has the same schema as the current resource
+        if not resource.has_same_schema_as(current_datapackage_resource):
+            raise ValueError(
+                f"Resource '{resource.name}' has a different schema than the existing resource in the package '{self.name}'."
+            )
+        return True
+
+
     def get_resource(self, name: str) -> Resource:
         found_resources = [res for res in self.resources if res.name == name]
         assert len(found_resources) <= 1, f"Multiple resources named '{name}' found."
         assert len(found_resources) > 0, f"Resource '{name}' not found."
         return found_resources[0]
 
+
     def resource_exists(self, name: str) -> bool:
         return any(res.name == name for res in self.resources)
 
+
     def prepare_db(self) -> tuple[duckdb.DuckDBPyConnection, sa.MetaData]:
         conn = load_conn()
-
         metadata = sa.MetaData()
 
+        # load existing resources from datapackage into the schema
         for resource in self.resources:
             if resource.path and resource.schema:
                 SqlSchema.from_dp(
                     resource.schema,
                     table_name=resource.name,
                 ).table.to_metadata(metadata)
-
+            
                 try:
                     resource.load_table(conn)
                 except Exception as e:
-                    logger.error(f"Error occurred while loading table for resource {resource.name}: {e}")
+                    raise ValueError(f"Error occurred while loading table for resource {resource.name}: {e}")
 
         return conn, metadata
+
 
     def read_resource(
         self,
@@ -199,7 +223,7 @@ class DataPackage(pydantic.BaseModel):
                 to_pandas_kwargs={"maps_as_pydicts": "strict"},
             )
         else:
-            df = table.to_df()
+            df = table.to_pandas()
 
         # Convert numpy arrays to python lists so the dataframe is JSON-serializable
         list_cols = [

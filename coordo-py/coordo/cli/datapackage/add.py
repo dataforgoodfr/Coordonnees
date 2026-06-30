@@ -3,7 +3,7 @@
 
 import typer
 
-from coordo.loaders import KoboToolboxLoader, Separator, get_file_loader
+from coordo.loaders import KoboToolboxLoader, Separator, get_file_loader, get_supplementary_params
 from coordo.datapackage import DataPackage
 from .annotations import Package, From, To, XlsForm, XlsData, FilePath, Sep, DecimalSep
 
@@ -23,9 +23,9 @@ def file(
     sep: Sep = Separator.COMMA, 
     decimal_sep: DecimalSep = Separator.DOT
 ):
-    params = locals()
-    file_loader_cls = get_file_loader(params)
-    file_loader_cls(**params).add()
+    params = get_supplementary_params()
+    file_loader_cls = get_file_loader(path, params)
+    file_loader_cls(package, path, **params).add()
 
 
 @app.command()

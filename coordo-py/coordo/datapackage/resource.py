@@ -1,6 +1,7 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
+import pandas as pd
 import logging
 from typing import TYPE_CHECKING, Any, Optional, Self
 
@@ -50,7 +51,7 @@ class Resource(pydantic.BaseModel):
         #     f'"{field.name}"::{to_db_type(field)} AS "{field.name}"'
         #     for field in self.schema.fields
         # )
-        query = f'CREATE VIEW "{self.name}" AS SELECT * FROM {prepare_path(self.package._basepath / self.path)}'
+        query = f'CREATE VIEW "{self.name}" AS SELECT * FROM {prepare_path(self.package.get_path() / self.path)}'
         conn.execute(query)
 
     def add_foreignkey(self, fields: list[str], foreign_fields: list[str], foreign_resource: str) -> None:

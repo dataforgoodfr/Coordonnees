@@ -5,7 +5,7 @@ import json
 from datetime import date, datetime
 from pathlib import Path
 from time import time
-from typing import Any, Dict, List, cast
+from typing import Any, Dict, List, cast, ClassVar
 import logging
 
 import geopandas as gpd
@@ -107,64 +107,6 @@ constraint_parser = Lark(
 )
 
 
-METADATA_TYPES = [
-    "start",
-    "end",
-    "today",
-    "deviceid",
-    "subscriberid",
-    "simserial",
-    "phonenumber",
-    "username",
-    "email",
-    "audit",
-    "note",
-]
-
-IGNORE_TYPES = [
-    "note",
-]
-
-
-DP_FIELDS = {
-    "integer": "integer",
-    "decimal": "number",
-    "range": "integer",
-    "text": "string",
-    "select one": "string",
-    "select all that apply": "list",
-    "rank": "string",
-    "geopoint": "geojson",
-    "start-geopoint": "geojson",
-    # "geotrace": peewee.LineStringField,
-    # "geoshape": peewee.PolygonField,
-    "date": "date",
-    "time": "time",
-    "dateTime": "datetime",
-    "calculate": "string",
-    # "photo": peewee.ImageField,
-    # "audio": peewee.FileField,
-    # "background-audio": peewee.FileField,
-    # "video": peewee.FileField,
-    # "file": peewee.FileField,
-    # "barcode": None,
-    # "hidden": None,
-    # "xml-external": None,
-}
-
-DTYPES = {
-    "string": str,
-    "integer": "Int64",
-    "number": float,
-    "date": date,
-    "time": time,
-    "datetime": datetime,
-}
-
-
-PRIMARY_KEY = "_id"
-
-
 def stringify(obj):
     if isinstance(obj, str):
         return obj
@@ -178,6 +120,64 @@ def coords_to_point(coords):
 
 
 class KoboToolboxLoader(Loader):
+
+    PRIMARY_KEY: ClassVar[str] = "_id"
+
+    METADATA_TYPES: ClassVar[list[str]] = [
+        "start",
+        "end",
+        "today",
+        "deviceid",
+        "subscriberid",
+        "simserial",
+        "phonenumber",
+        "username",
+        "email",
+        "audit",
+        "note",
+    ]
+    
+    IGNORE_TYPES: ClassVar[list[str]] = [
+        "note",
+    ]
+    
+    
+    DP_FIELDS: ClassVar[dict[str, str]] = {
+        "integer": "integer",
+        "decimal": "number",
+        "range": "integer",
+        "text": "string",
+        "select one": "string",
+        "select all that apply": "list",
+        "rank": "string",
+        "geopoint": "geojson",
+        "start-geopoint": "geojson",
+        # "geotrace": peewee.LineStringField,
+        # "geoshape": peewee.PolygonField,
+        "date": "date",
+        "time": "time",
+        "dateTime": "datetime",
+        "calculate": "string",
+        # "photo": peewee.ImageField,
+        # "audio": peewee.FileField,
+        # "background-audio": peewee.FileField,
+        # "video": peewee.FileField,
+        # "file": peewee.FileField,
+        # "barcode": None,
+        # "hidden": None,
+        # "xml-external": None,
+    }
+    
+    DTYPES: ClassVar[dict] = {
+        "string": str,
+        "integer": "Int64",
+        "number": float,
+        "date": date,
+        "time": time,
+        "datetime": datetime,
+    }
+
+    
     main_resource: Resource
     sheets: dict[str, pd.DataFrame]
     processed_sheets: dict[str, pd.DataFrame]
@@ -191,8 +191,9 @@ class KoboToolboxLoader(Loader):
         super().__init__(package)
         self.xlsform = xlsform
         self.xlsdata = xlsdata
+        
 
-    def extract_and_get_resources(self):
+    def parse_input(self):
         if not self.xlsform.exists():
             raise FileNotFoundError(f"XLSform not found: {self.xlsform}")
         if not self.xlsdata.exists():
@@ -200,48 +201,77 @@ class KoboToolboxLoader(Loader):
         self.parse_xlsform_and_get_resources()
         self.extract_xlsdata()
 
+
+    def get_resource_schema(self) -> Schema:
+        return Schema(
+            fields=[Field(name=self.PRIMARY_KEY, type="integer")],
+            primaryKey=[self.PRIMARY_KEY],
+        )
+
+
+    @staticmethod
+    def get_form_name(form: dict):
+        return cast(str, form["id_string"].lower())
+        
+
     def parse_xlsform_and_get_resources(self):
         """
         The xlsform is parsed with the pyxform.xls2json.parse_file_to_json function
         """
         logger.info(f"Parsing form from {self.xlsform}")
-        form = parse_file_to_json(str(self.xlsform))
-        name = cast(str, form["id_string"].lower())
-        self.main_resource = self.get_resource(name)
+        form: dict = parse_file_to_json(str(self.xlsform))
+        self.main_resource = self.create_resource(
+            self.get_form_name(form), 
+            self.get_resource_schema()
+        )
         # parses questions from JSON form and add resources to the datapackage
         parsed_resources = self.parse_questions(form["children"], self.main_resource)
         # NOTE: we must add the main resource first so that foreign keys are resolved correctly
         self.resources = [self.main_resource] + parsed_resources
+
 
     def extract_xlsdata(self):
         """
         The xlsdata is parsed with pandas read_excel or read_csv functions.
         """
         logger.info(f"Parsing data from {self.xlsdata}")
-        if self.xlsdata.suffix == ".xlsx":
-            self.sheets = pd.read_excel(self.xlsdata, sheet_name=None)
-        elif self.xlsdata.suffix == ".csv":
+        suffix = self.xlsdata.suffix
+        
+        if suffix == ".xlsx":
+            sheet_name_to_df: dict[str, pd.DataFrame] = pd.read_excel(self.xlsdata, sheet_name=None)
+            resource_names = [resource.name for resource in self.resources]
+            for i, (sheet_name, df) in enumerate(sheet_name_to_df.items()):
+                if i == 0:
+                    # the first sheet may have a different name
+                    # and it's anyway linked to the main resource
+                    sheet_name = self.main_resource.name
+                else:
+                    if sheet_name not in resource_names:
+                        raise ValueError(f"Sheet name '{sheet_name}' not found in resources")
+                self.write_to_staging(df, sheet_name)
+                
+        elif suffix == ".csv":
             # TODO: I think this encoding is not the one from Kobo we should verify
-            self.sheets = {
-                self.main_resource.name: pd.read_csv(
+            df = pd.read_csv(
                     self.xlsdata,
                     sep=";",
                     encoding="windows-1252",
                     decimal=",",
-                )
-            }
+            )
+            self.write_to_staging(df, self.main_resource.name)
+            
         else:
-            raise ValueError(f"Unsupported file format: {self.xlsdata}")
+            raise ValueError(f"Unsupported file format: {suffix}")
         
-    @staticmethod
-    def get_resource(name: str) -> Resource:
-        return Resource(
-            name=name,
-            path=name + ".parquet",
-            schema=Schema(
-                fields=[Field(name=PRIMARY_KEY, type="integer")],
-                primaryKey=[PRIMARY_KEY],
-            ),
+
+
+    def get_foreignkey_to(self, parent_resource: Resource) -> ForeignKey:
+        return ForeignKey(
+            fields=["parent_id"],
+            reference=ForeignKeyReference(
+                resource=parent_resource.name,
+                fields=[self.PRIMARY_KEY],
+            )
         )
 
     def parse_questions(self, questions: List[Dict[str, Any]], resource: Resource) -> list[Resource]:
@@ -275,7 +305,7 @@ class KoboToolboxLoader(Loader):
         for question in questions:
             qtype = question["type"]
     
-            if qtype in METADATA_TYPES + IGNORE_TYPES:
+            if qtype in self.METADATA_TYPES + self.IGNORE_TYPES:
                 logger.info(f"Skipping question type: {qtype}")
     
             elif qtype == "group":
@@ -283,18 +313,15 @@ class KoboToolboxLoader(Loader):
                 parsed_resources += parsed_children_resources
     
             elif qtype == "repeat":
-                child_resource = self.get_resource(question["name"].lower())
+                child_resource = self.create_resource(
+                    question["name"].lower(),
+                    self.get_resource_schema()
+                )
                 # Use a different variable name to not change the schema used in the for loop
                 child_schema = safe(child_resource, "schema")
                 child_schema.add_field(Field(name="parent_id", type="integer"))
                 child_schema.foreignKeys = [
-                    ForeignKey(
-                        fields=["parent_id"],
-                        reference=ForeignKeyReference(
-                            resource=resource.name,
-                            fields=[PRIMARY_KEY],
-                        ),
-                    )
+                    self.get_foreignkey_to(resource)
                 ]
                 parsed_resources.append(child_resource)
                 # recursively parse questions and get children resources
@@ -303,8 +330,8 @@ class KoboToolboxLoader(Loader):
                 )
                 parsed_resources += parsed_children_resources
     
-            elif qtype in DP_FIELDS:
-                kwargs = dict(name=question["name"], type=DP_FIELDS[qtype])
+            elif qtype in self.DP_FIELDS:
+                kwargs = dict(name=question["name"], type=self.DP_FIELDS[qtype])
                 if "label" in question:
                     kwargs["title"] = stringify(question["label"])
                 constraints = {"required": False}
@@ -334,70 +361,79 @@ class KoboToolboxLoader(Loader):
     
         return parsed_resources
 
+
     def transform(self):
         logger.info("Processing sheets...")
-        self.processed_sheets = {}
-        for i, (sheet_name, sheet) in enumerate(self.sheets.items()):
-            table_name = self.main_resource.name if i == 0 else sheet_name.lower()
-            resource = self.dp.get_resource(table_name)
+        for resource in self.resources:
+            df = self.read_from_staging(resource.name)
             schema = safe(resource, "schema")
-            sheet = (
-                sheet.rename(
+            
+            df = (
+                df.rename(
                     columns={"_parent_index": "parent_id"},
                 )
                 .convert_dtypes()
                 .replace(np.nan, None)
             )
-            sheet[PRIMARY_KEY] = sheet.index + 1
+            df[self.PRIMARY_KEY] = df.index + 1
+            
             fields = []
             for field in schema.fields:
-                if field.name in sheet.columns:
+                if field.name in df.columns:
                     if field.type == "geojson":
-                        sheet[field.name] = sheet[field.name].apply(coords_to_point)
+                        df[field.name] = df[field.name].apply(coords_to_point)
                     if field.type == "list":
-                        sheet[field.name] = sheet[field.name].apply(
+                        df[field.name] = df[field.name].apply(
                             lambda string: str(string).split()
                         )
-                    if field.type in DTYPES:
-                        sheet[field.name] = sheet[field.name].astype(DTYPES[field.type])
+                    if field.type in self.DTYPES:
+                        df[field.name] = df[field.name].astype(self.DTYPES[field.type])
                 else:
                     logger.warning(
                         f"Field {field.name} not found in data. Filling with empty values"
                     )
-                    sheet[field.name] = ""
+                    df[field.name] = ""
                 fields.append(field.name)
 
-            sheet = sheet[fields]
-            sheet = sheet.replace({np.nan: None})
-            self.processed_sheets[table_name] = sheet
+            df = df[fields]
+            df = df.replace({np.nan: None})
+            
+            self.write_to_staging(df, resource.name)
+
 
     def load(self):
-        logger.info("Loading data...")
-        for table_name, sheet in self.processed_sheets.items():
-            resource = self.dp.get_resource(table_name)
-            path = Path(self.dp._basepath, table_name + ".parquet")
-            logger.info(f"Saving resource '{table_name}' to {path}")
+        logger.info("Loading data in package")
+        for resource in self.resources:
+            df = self.read_from_staging(resource.name)
 
             saved = False
             geo_cols = [f.name for f in resource.schema.fields if f.type == "geojson"]
 
             index = 0
-            while(index < len(geo_cols) and not saved):
+            while index < len(geo_cols) and not saved:
                 try: 
-                    gdf = gpd.GeoDataFrame(sheet, geometry=geo_cols[index], crs="EPSG:4326")
-
-                    gdf.to_parquet(
-                        path,
-                        schema_version="1.1.0",
-                        index=False,
-                        write_covering_bbox=True,
-                        geometry_encoding="WKB",  # We use this because duckdb can't open geoarrow as geometries
-                    )
+                    gdf = gpd.GeoDataFrame(df, geometry=geo_cols[index], crs="EPSG:4326")
+                    self.write_to_package(gdf, resource, is_geo=True)
                     saved = True
                 except Exception as e:
-                    logger.error(f"Error saving '{table_name}' with geometry column '{geo_cols[index]}': {e}")
+                    logger.error(f"Error saving '{resource.name}' to parquet with geometry column '{geo_cols[index]}': {e}")
                     index += 1
-            
-            if(not saved):
-                sheet.to_parquet(path, index=False)
+
+            # if not saved, fall back to non-geo parquet
+            if not saved:
+                logger.warning(
+                    f"Failed to save '{resource.name}' with any of the available geometry columns. "
+                    "Falling back to default parquet export"
+                )
+                self.write_to_package(df, resource)
                 saved = True
+
+
+    def append_data(self, resource_name: str | None = None):
+        # TODO: implement method
+        raise NotImplementedError()
+
+
+    def replace_data(self, resource_name: str | None = None):
+        # TODO: implement method
+        raise NotImplementedError()
