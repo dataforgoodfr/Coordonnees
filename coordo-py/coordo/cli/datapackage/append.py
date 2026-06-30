@@ -18,6 +18,9 @@ def file(
     sep: Sep = Separator.COMMA, 
     decimal_sep: DecimalSep = Separator.DOT
 ):
+    """
+    Append data from a file to a datapackage resource. By default, the resource name is inferred from the file name.
+    """
     params = get_supplementary_params()
     file_loader_cls = get_file_loader(path, params)
     file_loader_cls(package, path, **params).update(resource_name=resource, method=UpdateMethod.APPEND)
