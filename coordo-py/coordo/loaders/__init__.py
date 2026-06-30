@@ -11,7 +11,15 @@ from .csv_file import CSVFileLoader
 from .excel_file import ExcelFileLoader
 
 
-__all__ = ["Separator", "Loader", "UpdateMethod", "FileLoader", "KoboToolboxLoader", "CSVFileLoader", "ExcelFileLoader"]
+__all__ = [
+    "Separator", 
+    "Loader", 
+    "UpdateMethod", 
+    "FileLoader", 
+    "KoboToolboxLoader", 
+    "CSVFileLoader", 
+    "ExcelFileLoader"
+]
 
 def get_file_loader(path: Path, supplementary_params: dict) -> Type[FileLoader]:
     """
@@ -28,7 +36,8 @@ def get_file_loader(path: Path, supplementary_params: dict) -> Type[FileLoader]:
         check_params_are_attributes(CSVFileLoader, supplementary_params)
         return CSVFileLoader
     else:
-        raise ValueError(f"Unsupported file extension: {path.suffix}")
+        check_params_are_attributes(FileLoader, supplementary_params)
+        return FileLoader
 
 
 def get_supplementary_params() -> dict:

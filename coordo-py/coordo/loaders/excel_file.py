@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from pathlib import Path
+from typing import ClassVar
+
 import pandas as pd
 import logging
 
@@ -14,7 +16,7 @@ logger = logging.getLogger(__name__)
 class ExcelFileLoader(FileLoader):
 
     # see https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_excel.html
-    EXTENSIONS = ['.xlsx', '.xls', '.xlsm', '.xlsb', '.odf', '.ods', '.odt'] 
+    EXTENSIONS: ClassVar[list[str]] = ['.xlsx', '.xls', '.xlsm', '.xlsb', '.odf', '.ods', '.odt'] 
     
     def __init__(
         self,
