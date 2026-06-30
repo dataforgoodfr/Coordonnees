@@ -23,6 +23,9 @@ def file(
     sep: Sep = Separator.COMMA, 
     decimal_sep: DecimalSep = Separator.DOT
 ):
+    """
+    Add a file to a datapackage.
+    """
     params = get_supplementary_params()
     file_loader_cls = get_file_loader(path, params)
     file_loader_cls(package, path, **params).add()
@@ -30,6 +33,9 @@ def file(
 
 @app.command()
 def foreignkey(from_: From, to: To, package: Package):
+    """
+    Add a foreign key constraint between two resources.
+    """
     dp = DataPackage.from_path(package)
     resource, field = from_.split(".")
     foreign_resource, foreign_field = to.split(".")

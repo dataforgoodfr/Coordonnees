@@ -41,6 +41,9 @@ def resource(
 
 @app.command()
 def foreignkey(from_: From, to: To, package: Package):
+    """
+    Remove a foreign key constraint from a resource.
+    """
     dp = DataPackage.from_path(package)
     resource, field = from_.split(".")
     foreign_resource, foreign_field = to.split(".")
