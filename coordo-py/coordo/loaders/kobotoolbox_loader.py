@@ -168,7 +168,7 @@ def stringify(obj):
 
 
 def coords_to_point(coords):
-    if not pd.isna(coords) or coords is None or (isinstance(coords, str) and not coords.strip()):
+    if pd.isna(coords) or coords is None or (isinstance(coords, str) and not coords.strip()):
         return None
     try:
         lat, lon, alt = map(float, str(coords).split(" "))
