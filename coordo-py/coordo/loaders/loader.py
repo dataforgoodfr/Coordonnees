@@ -2,13 +2,11 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from abc import ABC, abstractmethod
-from tempfile import gettempdir
 from pathlib import Path
 from enum import Enum
 import pandas as pd
 import logging
 import duckdb
-import shutil
 import re
 
 
@@ -91,15 +89,12 @@ class Loader(ABC):
         """
         Extract the corresponding resources to add, transform, and load them into the package.
         """
-        try:
-            self.parse_input()
-            for resource in self.resources:
-                self.dp.attach_resource(resource)
-            self.transform()
-            self.load()
-            self.save()
-        finally:
-            self.delete_staging()
+        self.parse_input()
+        for resource in self.resources:
+            self.dp.attach_resource(resource)
+        self.transform()
+        self.load()
+        self.save()
         
 
     def remove(self):
@@ -122,25 +117,20 @@ class Loader(ABC):
         dp.save()
 
 
-    def update(self, resource_name: str | None, method: UpdateMethod):
+    def update(self, method: UpdateMethod, resource_name: str | None = None):
         """
         Update the package with the current resources.
         The method is common whether appending or replacing data.
         """
-        try:
-            self.parse_input()
-            for resource in self.resources:
-                self.dp.check_schema_is_compatible(resource)
-            self.transform()
-            match method:
-                case UpdateMethod.APPEND:
-                    self.append_data(resource_name)
-                case UpdateMethod.REPLACE:
-                    self.replace_data(resource_name)
-                case UpdateMethod.DELETE:
-                    self.delete_data(resource_name)
-        finally:
-            self.delete_staging()
+        self.parse_input()
+        self.transform()
+        match method:
+            case UpdateMethod.APPEND:
+                self.append_data(resource_name)
+            case UpdateMethod.REPLACE:
+                self.replace_data(resource_name)
+            case UpdateMethod.DELETE:
+                self.delete_data()
         # NOTE: there is no need to save here
         # as the modifications are done on the data only, not on the schema
 
@@ -155,25 +145,27 @@ class Loader(ABC):
         raise NotImplementedError()
 
 
-    def delete_data(self, resource_name: str | None = None):
-        resources = self.get_resources_to_update(resource_name)
-        for resource in resources:
+    def delete_data(self):
+        for resource in self.resources:
             df = self.dp.read_resource(resource.name)
             logger.info(f"Deleting data from resource {resource.name}")
             empty_df_with_same_schema = df.head(0).copy()
             self.write_to_package(empty_df_with_same_schema, resource)
 
 
-    def get_resources_to_update(self, resource_name: str | None = None) -> list[Resource]:
+    @staticmethod
+    def delete_one_resource(package: Path, resource_name: str):
         """
-        Get the resources to update.
-        If a resource name is provided, return only the existing resource with that name in the datapackage.
-        Otherwise, return all created resources.
-        TODO: implement delete cascade
+        Delete data from a resource.
         """
-        if resource_name is None:
-            return self.resources
-        return [self.dp.get_resource(resource_name)]
+        dp = DataPackage.from_path(package)
+        resource = dp.get_resource(resource_name)
+        df = dp.read_resource(resource_name)
+        logger.info(f"Deleting data from resource {resource_name}")
+        empty_df_with_same_schema = df.head(0).copy()
+        target_path = dp.get_path() / resource.path
+        logger.info(f"Writing parquet file to package at {target_path}")
+        write_parquet(empty_df_with_same_schema, target_path)
 
 
     def load_conn(self) -> duckdb.DuckDBPyConnection:
@@ -209,28 +201,3 @@ class Loader(ABC):
         target_path = self.dp.get_path() / target_filename
         logger.info(f"Writing parquet file to package at {target_path}")
         write_parquet(df, target_path, geo)
-
-
-    def get_staging_dir(self) -> Path:
-        staging_dir = Path(gettempdir()) / self.dp.name
-        staging_dir.mkdir(parents=True, exist_ok=True)
-        return staging_dir
-
-
-    def write_to_staging(self, df: pd.DataFrame, resource_name: str, geo: bool = False):
-        target_filename = resource_name + ".parquet"
-        target_path = self.get_staging_dir() / target_filename
-        logger.info(f"Writing {resource_name} parquet to {target_path}")
-        write_parquet(df, target_path, geo)
-
-
-    def read_from_staging(self, resource_name: str) -> pd.DataFrame:
-        target_filename = resource_name + ".parquet"
-        target_path = self.get_staging_dir() / target_filename
-        return pd.read_parquet(target_path)
-
-
-    def delete_staging(self):
-        staging_dir = self.get_staging_dir()
-        if staging_dir.exists():
-            shutil.rmtree(staging_dir)

@@ -74,7 +74,9 @@ def test_002_add_remove_file(input_files: dict[str, str], output_files: dict[str
         ["add", "kobotoolbox", input_files["kobotoolbox_inquiry.xlsx"], input_files["kobotoolbox_data.xlsx"]],
         ["add", "file", input_files["external_data.csv"]],
         ["remove", "file", input_files["external_data.csv"]],
-        ["add", "file", input_files["external_data.csv"]]
+        ["add", "file", input_files["external_data.csv"]],
+        ["remove", "resource", "external_data"],
+        ["add", "file", input_files["external_data.csv"]],
     ], expected_datapackage=output_files["002.datapackage.json"])
 
 
@@ -106,5 +108,8 @@ def test_004_append_replace_delete_file_data(input_files: dict[str, str], output
         ["add", "file", input_files["external_data.csv"]],
         ["append", "file", input_files["external_data.csv"]],
         ["replace", "file", input_files["external_data.csv"]],
-        ["delete", "file", input_files["external_data.csv"]]
+        ["delete", "file", input_files["external_data.csv"]],
+        ["append", "file", input_files["external_data2.csv"], '--resource', 'external_data'],
+        ["replace", "file", input_files["external_data2.csv"], '--resource', 'external_data'],
+        ["delete", "resource", 'external_data'],
     ], expected_datapackage=output_files["004.datapackage.json"])
