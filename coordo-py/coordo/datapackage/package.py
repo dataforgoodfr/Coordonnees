@@ -154,24 +154,6 @@ class DataPackage(pydantic.BaseModel):
             self.resources.append(resource)
 
 
-    def check_schema_is_compatible(self, resource: Resource) -> bool:
-        """
-        Check if the new resource is compatible with the current resource in the package.
-        """
-        if not self.resource_exists(resource.name):
-            raise ValueError(
-                f"No resource named '{resource.name}' exists in package '{self.name}'. "
-                "Please add the resource instead of updating it."
-            )
-        current_datapackage_resource = self.get_resource(resource.name)
-        # check if the new  resource has the same schema as the current resource
-        if not resource.has_same_schema_as(current_datapackage_resource):
-            raise ValueError(
-                f"Resource '{resource.name}' has a different schema than the existing resource in the package '{self.name}'."
-            )
-        return True
-
-
     def get_resource(self, name: str) -> Resource:
         found_resources = [res for res in self.resources if res.name == name]
         assert len(found_resources) <= 1, f"Multiple resources named '{name}' found."

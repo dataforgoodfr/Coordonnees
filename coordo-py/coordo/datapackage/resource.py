@@ -112,6 +112,7 @@ class Resource(pydantic.BaseModel):
 
     def has_same_schema_as(self, other: Self) -> bool:
         for attr in vars(self.schema):
+            print(attr, getattr(self.schema, attr), getattr(other.schema, attr))
             if getattr(self.schema, attr) != getattr(other.schema, attr):
                 return False
         return True

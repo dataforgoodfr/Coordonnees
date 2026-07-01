@@ -72,8 +72,10 @@ class FileLoader(Loader):
 
 
     def append_data(self, resource_name: str | None = None):
-        logger.info(f"Appending data to resource '{self.resource.name}'")
-        existing_resource = self.dp.get_resource(self.resource.name)
+        # if no resource name is provided, use the current resource's name
+        resource_name = resource_name or self.resource.name
+        logger.info(f"Appending data to resource '{resource_name}'")
+        existing_resource = self.dp.get_resource(resource_name)
         current_df = self.dp.read_resource(existing_resource.name)
         # concatenating current and new data
         df = pd.concat([
@@ -85,7 +87,10 @@ class FileLoader(Loader):
 
 
     def replace_data(self, resource_name: str | None = None):
-        existing_resource = self.dp.get_resource(self.resource.name)
+        # if no resource name is provided, use the current resource's name
+        resource_name = resource_name or self.resource.name
+        logger.info(f"Replacing data in resource '{resource_name}'")
+        existing_resource = self.dp.get_resource(resource_name)
         # saving concatenated data back to the current resource's path
         self.write_to_package(
             self.dataframes[self.resource.name],
