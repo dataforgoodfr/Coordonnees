@@ -168,9 +168,14 @@ def stringify(obj):
 
 
 def coords_to_point(coords):
-    if not pd.isna(coords):
-        lat, lon, alt, prec = map(float, coords.split(" "))
-        return Point(lon, lat, alt)
+    if pd.isna(coords) or coords is None or (isinstance(coords, str) and not coords.strip()):
+        return None
+    try:
+        lat, lon, alt = map(float, str(coords).split(" "))
+    except Exception:
+        print("[WARN] Could not convert coords to Point:", coords)
+        return None
+    return Point(lon, lat, alt)
 
 
 def _create_resource(name: str) -> Resource:
@@ -360,7 +365,7 @@ class KoboToolboxLoader(Loader):
                     print(
                         f"Field {field.name} not found in data. Filling with empty values"
                     )
-                    sheet[field.name] = ""
+                    sheet[field.name] = None if field.type == "geojson" else ""
                 fields.append(field.name)
 
             sheet = sheet[fields]
@@ -374,26 +379,29 @@ class KoboToolboxLoader(Loader):
             path = Path(self.dp._basepath, table_name + ".parquet")
             print(f"Saving {table_name!r} to {path}")
 
-            saved = False
-            geo_cols = [f.name for f in resource.schema.fields if f.type == "geojson"]
+            geo_cols = [
+                f.name
+                for f in resource.schema.fields
+                if f.type == "geojson"
+                and f.name in sheet.columns
+                and sheet[f.name].notna().any()
+            ]
 
-            index = 0
-            while(index < len(geo_cols) and not saved):
-                try: 
-                    gdf = gpd.GeoDataFrame(sheet, geometry=geo_cols[index], crs="EPSG:4326")
-
-                    gdf.to_parquet(
-                        path,
-                        schema_version="1.1.0",
-                        index=False,
-                        write_covering_bbox=True,
-                        geometry_encoding="WKB",  # We use this because duckdb can't open geoarrow as geometries
+            if geo_cols:
+                # GeoPandas only supports one active geometry column in a GeoDataFrame.
+                # Convert any additional geo columns into WKB strings so parquet export can succeed.
+                for col in geo_cols[1:]:
+                    sheet[col] = sheet[col].apply(
+                        lambda geom: geom.wkb if geom is not None else None
                     )
-                    saved = True
-                except Exception as e:
-                    print(f"Error saving {table_name!r} with geometry column {geo_cols[index]!r}: {e}")
-                    index += 1
-            
-            if(not saved):
+
+                gdf = gpd.GeoDataFrame(sheet, geometry=geo_cols[0], crs="EPSG:4326")
+                gdf.to_parquet(
+                    path,
+                    schema_version="1.1.0",
+                    index=False,
+                    write_covering_bbox=True,
+                    geometry_encoding="WKB",  # We use this because duckdb can't open geoarrow as geometries
+                )
+            else:
                 sheet.to_parquet(path, index=False)
-                saved = True
