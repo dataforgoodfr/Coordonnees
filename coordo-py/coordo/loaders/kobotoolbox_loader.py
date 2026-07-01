@@ -171,7 +171,7 @@ def coords_to_point(coords):
     if pd.isna(coords) or coords is None or (isinstance(coords, str) and not coords.strip()):
         return None
     try:
-        lat, lon, alt = map(float, str(coords).split(" "))
+        lat, lon, alt, prec = map(float, str(coords).split(" "))
     except Exception:
         print("[WARN] Could not convert coords to Point:", coords)
         return None
