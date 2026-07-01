@@ -5,20 +5,16 @@ import pytest
 from pathlib import Path
 
 DATA_DIR = Path("tests/test_data")
-INVENTORY_DIR = DATA_DIR / "inventory"
+CLI_TEST_DATA_DIR = DATA_DIR / "cli"
+
 
 @pytest.fixture
-def inventory_package():
-    return "catalog/inventory"
+def input_files():
+    input_dir = CLI_TEST_DATA_DIR / "input"
+    return {f.name: str(f) for f in input_dir.iterdir()}
+
 
 @pytest.fixture
-def inventory_inquiry():
-    return str(INVENTORY_DIR / "inquiry.xlsx")
-
-@pytest.fixture
-def inventory_data():
-    return str(INVENTORY_DIR / "data.xlsx")
-
-@pytest.fixture
-def inventory_file():
-    return str(INVENTORY_DIR / "file.csv")
+def output_files():
+    output_dir = CLI_TEST_DATA_DIR / "output"
+    return {f.name: str(f) for f in output_dir.iterdir()}
