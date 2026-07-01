@@ -94,6 +94,14 @@ FROM anon_1
 
 ## Development
 
+### Testing
+
+To run the pytest tests, simply run in `coordo-py` directory:
+
+```bash
+pytest
+```
+
 ### Data types
 
 #### KoboToolbox

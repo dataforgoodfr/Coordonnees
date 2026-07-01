@@ -4,3 +4,5 @@ catalog/
 data/
 .vscode/
 *.bak
+notebooks/
+__marimo__/

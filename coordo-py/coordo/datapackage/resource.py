@@ -1,6 +1,7 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
+import logging
 from typing import TYPE_CHECKING, Any, Optional, Self
 
 import duckdb
@@ -9,6 +10,8 @@ from dplib.models import Contributor, Dialect, ForeignKey, ForeignKeyReference, 
 from pydantic import model_validator
 
 from .db_helpers import prepare_path
+
+logger = logging.getLogger(__name__)
 
 
 class Resource(pydantic.BaseModel):
@@ -47,7 +50,7 @@ class Resource(pydantic.BaseModel):
         #     f'"{field.name}"::{to_db_type(field)} AS "{field.name}"'
         #     for field in self.schema.fields
         # )
-        query = f'CREATE VIEW "{self.name}" AS SELECT * FROM {prepare_path(self.package._basepath / self.path)}'
+        query = f'CREATE VIEW "{self.name}" AS SELECT * FROM {prepare_path(self.package.get_path() / self.path)}'
         conn.execute(query)
 
     def add_foreignkey(self, fields: list[str], foreign_fields: list[str], foreign_resource: str) -> None:
@@ -63,7 +66,7 @@ class Resource(pydantic.BaseModel):
             )
         )
         fk_part_names_str = " & ".join(self.get_fk_names(fk))
-        print(f"Adding foreign key {fk_part_names_str}")
+        logger.info(f"Adding foreign key {fk_part_names_str}")
         
         if not self._package:
             raise ValueError("You can't add a foreign key to an orphan resource.")
@@ -94,7 +97,7 @@ class Resource(pydantic.BaseModel):
             )
         )
         fk_part_names_str = " & ".join(self.get_fk_names(fk))
-        print(f"Removing foreign key {fk_part_names_str}")
+        logger.info(f"Removing foreign key {fk_part_names_str}")
         if fk not in self.schema.foreignKeys:
             raise ValueError(f"Foreign key {fk_part_names_str} not found in resource {self.name}")
         self.schema.foreignKeys.remove(fk)
@@ -109,6 +112,7 @@ class Resource(pydantic.BaseModel):
 
     def has_same_schema_as(self, other: Self) -> bool:
         for attr in vars(self.schema):
+            print(attr, getattr(self.schema, attr), getattr(other.schema, attr))
             if getattr(self.schema, attr) != getattr(other.schema, attr):
                 return False
         return True

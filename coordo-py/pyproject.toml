@@ -11,7 +11,7 @@ dependencies = [
     "geopandas>=1.1.2",
     "lark>=1.3.1",
     "numpy>=2.2.6",
-    "pandas==3.0",
+    "pandas==3.0.3",
     "pyarrow>=23.0.1",
     "pydantic>=2.12.5",
     "pygeofilter>=0.3.3",
@@ -23,7 +23,7 @@ dependencies = [
 ]
 
 [project.scripts]
-coordo = "coordo.cli:app"
+coordo = "coordo.cli.main:app"
 
 [tool.setuptools.package-data]
 "coordo" = ["static/*", "**/*.sql"]
@@ -31,6 +31,10 @@ coordo = "coordo.cli:app"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ["-s"]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = '%(asctime)s [%(levelname)s] (%(filename)s:%(lineno)d) %(message)s'
+log_cli_date_format = '%Y-%m-%d %H-%M-%S'
 
 [dependency-groups]
 dev = [
