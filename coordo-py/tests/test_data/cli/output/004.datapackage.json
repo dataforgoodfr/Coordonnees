@@ -1,0 +1,21 @@
+{
+  "name": "test_cli",
+  "resources": [
+    {
+      "name": "external_data",
+      "path": "external_data.parquet",
+      "schema": {
+        "fields": [
+          {
+            "name": "ess_arb",
+            "type": "integer"
+          },
+          {
+            "name": "value",
+            "type": "number"
+          }
+        ]
+      }
+    }
+  ]
+}
