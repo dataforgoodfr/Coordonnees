@@ -42,6 +42,7 @@
       "layerType": "circle",
       "columns": {
         "geom": "gps.merge().centroid()",
+        "TEST":"'TEST'",
         "for": "loc2",
         "cod": "cod",
         "taille_placette": "20^2*pi()/10000",
@@ -92,6 +93,7 @@
       "groupby": ["loc2"],
       "columns": {
         "geom": "centroid(merge(point(enq_gps.long, enq_gps.latit)))",
+        "TEST": "'TEST'",
         "household_nb": "count(_id)",
         "population": "sum(res)",
         "energyType": "count(ener)",
