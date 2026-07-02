@@ -3,7 +3,7 @@
 
 from pygeofilter.ast import AstType
 from pygeofilter.backends.sqlalchemy import to_filter
-from sqlalchemy import MetaData, Select, func, select
+from sqlalchemy import MetaData, Select, func, label, select
 
 from .evaluator import to_sql
 from .mapper import FieldMapper
@@ -44,9 +44,9 @@ def build_query(
         for alias, ast in columns.items():
             expr, joins = to_sql(ast, field_map, base_query)
             if groupby:
-                query = query.add_columns(func.any_value(expr).label(alias))
+                query = query.add_columns(label(alias, func.any_value(expr)))
             else:
-                query = query.add_columns(expr.label(alias))
+                query = query.add_columns(label(alias, expr))
             for join, on in joins:
                 query = query.join(join, on, isouter=True)
     else:
