@@ -24,14 +24,15 @@ def check_files_are_identical(file1: str, file2: str):
     assert result.returncode == 0, f"Files {file1} and {file2} are not identical: {result.stdout}"
 
 
-def run_all(commands: list[list[str]], expected_datapackage: str):
+def run_all(commands: list[list[str]], expected_datapackage: str | None = None):
     catalog_dir = "catalog/test_cli"
     try:
         for command in commands:
             command += ["--package", catalog_dir]
             run(command)
-        # check that the datapackage was created as expected
-        check_files_are_identical(f"{catalog_dir}/datapackage.json", expected_datapackage)
+        if expected_datapackage:
+            # check that the datapackage was created as expected
+            check_files_are_identical(f"{catalog_dir}/datapackage.json", expected_datapackage)
     finally:
         logger.info(f"Removing package '{catalog_dir}'")
         shutil.rmtree(catalog_dir)
@@ -113,3 +114,37 @@ def test_004_append_replace_delete_file_data(input_files: dict[str, str], output
         ["replace", "file", input_files["external_data2.csv"], '--resource', 'external_data'],
         ["delete", "resource", 'external_data'],
     ], expected_datapackage=output_files["004.datapackage.json"])
+
+
+def test_005_add_remove_delete_excel_file(input_files: dict[str, str], output_files: dict[str, str]):
+    """
+    Test the following workflow:
+    - Load a file
+    - Append data from second file
+    """
+    run_all([
+        ["add", "file", input_files["external_data.xlsx"]],
+        ["remove", "file", input_files["external_data.xlsx"]],
+        ["add", "file", input_files["external_data.xlsx"]],
+        ["delete", "file", input_files["external_data.xlsx"]],
+        ["append", "file", input_files["external_data.xlsx"]],
+        ["replace", "file", input_files["external_data.xlsx"]],
+        ["delete", "resource", 'bio_samp'],
+    ], expected_datapackage=output_files["005.datapackage.json"])
+
+
+def test_006_append_multisheet_excel_file_to_unique_resource(input_files: dict[str, str], output_files: dict[str, str]):
+    """
+    Test the following workflow:
+    - Load a file
+    - Append data from second file
+    """
+    try:
+        run_all([
+            ["add", "file", input_files["external_data.xlsx"]],
+            ["append", "file", input_files["external_data.xlsx"], "-r", "bio_samp"],
+        ])
+    except AssertionError:
+        logger.info("Expected AssertionError was raised")
+    else:
+        raise RuntimeError("Expected AssertionError but no exception was raised")

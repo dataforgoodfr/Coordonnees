@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 
 
 class FileLoader(Loader):
+
+    resource: Resource
+    
     def __init__(
         self,
         package: Path,

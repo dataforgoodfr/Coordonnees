@@ -1,0 +1,117 @@
+{
+  "name": "test_cli",
+  "resources": [
+    {
+      "name": "bio_samp",
+      "path": "bio_samp.parquet",
+      "schema": {
+        "fields": [
+          {
+            "name": "proj",
+            "type": "string"
+          },
+          {
+            "name": "samp",
+            "type": "string"
+          },
+          {
+            "name": "group1",
+            "type": "string"
+          },
+          {
+            "name": "group2",
+            "type": "string"
+          },
+          {
+            "name": "group3",
+            "type": "string"
+          },
+          {
+            "name": "PSU",
+            "type": "string"
+          },
+          {
+            "name": "_index",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "bio_pop",
+      "path": "bio_pop.parquet",
+      "schema": {
+        "fields": [
+          {
+            "name": "ess_arb",
+            "type": "string"
+          },
+          {
+            "name": "value",
+            "type": "string"
+          },
+          {
+            "name": "_index",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "bio_sp",
+      "path": "bio_sp.parquet",
+      "schema": {
+        "fields": [
+          {
+            "name": "tax3",
+            "type": "string"
+          },
+          {
+            "name": "stat::Français(fr)",
+            "type": "string"
+          },
+          {
+            "name": "stat::English(en)",
+            "type": "string"
+          },
+          {
+            "name": "stat::Español(es)",
+            "type": "string"
+          },
+          {
+            "name": "_index",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "bio_choic",
+      "path": "bio_choic.parquet",
+      "schema": {
+        "fields": [
+          {
+            "name": "samp",
+            "type": "string"
+          },
+          {
+            "name": "group1",
+            "type": "string"
+          },
+          {
+            "name": "group2",
+            "type": "string"
+          },
+          {
+            "name": "group3",
+            "type": "string"
+          },
+          {
+            "name": "_index",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  ]
+}
