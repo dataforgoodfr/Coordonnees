@@ -432,7 +432,7 @@ class KoboToolboxLoader(Loader):
                     )
 
                 gdf = gpd.GeoDataFrame(df, geometry=geo_cols[0], crs="EPSG:4326")
-                self.write_to_package(gdf, resource, is_geo=True)
+                self.write_to_package(gdf, resource, geo=True)
 
             else:
                 self.write_to_package(df, resource)
