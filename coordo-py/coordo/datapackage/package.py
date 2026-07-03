@@ -176,7 +176,6 @@ class DataPackage(pydantic.BaseModel):
                     resource.schema,
                     table_name=resource.name,
                 ).table.to_metadata(metadata)
-            
                 try:
                     resource.load_table(conn)
                 except Exception as e:

@@ -9,7 +9,7 @@ import logging
 
 from coordo.loaders import FileLoader
 from ..datapackage import Schema, Field
-from ..datapackage.db_helpers import prepare_path, pandas_type_to_dp_type
+from ..datapackage.db_helpers import pandas_type_to_dp_type
 
 logger = logging.getLogger(__name__)
 
@@ -24,15 +24,6 @@ class ExcelFileLoader(FileLoader):
         path: Path
     ):
         super().__init__(package, path)
-
-
-    def get_sql_query(self, path: Path) -> str:
-        """
-        Returns the SQL query to extract the schema from the file.
-        """
-        return f"""
-            SELECT * FROM {prepare_path(path)}
-        """
             
 
     def parse_input(self):
