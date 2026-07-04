@@ -1,3 +1,6 @@
+# Copyright COORDONNÉES 2025, 2026
+# SPDX-License-Identifier: MPL-2.0
+
 from lark import Lark, Transformer
 from coordo.helpers import removeQuotes
 
@@ -30,7 +33,8 @@ VAR: "${" /[A-Za-z_][A-Za-z_0-9]*/ "}"
 
 
 def isCustomConstraint(constraint: str) -> bool:
-        return not (isinstance(constraint, float) or isinstance(constraint, int))
+    return not (isinstance(constraint, float) or isinstance(constraint, int))
+
 
 class RangeTransformer(Transformer):
     def arg_list(self, items):
@@ -55,12 +59,12 @@ class RangeTransformer(Transformer):
             case ">=":
                 constraintName += "minimum"
             case "<=":
-                constraintName +="maximum"
+                constraintName += "maximum"
             case ">":
                 constraintName += "exclusiveMinimum"
             case "<":
-                constraintName +="exclusiveMaximum"
-        
+                constraintName += "exclusiveMaximum"
+
         return {constraintName: expr}
 
     def func_call(self, items):

@@ -60,16 +60,13 @@ class DataPackage(pydantic.BaseModel):
 
     _basepath: Path
 
-
     def model_post_init(self, context):
         self._basepath = context["_basepath"]
         for resource in self.resources:
             resource._package = self
 
-
     def get_path(self) -> Path:
         return Path(self._basepath)
-
 
     @classmethod
     def from_path(cls, path: Path) -> "DataPackage":
@@ -89,7 +86,6 @@ class DataPackage(pydantic.BaseModel):
                 context={"_basepath": path.parent},
             )
 
-
     def save(self):
         Path(self._basepath, "datapackage.json").write_text(
             self.model_dump_json(
@@ -99,7 +95,6 @@ class DataPackage(pydantic.BaseModel):
                 round_trip=True,
             )
         )
-
 
     def remove_resource(self, name: str) -> None:
         """
@@ -121,21 +116,20 @@ class DataPackage(pydantic.BaseModel):
             if res_schema.foreignKeys:
                 for fk in res_schema.foreignKeys:
                     if fk.reference.resource == name:
-                        formated_fks = res.get_fk_names(fk) # list of strings
+                        formated_fks = res.get_fk_names(fk)  # list of strings
                         blocking_fks += formated_fks
         if blocking_fks:
-            # build a string containing the list of foreign key field pairs 
+            # build a string containing the list of foreign key field pairs
             fk_part_names_str = "\n - ".join(blocking_fks)
             msg = f"Can't remove the resource '{name}' because other resources have foreign keys pointing to it:\n - {fk_part_names_str}"
             raise ValueError(msg)
-            
+
         # remove the file associated with the resource
         if resource.path:
             path = handle_path(resource.path)
             Path(self._basepath / path).unlink()
         # update resources list
         self.resources = [res for res in self.resources if res.name != name]
-
 
     def attach_resource(self, resource: Resource) -> None:
         """
@@ -153,17 +147,14 @@ class DataPackage(pydantic.BaseModel):
             resource._package = self
             self.resources.append(resource)
 
-
     def get_resource(self, name: str) -> Resource:
         found_resources = [res for res in self.resources if res.name == name]
         assert len(found_resources) <= 1, f"Multiple resources named '{name}' found."
         assert len(found_resources) > 0, f"Resource '{name}' not found."
         return found_resources[0]
 
-
     def resource_exists(self, name: str) -> bool:
         return any(res.name == name for res in self.resources)
-
 
     def prepare_db(self) -> tuple[duckdb.DuckDBPyConnection, sa.MetaData]:
         conn = load_conn()
@@ -179,10 +170,11 @@ class DataPackage(pydantic.BaseModel):
                 try:
                     resource.load_table(conn)
                 except Exception as e:
-                    raise ValueError(f"Error occurred while loading table for resource {resource.name}: {e}")
+                    raise ValueError(
+                        f"Error occurred while loading table for resource {resource.name}: {e}"
+                    )
 
         return conn, metadata
-
 
     def read_resource(
         self,

@@ -10,21 +10,20 @@ from ..datapackage.db_helpers import prepare_path
 
 logger = logging.getLogger(__name__)
 
+
 class CSVFileLoader(FileLoader):
-    
-    EXTENSIONS: ClassVar[list[str]] = ['.csv', '.tsv', '.tab']
-    
+    EXTENSIONS: ClassVar[list[str]] = [".csv", ".tsv", ".tab"]
+
     def __init__(
         self,
         package: Path,
         path: Path,
         sep: Separator = Separator.COMMA,
-        decimal_sep: Separator = Separator.DOT
+        decimal_sep: Separator = Separator.DOT,
     ):
         super().__init__(package, path)
         self.sep = sep
         self.decimal_sep = decimal_sep
-
 
     def get_sql_query(self, path: Path) -> str:
         """
@@ -34,8 +33,3 @@ class CSVFileLoader(FileLoader):
             SELECT * 
             FROM read_csv({prepare_path(path)}, sep='{self.sep.value}', decimal_separator='{self.decimal_sep.value}', auto_detect=true)
         """
-
-
-    
-
-        

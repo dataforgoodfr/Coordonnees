@@ -12,14 +12,15 @@ from .excel_file import ExcelFileLoader
 
 
 __all__ = [
-    "Separator", 
-    "Loader", 
-    "UpdateMethod", 
-    "FileLoader", 
-    "KoboToolboxLoader", 
-    "CSVFileLoader", 
-    "ExcelFileLoader"
+    "Separator",
+    "Loader",
+    "UpdateMethod",
+    "FileLoader",
+    "KoboToolboxLoader",
+    "CSVFileLoader",
+    "ExcelFileLoader",
 ]
+
 
 def get_file_loader(path: Path, supplementary_params: dict) -> Type[FileLoader]:
     """
@@ -45,13 +46,19 @@ def get_supplementary_params() -> dict:
     Get all parameters found locally in the scope of the caller,
     that are not part of a shortlist of expected parameters
     """
-    return {k: v for k, v in locals().items() if k not in ["package", "path", "resource_name"]}
+    return {
+        k: v
+        for k, v in locals().items()
+        if k not in ["package", "path", "resource_name"]
+    }
 
 
 def check_params_are_attributes(cls: Type[Loader], kwargs: dict):
     static_attributes = get_static_attributes(cls)
     for attr in kwargs:
-        assert attr in static_attributes, f"Unrecognized argument {attr} for class {cls.__name__}"
+        assert attr in static_attributes, (
+            f"Unrecognized argument {attr} for class {cls.__name__}"
+        )
 
 
 def get_static_attributes(cls: Type[Loader]) -> list:

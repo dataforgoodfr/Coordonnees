@@ -9,8 +9,17 @@ import typer
 from coordo.loaders import Separator
 
 # general arguments
-Package = Annotated[Path, typer.Option("--package", "-p", help="Path to the package directory")]
-ResourceName = Annotated[str | None, typer.Option("--resource", "-r", help="Name of the resource (if not provided, the file name will be used)")]
+Package = Annotated[
+    Path, typer.Option("--package", "-p", help="Path to the package directory")
+]
+ResourceName = Annotated[
+    str | None,
+    typer.Option(
+        "--resource",
+        "-r",
+        help="Name of the resource (if not provided, the file name will be used)",
+    ),
+]
 From = Annotated[str, typer.Argument(help="Foreign key source")]
 To = Annotated[str, typer.Argument(help="Foreign key target")]
 
@@ -20,5 +29,10 @@ XlsData = Annotated[Path, typer.Argument(help="Path to the XLS data")]
 
 # file arguments
 FilePath = Annotated[Path, typer.Argument(help="Path to the file")]
-Sep = Annotated[Separator, typer.Option("--separator", "-s", help="Separator for the file")]
-DecimalSep = Annotated[Separator, typer.Option("--decimal-separator", "-d", help="Decimal separator for the file")]
+Sep = Annotated[
+    Separator, typer.Option("--separator", "-s", help="Separator for the file")
+]
+DecimalSep = Annotated[
+    Separator,
+    typer.Option("--decimal-separator", "-d", help="Decimal separator for the file"),
+]

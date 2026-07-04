@@ -3,7 +3,12 @@
 
 from pathlib import Path
 
-from pandas.api.types import is_integer_dtype, is_float_dtype, is_string_dtype, is_datetime64_dtype
+from pandas.api.types import (
+    is_integer_dtype,
+    is_float_dtype,
+    is_string_dtype,
+    is_datetime64_dtype,
+)
 from duckdb.sqltypes import DuckDBPyType
 
 
@@ -37,7 +42,7 @@ def duckdb_type_to_dp_type(type: DuckDBPyType) -> dict:
 def pandas_type_to_dp_type(type: str) -> dict:
     """
     Convert a pandas type to a Data Package type.
-    Note that pandas parses list columns as object, 
+    Note that pandas parses list columns as object,
     and that pandas (unlike Geopandas) does not have a built-in dtype of geometry data.
     """
     if is_integer_dtype(type):

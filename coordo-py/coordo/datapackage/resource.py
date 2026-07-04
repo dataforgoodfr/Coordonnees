@@ -6,7 +6,15 @@ from typing import TYPE_CHECKING, Any, Optional, Self
 
 import duckdb
 import pydantic
-from dplib.models import Contributor, Dialect, ForeignKey, ForeignKeyReference, License, Schema, Source
+from dplib.models import (
+    Contributor,
+    Dialect,
+    ForeignKey,
+    ForeignKeyReference,
+    License,
+    Schema,
+    Source,
+)
 from pydantic import model_validator
 
 from .db_helpers import prepare_path
@@ -53,21 +61,25 @@ class Resource(pydantic.BaseModel):
         query = f'CREATE VIEW "{self.name}" AS SELECT * FROM {prepare_path(self.package.get_path() / self.path)}'
         conn.execute(query)
 
-    def add_foreignkey(self, fields: list[str], foreign_fields: list[str], foreign_resource: str) -> None:
+    def add_foreignkey(
+        self, fields: list[str], foreign_fields: list[str], foreign_resource: str
+    ) -> None:
         # TODO: remove this check when addition of multiple fields at once is supported
         if len(fields) > 1 or len(foreign_fields) > 1:
-            raise ValueError("Adding a foreign key with multiple fields is not supported yet.")
-        
+            raise ValueError(
+                "Adding a foreign key with multiple fields is not supported yet."
+            )
+
         fk = ForeignKey(
             fields=fields,
             reference=ForeignKeyReference(
                 fields=foreign_fields,
                 resource=None if self.name == foreign_resource else foreign_resource,
-            )
+            ),
         )
         fk_part_names_str = " & ".join(self.get_fk_names(fk))
         logger.info(f"Adding foreign key {fk_part_names_str}")
-        
+
         if not self._package:
             raise ValueError("You can't add a foreign key to an orphan resource.")
         field_names = [f.name for f in self.schema.fields]
@@ -85,21 +97,27 @@ class Resource(pydantic.BaseModel):
                 f"Resource {parent_resource.name} has no field named {f}"
             )
         if fk in self.schema.foreignKeys:
-            raise ValueError(f"Foreign key {fk_part_names_str} already exists in resource {self.name}")
+            raise ValueError(
+                f"Foreign key {fk_part_names_str} already exists in resource {self.name}"
+            )
         self.schema.foreignKeys.append(fk)
 
-    def remove_foreignkey(self, fields: list[str], foreign_fields: list[str], foreign_resource: str) -> None:
+    def remove_foreignkey(
+        self, fields: list[str], foreign_fields: list[str], foreign_resource: str
+    ) -> None:
         fk = ForeignKey(
             fields=fields,
             reference=ForeignKeyReference(
                 fields=foreign_fields,
                 resource=None if self.name == foreign_resource else foreign_resource,
-            )
+            ),
         )
         fk_part_names_str = " & ".join(self.get_fk_names(fk))
         logger.info(f"Removing foreign key {fk_part_names_str}")
         if fk not in self.schema.foreignKeys:
-            raise ValueError(f"Foreign key {fk_part_names_str} not found in resource {self.name}")
+            raise ValueError(
+                f"Foreign key {fk_part_names_str} not found in resource {self.name}"
+            )
         self.schema.foreignKeys.remove(fk)
 
     @model_validator(mode="after")
@@ -116,7 +134,7 @@ class Resource(pydantic.BaseModel):
             if getattr(self.schema, attr) != getattr(other.schema, attr):
                 return False
         return True
-    
+
     def get_fk_names(self, fk: ForeignKey) -> list[str]:
         return [
             f"'{self.name}.{field}' -> '{fk.reference.resource}.{reference_field}'"

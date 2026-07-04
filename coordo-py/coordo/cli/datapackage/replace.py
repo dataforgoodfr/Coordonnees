@@ -3,8 +3,22 @@
 
 import typer
 
-from coordo.loaders import KoboToolboxLoader, Separator, UpdateMethod, get_file_loader, get_supplementary_params
-from .annotations import Package, ResourceName, FilePath, Sep, DecimalSep, XlsForm, XlsData
+from coordo.loaders import (
+    KoboToolboxLoader,
+    Separator,
+    UpdateMethod,
+    get_file_loader,
+    get_supplementary_params,
+)
+from .annotations import (
+    Package,
+    ResourceName,
+    FilePath,
+    Sep,
+    DecimalSep,
+    XlsForm,
+    XlsData,
+)
 
 
 app = typer.Typer()
@@ -12,8 +26,8 @@ app = typer.Typer()
 
 @app.command()
 def kobotoolbox(
-    xlsform: XlsForm, 
-    xlsdata: XlsData, 
+    xlsform: XlsForm,
+    xlsdata: XlsData,
     package: Package,
 ):
     """
@@ -22,18 +36,19 @@ def kobotoolbox(
     KoboToolboxLoader(package, xlsform, xlsdata).update(method=UpdateMethod.REPLACE)
 
 
-
 @app.command()
 def file(
-    path: FilePath, 
-    package: Package, 
+    path: FilePath,
+    package: Package,
     resource: ResourceName = None,
-    sep: Sep = Separator.COMMA, 
-    decimal_sep: DecimalSep = Separator.DOT
+    sep: Sep = Separator.COMMA,
+    decimal_sep: DecimalSep = Separator.DOT,
 ):
     """
     Replace data in a datapackage resource from a file. By default, the resource name is inferred from the file name.
     """
     params = get_supplementary_params()
     file_loader_cls = get_file_loader(path, params)
-    file_loader_cls(package, path, **params).update(resource_name=resource, method=UpdateMethod.REPLACE)
+    file_loader_cls(package, path, **params).update(
+        resource_name=resource, method=UpdateMethod.REPLACE
+    )

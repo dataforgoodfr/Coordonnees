@@ -15,21 +15,15 @@ logger = logging.getLogger(__name__)
 
 
 class FileLoader(Loader):
-
     _ACCEPTS_TARGET_RESOURCES: ClassVar[bool] = True
 
     resource: Resource
-    
-    def __init__(
-        self,
-        package: Path,
-        path: Path
-    ):
+
+    def __init__(self, package: Path, path: Path):
         super().__init__(package)
         self.path = path
         if not self.path.exists():
             raise FileNotFoundError(f"File not found: {self.path}")
-
 
     def get_sql_query(self, path: Path) -> str:
         """
@@ -38,7 +32,6 @@ class FileLoader(Loader):
         return f"""
             SELECT * FROM {prepare_path(path)}
         """
-
 
     def parse_file(self, path: Path) -> tuple[Resource, pd.DataFrame]:
         """
@@ -49,28 +42,25 @@ class FileLoader(Loader):
         """
         schema = Schema()
         with self.load_conn() as conn:
-            
             sql_query = self.get_sql_query(path)
             rel = conn.sql(sql_query)
 
             # parse schema from the SQL query result
             for name, type in zip(rel.columns, rel.types):
                 schema.add_field(Field(name=name, **duckdb_type_to_dp_type(type)))
-    
+
             # creating a new resource
             resource = self.create_resource(path.stem, schema)
             # parsing data from the file
             df = rel.to_df()
-        
-        return resource, df
 
+        return resource, df
 
     def parse_input(self):
         self.resource, df = self.parse_file(self.path)
         self.resources = [self.resource]
         # storing parsed dataframe
         self.dataframes[self.resource.name] = df
-
 
     def parse_resource_names(self) -> list[str]:
         """
@@ -80,11 +70,9 @@ class FileLoader(Loader):
         """
         return [self.path.stem]
 
-
     def transform(self):
         # TODO: if needed, implement transformation logic here or in child classes
         pass
-
 
     def append_data(self, resource_name: str | None = None):
         # if no resource name is provided, use the current resource's name
@@ -92,7 +80,6 @@ class FileLoader(Loader):
         resource = self.dp.get_resource(resource_name)
         df = self.dataframes[self.resource.name]
         self.append_datafame_to_resource(df, resource)
-
 
     def replace_data(self, resource_name: str | None = None):
         # if no resource name is provided, use the current resource's name

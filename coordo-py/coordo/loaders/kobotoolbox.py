@@ -36,7 +36,11 @@ def stringify(obj):
 
 
 def coords_to_point(coords):
-    if pd.isna(coords) or coords is None or (isinstance(coords, str) and not coords.strip()):
+    if (
+        pd.isna(coords)
+        or coords is None
+        or (isinstance(coords, str) and not coords.strip())
+    ):
         return None
     try:
         lat, lon, alt, prec = map(float, str(coords).split(" "))
@@ -47,7 +51,6 @@ def coords_to_point(coords):
 
 
 class KoboToolboxLoader(Loader):
-
     PRIMARY_KEY: ClassVar[str] = "_id"
 
     METADATA_TYPES: ClassVar[list[str]] = [
@@ -63,12 +66,11 @@ class KoboToolboxLoader(Loader):
         "audit",
         "note",
     ]
-    
+
     IGNORE_TYPES: ClassVar[list[str]] = [
         "note",
     ]
-    
-    
+
     DP_FIELDS: ClassVar[dict[str, str]] = {
         "integer": "integer",
         "decimal": "number",
@@ -94,7 +96,7 @@ class KoboToolboxLoader(Loader):
         # "hidden": None,
         # "xml-external": None,
     }
-    
+
     DTYPES: ClassVar[dict] = {
         "string": str,
         "integer": "Int64",
@@ -105,14 +107,8 @@ class KoboToolboxLoader(Loader):
     }
 
     main_resource: Resource
-    
-    
-    def __init__(
-        self,
-        package: Path,
-        xlsform: Path,
-        xlsdata: Path
-    ):
+
+    def __init__(self, package: Path, xlsform: Path, xlsdata: Path):
         super().__init__(package)
         self.xlsform = xlsform
         self.xlsdata = xlsdata
@@ -121,11 +117,9 @@ class KoboToolboxLoader(Loader):
         if not self.xlsdata.exists():
             raise FileNotFoundError(f"XLSdata not found: {self.xlsdata}")
 
-
     def parse_input(self):
         self.parse_xlsform_and_get_resources()
         self.extract_xlsdata()
-
 
     def get_resource_schema(self) -> Schema:
         return Schema(
@@ -133,11 +127,9 @@ class KoboToolboxLoader(Loader):
             primaryKey=[self.PRIMARY_KEY],
         )
 
-
     @staticmethod
     def get_form_name(form: dict) -> str:
         return cast(str, form["id_string"].lower())
-        
 
     def parse_xlsform_and_get_resources(self):
         """
@@ -146,19 +138,16 @@ class KoboToolboxLoader(Loader):
         logger.info(f"Parsing form from {self.xlsform}")
         form: dict = parse_file_to_json(str(self.xlsform))
         self.main_resource = self.create_resource(
-            self.get_form_name(form), 
-            self.get_resource_schema()
+            self.get_form_name(form), self.get_resource_schema()
         )
         # parses questions from JSON form and add resources to the datapackage
         parsed_resources = self.parse_questions(form["children"], self.main_resource)
         # NOTE: we must add the main resource first so that foreign keys are resolved correctly
         self.resources = [self.main_resource] + parsed_resources
 
-
     def parse_resource_names(self) -> list[str]:
         self.parse_xlsform_and_get_resources()
         return [resource.name for resource in self.resources]
-
 
     def extract_xlsdata(self):
         """
@@ -166,33 +155,33 @@ class KoboToolboxLoader(Loader):
         """
         logger.info(f"Parsing data from {self.xlsdata}")
         suffix = self.xlsdata.suffix
-        
+
         if suffix == ".xlsx":
-            
-            table_name_to_df_dict: dict[str, pd.DataFrame] = pd.read_excel(self.xlsdata, sheet_name=None)
+            table_name_to_df_dict: dict[str, pd.DataFrame] = pd.read_excel(
+                self.xlsdata, sheet_name=None
+            )
             resource_names = [resource.name for resource in self.resources]
-            
+
             for i, (sheet_name, df) in enumerate(table_name_to_df_dict.items()):
                 table_name = self.main_resource.name if i == 0 else sheet_name.lower()
                 if table_name not in resource_names:
                     logger.warning(f"Sheet name '{sheet_name}' not found in resources")
                 # store the dataframe in the sheets dictionary
                 self.dataframes[table_name] = df
-                
+
         elif suffix == ".csv":
             # TODO: I think this encoding is not the one from Kobo we should verify
             self.dataframes = {
                 self.main_resource.name: pd.read_csv(
-                        self.xlsdata,
-                        sep=";",
-                        encoding="windows-1252",
-                        decimal=",",
+                    self.xlsdata,
+                    sep=";",
+                    encoding="windows-1252",
+                    decimal=",",
                 )
             }
-            
+
         else:
             raise ValueError(f"Unsupported file format: {suffix}")
-        
 
     def get_foreignkey_to(self, parent_resource: Resource) -> ForeignKey:
         return ForeignKey(
@@ -200,10 +189,12 @@ class KoboToolboxLoader(Loader):
             reference=ForeignKeyReference(
                 resource=parent_resource.name,
                 fields=[self.PRIMARY_KEY],
-            )
+            ),
         )
 
-    def parse_questions(self, questions: List[Dict[str, Any]], resource: Resource) -> list[Resource]:
+    def parse_questions(
+        self, questions: List[Dict[str, Any]], resource: Resource
+    ) -> list[Resource]:
         """
         Parses questions (list of dictionaries) and adds them to the resource's schema.
         Example of structure of questions:
@@ -229,36 +220,35 @@ class KoboToolboxLoader(Loader):
         For each question having a 'group' type, parses recursively the children questions.
         """
         parsed_resources: list[Resource] = []
-    
+
         schema = safe(resource, "schema")
         for question in questions:
             qtype = question["type"]
-    
+
             if qtype in self.METADATA_TYPES + self.IGNORE_TYPES:
                 logger.info(f"Skipping question type: {qtype}")
-    
+
             elif qtype == "group":
-                parsed_children_resources = self.parse_questions(question["children"], resource)
+                parsed_children_resources = self.parse_questions(
+                    question["children"], resource
+                )
                 parsed_resources += parsed_children_resources
-    
+
             elif qtype == "repeat":
                 child_resource = self.create_resource(
-                    question["name"].lower(),
-                    self.get_resource_schema()
+                    question["name"].lower(), self.get_resource_schema()
                 )
                 # Use a different variable name to not change the schema used in the for loop
                 child_schema = safe(child_resource, "schema")
                 child_schema.add_field(Field(name="parent_id", type="integer"))
-                child_schema.foreignKeys = [
-                    self.get_foreignkey_to(resource)
-                ]
+                child_schema.foreignKeys = [self.get_foreignkey_to(resource)]
                 parsed_resources.append(child_resource)
                 # recursively parse questions and get children resources
                 parsed_children_resources = self.parse_questions(
                     question["children"], child_resource
                 )
                 parsed_resources += parsed_children_resources
-    
+
             elif qtype in self.DP_FIELDS:
                 kwargs = dict(name=question["name"], type=self.DP_FIELDS[qtype])
                 if "label" in question:
@@ -278,8 +268,12 @@ class KoboToolboxLoader(Loader):
                             constraints.update(constraint)  # type: ignore
                         # Fallback in case of unsupported constraint syntax
                         except Exception as e:
-                            logger.error(f"Error parsing constraint for question {question['name']}: {e}")
-                            constraints.update({"unknownConstraint": bind["constraint"]})
+                            logger.error(
+                                f"Error parsing constraint for question {question['name']}: {e}"
+                            )
+                            constraints.update(
+                                {"unknownConstraint": bind["constraint"]}
+                            )
                 kwargs["constraints"] = constraints
                 if "choices" in question:
                     kwargs["categories"] = [
@@ -287,16 +281,15 @@ class KoboToolboxLoader(Loader):
                         for choice in question["choices"]
                     ]
                 schema.fields.append(Field(**kwargs))
-    
-        return parsed_resources
 
+        return parsed_resources
 
     def transform(self):
         logger.info("Processing sheets...")
         for name, df in self.dataframes.items():
             resource = self.dp.get_resource(name)
             schema = safe(resource, "schema")
-            
+
             df = (
                 df.rename(
                     columns={"_parent_index": "parent_id"},
@@ -352,12 +345,12 @@ class KoboToolboxLoader(Loader):
             # storing transformed dataframe
             self.dataframes[name] = df
 
-
     def append_data(self, resource_name: str | None = None):
         for resource in self.resources:
             self.append_datafame_to_resource(self.dataframes[resource.name], resource)
 
-
     def replace_data(self, resource_name: str | None = None):
         for resource in self.resources:
-            self.replace_resource_data_by_dataframe(self.dataframes[resource.name], resource)
+            self.replace_resource_data_by_dataframe(
+                self.dataframes[resource.name], resource
+            )

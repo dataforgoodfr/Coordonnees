@@ -5,14 +5,10 @@ import warnings
 import logging
 
 LOG_LEVEL = logging.INFO
-LOGGING_FORMAT = '%(asctime)s [%(levelname)s] %(message)s'
-DATE_FORMAT = '%Y-%m-%d %H-%M-%S'
+LOGGING_FORMAT = "%(asctime)s [%(levelname)s] %(message)s"
+DATE_FORMAT = "%Y-%m-%d %H-%M-%S"
 
-logging.basicConfig(
-    level=LOG_LEVEL, 
-    format=LOGGING_FORMAT, 
-    datefmt=DATE_FORMAT
-)
+logging.basicConfig(level=LOG_LEVEL, format=LOGGING_FORMAT, datefmt=DATE_FORMAT)
 
 
 # ignore warnings due to shadowing of Pydantic's "schema" field in "Resource"

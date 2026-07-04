@@ -16,10 +16,7 @@ def kobotoolbox(xlsform: XlsForm, xlsdata: XlsData, package: Package):
 
 
 @app.command()
-def file(
-    path: FilePath, 
-    package: Package
-):
+def file(path: FilePath, package: Package):
     """
     Delete data from the resource(s) contained in the file.
     """
@@ -29,8 +26,8 @@ def file(
 
 @app.command()
 def resource(
-    resource_name: str, 
-    package: Package, 
+    resource_name: str,
+    package: Package,
 ):
     """
     Delete data from a resource.

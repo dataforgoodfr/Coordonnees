@@ -45,16 +45,14 @@ def write_parquet(df: pd.DataFrame, path: Path | str):
     else:
         raise TypeError(f"Unknown dataframe type: {type(df)}")
 
-    
-class Loader(ABC):
 
+class Loader(ABC):
     _ACCEPTS_TARGET_RESOURCES: ClassVar[bool] = False
 
     def __init__(self, package: Path):
         self.dp = DataPackage.from_path(package)
         self.resources: list[Resource] = []
         self.dataframes: dict[str, pd.DataFrame | gpd.GeoDataFrame] = {}
-
 
     @abstractmethod
     def parse_input(self):
@@ -63,18 +61,15 @@ class Loader(ABC):
         """
         raise NotImplementedError()
 
-
     def transform(self):
         """
         Apply any necessary transformations to the data before loading it into the staging directory.
         """
         pass
 
-
     def load(self):
         for resource in self.resources:
             self.write_to_package(self.dataframes[resource.name], resource)
-
 
     def save(self):
         """
@@ -82,14 +77,12 @@ class Loader(ABC):
         """
         self.dp.save()
 
-
     @abstractmethod
     def parse_resource_names(self) -> list[str]:
         """
         Return the names of the resources that could be parsed from the provided input.
         """
         raise NotImplementedError()
-
 
     ######################################
     # ADD / REMOVE RESOURCES
@@ -105,7 +98,6 @@ class Loader(ABC):
         self.transform()
         self.load()
         self.save()
-        
 
     def remove(self):
         """
@@ -116,7 +108,6 @@ class Loader(ABC):
             self.dp.remove_resource(resource.name)
         self.save()
 
-
     @staticmethod
     def remove_one_resource(package: Path, resource_name: str):
         """
@@ -125,7 +116,6 @@ class Loader(ABC):
         dp = DataPackage.from_path(package)
         dp.remove_resource(resource_name)
         dp.save()
-
 
     ######################################
     # UPDATE (APPEND / REPLACE)
@@ -148,36 +138,32 @@ class Loader(ABC):
         # NOTE: there is no need to save here
         # as the modifications are done on the data only, not on the schema
 
-
     def check_resource_name_can_be_supplied(self):
         if not self._ACCEPTS_TARGET_RESOURCES:
-            raise ValueError(f"Cannot supply a target resource name with {self.__class__.__name__}")
-
+            raise ValueError(
+                f"Cannot supply a target resource name with {self.__class__.__name__}"
+            )
 
     @abstractmethod
     def append_data(self, resource_name: str | None = None):
         raise NotImplementedError()
 
-
     @abstractmethod
-    def replace_data(self, resource_name: str | None= None):
+    def replace_data(self, resource_name: str | None = None):
         raise NotImplementedError()
 
-
     def append_datafame_to_resource(self, df: pd.DataFrame, resource: Resource):
-        logger.info(f"Appending data to resource '{resource.name}'") 
+        logger.info(f"Appending data to resource '{resource.name}'")
         current_df = self.dp.read_resource(resource.name)
         # concatenating current and new data
         new_df = pd.concat([current_df, df], ignore_index=True)
         # saving concatenated data back to the current resource's path
         self.write_to_package(new_df, resource)
 
-
     def replace_resource_data_by_dataframe(self, df: pd.DataFrame, resource: Resource):
         logger.info(f"Replacing data in resource '{resource.name}'")
         # saving concatenated data back to the current resource's path
         self.write_to_package(df, resource)
-
 
     ######################################
     # DELETE
@@ -191,7 +177,6 @@ class Loader(ABC):
             logger.info(f"Deleting data from resource {resouce_name}")
             empty_df_with_same_schema = df.head(0).copy()
             self.write_to_package(empty_df_with_same_schema, resource)
-
 
     @staticmethod
     def delete_one_resource(package: Path, resource_name: str):
@@ -207,7 +192,6 @@ class Loader(ABC):
         logger.info(f"Writing parquet file to package at {target_path}")
         write_parquet(empty_df_with_same_schema, target_path)
 
-
     ######################################
     # READ / WRITE PARQUET
     ######################################
@@ -215,8 +199,7 @@ class Loader(ABC):
     def read_parquet(self, resource: Resource) -> pd.DataFrame:
         target_filename = resource.name + ".parquet"
         target_path = self.dp.get_path() / target_filename
-        return pd.read_parquet(target_path) 
-
+        return pd.read_parquet(target_path)
 
     def write_to_package(self, df: pd.DataFrame, resource: Resource):
         target_filename = resource.name + ".parquet"
@@ -224,20 +207,17 @@ class Loader(ABC):
         logger.info(f"Writing parquet file to package at {target_path}")
         write_parquet(df, target_path)
 
-
     ######################################
     # MISC.
     ######################################
 
     def load_conn(self) -> duckdb.DuckDBPyConnection:
         return load_conn()
-    
-    
+
     @staticmethod
     def clean_str(s: str) -> str:
         return re.sub(r"[^a-z0-9._-]", "", s.strip().lower())
-    
-    
+
     def create_resource(self, name: str, schema: Schema) -> Resource:
         """
         Create and return a Resource object with the specified schema
