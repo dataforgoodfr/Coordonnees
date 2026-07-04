@@ -8,7 +8,7 @@ import pandas as pd
 import logging
 
 from coordo.loaders import FileLoader
-from ..datapackage import Schema, Field, Resource
+from ..datapackage import Schema, Field
 from ..datapackage.db_helpers import pandas_type_to_dp_type
 
 logger = logging.getLogger(__name__)
@@ -17,6 +17,7 @@ class ExcelFileLoader(FileLoader):
 
     # see https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_excel.html
     EXTENSIONS: ClassVar[list[str]] = ['.xlsx', '.xls', '.xlsm', '.xlsb', '.odf', '.ods', '.odt'] 
+    _ACCEPTS_TARGET_RESOURCES: ClassVar[bool] = False
     
     def __init__(
         self,
@@ -49,43 +50,14 @@ class ExcelFileLoader(FileLoader):
             self.resources.append(resource)
 
 
-    def get_resources_to_update(self, resource_name: str | None = None) -> list[Resource]:
-        # if a target resource was provided
-        # check that only one resource is present in the Excel file
-        if resource_name is not None:
-            if len(self.resources) > 1:
-                raise ValueError(
-                    "Updating a specific resource is not supported for Excel files comprising multiple sheets."
-                )
-            return [self.dp.get_resource(resource_name)]
-        else:
-            return self.resources
-
-
     def append_data(self, resource_name: str | None = None):
-        target_resources = self.get_resources_to_update(resource_name)
-        for resource in target_resources:
-            logger.info(f"Appending data to resource '{resource.name}'") 
-            current_df = self.dp.read_resource(resource.name)
-            # concatenating current and new data
-            df = pd.concat([
-                current_df, 
-                self.dataframes[resource.name]
-            ], ignore_index=True)
-            # saving concatenated data back to the current resource's path
-            self.write_to_package(df, resource)
-
+        for resource in self.resources:
+            self.append_datafame_to_resource(self.dataframes[resource.name], resource)
+            
 
     def replace_data(self, resource_name: str | None = None):
-        target_resources = self.get_resources_to_update(resource_name)
-        for resource in target_resources:
-            logger.info(f"Replacing data in resource '{resource.name}'")
-            existing_resource = self.dp.get_resource(resource.name)
-            # saving concatenated data back to the current resource's path
-            self.write_to_package(
-                self.dataframes[resource.name],
-                existing_resource
-            )
+        for resource in self.resources:
+            self.replace_resource_data_by_dataframe(self.dataframes[resource.name], resource)
 
 
     def parse_resource_names(self) -> list[str]:

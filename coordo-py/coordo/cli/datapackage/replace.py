@@ -3,11 +3,24 @@
 
 import typer
 
-from coordo.loaders import Separator, UpdateMethod, get_file_loader, get_supplementary_params
-from .annotations import Package, ResourceName, FilePath, Sep, DecimalSep
+from coordo.loaders import KoboToolboxLoader, Separator, UpdateMethod, get_file_loader, get_supplementary_params
+from .annotations import Package, ResourceName, FilePath, Sep, DecimalSep, XlsForm, XlsData
 
 
 app = typer.Typer()
+
+
+@app.command()
+def kobotoolbox(
+    xlsform: XlsForm, 
+    xlsdata: XlsData, 
+    package: Package,
+):
+    """
+    Replace data of datapackage resources by data parsed from Kobotoolbox XLS form and XLS data files.
+    """
+    KoboToolboxLoader(package, xlsform, xlsdata).update(method=UpdateMethod.REPLACE)
+
 
 
 @app.command()

@@ -3,11 +3,16 @@
 
 import typer
 
-from coordo.loaders import Loader, get_file_loader
-from .annotations import Package, FilePath
+from coordo.loaders import KoboToolboxLoader, Loader, get_file_loader
+from .annotations import Package, FilePath, XlsForm, XlsData
 
 
 app = typer.Typer()
+
+
+@app.command()
+def kobotoolbox(xlsform: XlsForm, xlsdata: XlsData, package: Package):
+    KoboToolboxLoader(package, xlsform, xlsdata).delete()
 
 
 @app.command()

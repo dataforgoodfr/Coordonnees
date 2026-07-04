@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from pathlib import Path
+from typing import ClassVar
 import pandas as pd
 import logging
 
@@ -14,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class FileLoader(Loader):
+
+    _ACCEPTS_TARGET_RESOURCES: ClassVar[bool] = True
 
     resource: Resource
     
@@ -86,30 +89,14 @@ class FileLoader(Loader):
     def append_data(self, resource_name: str | None = None):
         # if no resource name is provided, use the current resource's name
         resource_name = resource_name or self.resource.name
-        logger.info(f"Appending data to resource '{resource_name}'")
-        existing_resource = self.dp.get_resource(resource_name)
-        current_df = self.dp.read_resource(existing_resource.name)
-        # concatenating current and new data
-        df = pd.concat([
-            current_df, 
-            self.dataframes[self.resource.name]
-        ], ignore_index=True)
-        # saving concatenated data back to the current resource's path
-        self.write_to_package(df, existing_resource)
+        resource = self.dp.get_resource(resource_name)
+        df = self.dataframes[self.resource.name]
+        self.append_datafame_to_resource(df, resource)
 
 
     def replace_data(self, resource_name: str | None = None):
         # if no resource name is provided, use the current resource's name
         resource_name = resource_name or self.resource.name
-        logger.info(f"Replacing data in resource '{resource_name}'")
-        existing_resource = self.dp.get_resource(resource_name)
-        # saving concatenated data back to the current resource's path
-        self.write_to_package(
-            self.dataframes[self.resource.name],
-            existing_resource
-        )
-
-
-    def load(self):
-        for resource in self.resources:
-            self.write_to_package(self.dataframes[resource.name], resource)
+        resource = self.dp.get_resource(resource_name)
+        df = self.dataframes[self.resource.name]
+        self.replace_resource_data_by_dataframe(df, resource)

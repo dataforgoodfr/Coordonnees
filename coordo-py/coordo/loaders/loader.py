@@ -2,13 +2,14 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from abc import ABC, abstractmethod
+from typing import ClassVar
 from pathlib import Path
 from enum import Enum
 import pandas as pd
+import geopandas as gpd
 import logging
 import duckdb
 import re
-
 
 from ..datapackage import DataPackage, Resource, Schema
 from ..sql.helpers import load_conn
@@ -24,14 +25,14 @@ class Separator(str, Enum):
     PIPE = "|"
     DOT = "."
 
+
 class UpdateMethod(str, Enum):
     APPEND = "append"
     REPLACE = "replace"
-    DELETE = "delete"
 
 
-def write_parquet(df: pd.DataFrame, path: Path | str, geo: bool = False):
-    if geo:
+def write_parquet(df: pd.DataFrame, path: Path | str):
+    if isinstance(df, gpd.GeoDataFrame):
         df.to_parquet(
             path,
             schema_version="1.1.0",
@@ -39,20 +40,20 @@ def write_parquet(df: pd.DataFrame, path: Path | str, geo: bool = False):
             write_covering_bbox=True,
             geometry_encoding="WKB",  # We use this because duckdb can't open geoarrow as geometries
         )
-    else:
+    elif isinstance(df, pd.DataFrame):
         df.to_parquet(path, index=False)
+    else:
+        raise TypeError(f"Unknown dataframe type: {type(df)}")
 
-    
     
 class Loader(ABC):
 
-    RAW_STAGING_DIR = "raw"
-    TRANSFORMED_STAGING_DIR = "transformed"
+    _ACCEPTS_TARGET_RESOURCES: ClassVar[bool] = False
 
     def __init__(self, package: Path):
         self.dp = DataPackage.from_path(package)
         self.resources: list[Resource] = []
-        self.dataframes: dict[str, pd.DataFrame] = {}
+        self.dataframes: dict[str, pd.DataFrame | gpd.GeoDataFrame] = {}
 
 
     @abstractmethod
@@ -70,12 +71,9 @@ class Loader(ABC):
         pass
 
 
-    @abstractmethod
     def load(self):
-        """
-        Load physically resources into the package.
-        """
-        raise NotImplementedError()
+        for resource in self.resources:
+            self.write_to_package(self.dataframes[resource.name], resource)
 
 
     def save(self):
@@ -138,6 +136,8 @@ class Loader(ABC):
         Update the package with the current resources.
         The method is common whether appending or replacing data.
         """
+        if resource_name is not None:
+            self.check_resource_name_can_be_supplied()
         self.parse_input()
         self.transform()
         match method:
@@ -149,6 +149,11 @@ class Loader(ABC):
         # as the modifications are done on the data only, not on the schema
 
 
+    def check_resource_name_can_be_supplied(self):
+        if not self._ACCEPTS_TARGET_RESOURCES:
+            raise ValueError(f"Cannot supply a target resource name with {self.__class__.__name__}")
+
+
     @abstractmethod
     def append_data(self, resource_name: str | None = None):
         raise NotImplementedError()
@@ -157,6 +162,21 @@ class Loader(ABC):
     @abstractmethod
     def replace_data(self, resource_name: str | None= None):
         raise NotImplementedError()
+
+
+    def append_datafame_to_resource(self, df: pd.DataFrame, resource: Resource):
+        logger.info(f"Appending data to resource '{resource.name}'") 
+        current_df = self.dp.read_resource(resource.name)
+        # concatenating current and new data
+        new_df = pd.concat([current_df, df], ignore_index=True)
+        # saving concatenated data back to the current resource's path
+        self.write_to_package(new_df, resource)
+
+
+    def replace_resource_data_by_dataframe(self, df: pd.DataFrame, resource: Resource):
+        logger.info(f"Replacing data in resource '{resource.name}'")
+        # saving concatenated data back to the current resource's path
+        self.write_to_package(df, resource)
 
 
     ######################################
@@ -198,11 +218,11 @@ class Loader(ABC):
         return pd.read_parquet(target_path) 
 
 
-    def write_to_package(self, df: pd.DataFrame, resource: Resource, geo: bool = False):
+    def write_to_package(self, df: pd.DataFrame, resource: Resource):
         target_filename = resource.name + ".parquet"
         target_path = self.dp.get_path() / target_filename
         logger.info(f"Writing parquet file to package at {target_path}")
-        write_parquet(df, target_path, geo)
+        write_parquet(df, target_path)
 
 
     ######################################

@@ -194,13 +194,13 @@ class KoboToolboxLoader(Loader):
         super().__init__(package)
         self.xlsform = xlsform
         self.xlsdata = xlsdata
-
-
-    def parse_input(self):
         if not self.xlsform.exists():
             raise FileNotFoundError(f"XLSform not found: {self.xlsform}")
         if not self.xlsdata.exists():
             raise FileNotFoundError(f"XLSdata not found: {self.xlsdata}")
+
+
+    def parse_input(self):
         self.parse_xlsform_and_get_resources()
         self.extract_xlsdata()
 
@@ -213,7 +213,7 @@ class KoboToolboxLoader(Loader):
 
 
     @staticmethod
-    def get_form_name(form: dict):
+    def get_form_name(form: dict) -> str:
         return cast(str, form["id_string"].lower())
         
 
@@ -383,7 +383,8 @@ class KoboToolboxLoader(Loader):
                 .replace(np.nan, None)
             )
             df[self.PRIMARY_KEY] = df.index + 1
-            
+
+            # adapting pandas dtypes to schema field types
             fields = []
             for field in schema.fields:
                 if field.name in df.columns:
@@ -406,20 +407,8 @@ class KoboToolboxLoader(Loader):
             df = df[fields]
             df = df.replace({np.nan: None})
 
-            # storing transformed dataframe
-            self.dataframes[name] = df
-
-
-    def load(self):
-        logger.info("Loading data in package")
-        for resource in self.resources:
-            
-            if resource.name not in self.dataframes:
-                logger.warning(f"Resource '{resource.name}' not found in stored dataframes")
-                continue
-
-            df = self.dataframes[resource.name]
-
+            # if some columns contain geometry data
+            # converting the pandas dataframe to a geopandas dataframe
             geo_cols = [
                 f.name
                 for f in resource.schema.fields
@@ -436,17 +425,17 @@ class KoboToolboxLoader(Loader):
                         lambda geom: geom.wkb if geom is not None else None
                     )
 
-                gdf = gpd.GeoDataFrame(df, geometry=geo_cols[0], crs="EPSG:4326")
-                self.write_to_package(gdf, resource, geo=True)
+                df = gpd.GeoDataFrame(df, geometry=geo_cols[0], crs="EPSG:4326")
 
-            else:
-                self.write_to_package(df, resource)
+            # storing transformed dataframe
+            self.dataframes[name] = df
+
 
     def append_data(self, resource_name: str | None = None):
-        # TODO: implement method
-        raise NotImplementedError()
+        for resource in self.resources:
+            self.append_datafame_to_resource(self.dataframes[resource.name], resource)
 
 
     def replace_data(self, resource_name: str | None = None):
-        # TODO: implement method
-        raise NotImplementedError()
+        for resource in self.resources:
+            self.replace_resource_data_by_dataframe(self.dataframes[resource.name], resource)
