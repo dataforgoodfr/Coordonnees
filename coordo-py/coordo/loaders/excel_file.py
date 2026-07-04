@@ -39,8 +39,8 @@ class ExcelFileLoader(FileLoader):
             # to_parquet method fails if column names contain dots
             sheet_df.columns = [col.replace('.', '_') for col in sheet_df.columns]
             # parse schema from the SQL query result
-            for name, type in sheet_df.dtypes.items():
-                schema.add_field(Field(name=name, **pandas_type_to_dp_type(type)))
+            for name, dtype in sheet_df.dtypes.items():
+                schema.add_field(Field(name=name, **pandas_type_to_dp_type(dtype)))
                 
             # creating a new resource
             resource = self.create_resource(path.stem, schema)

@@ -16,23 +16,23 @@
           },
           {
             "name": "group1",
-            "type": "string"
+            "type": "number"
           },
           {
             "name": "group2",
-            "type": "string"
+            "type": "number"
           },
           {
             "name": "group3",
-            "type": "string"
+            "type": "number"
           },
           {
             "name": "PSU",
-            "type": "string"
+            "type": "number"
           },
           {
             "name": "_index",
-            "type": "string"
+            "type": "integer"
           }
         ]
       }
@@ -44,15 +44,15 @@
         "fields": [
           {
             "name": "ess_arb",
-            "type": "string"
+            "type": "integer"
           },
           {
             "name": "value",
-            "type": "string"
+            "type": "integer"
           },
           {
             "name": "_index",
-            "type": "string"
+            "type": "integer"
           }
         ]
       }
@@ -64,7 +64,7 @@
         "fields": [
           {
             "name": "tax3",
-            "type": "string"
+            "type": "integer"
           },
           {
             "name": "stat::Français(fr)",
@@ -80,7 +80,7 @@
           },
           {
             "name": "_index",
-            "type": "string"
+            "type": "integer"
           }
         ]
       }
@@ -108,7 +108,7 @@
           },
           {
             "name": "_index",
-            "type": "string"
+            "type": "integer"
           }
         ]
       }

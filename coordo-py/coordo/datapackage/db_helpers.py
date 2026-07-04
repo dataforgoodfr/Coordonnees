@@ -3,6 +3,7 @@
 
 from pathlib import Path
 
+from pandas.api.types import is_integer_dtype, is_float_dtype, is_string_dtype, is_datetime64_dtype
 from duckdb.sqltypes import DuckDBPyType
 
 
@@ -34,16 +35,18 @@ def duckdb_type_to_dp_type(type: DuckDBPyType) -> dict:
 
 
 def pandas_type_to_dp_type(type: str) -> dict:
-    match str(type):
-        case "bigint" | "integer":
-            return {"type": "integer"}
-        case "geometry":
-            return {"type": "geojson"}
-        case "double":
-            return {"type": "number"}
-        case "date":
-            return {"type": "date"}
-        case "list":
-            return {"type": "list", "itemType": type.children[0]}
-        case _:
-            return {"type": "string"}
+    """
+    Convert a pandas type to a Data Package type.
+    Note that pandas parses list columns as object, 
+    and that pandas (unlike Geopandas) does not have a built-in dtype of geometry data.
+    """
+    if is_integer_dtype(type):
+        return {"type": "integer"}
+    elif is_float_dtype(type):
+        return {"type": "number"}
+    elif is_string_dtype(type):
+        return {"type": "string"}
+    elif is_datetime64_dtype(type):
+        return {"type": "date"}
+    else:
+        return {"type": "string"}
