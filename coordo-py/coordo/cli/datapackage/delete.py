@@ -3,8 +3,8 @@
 
 import typer
 
-from coordo.loaders import Loader, Separator, UpdateMethod, get_file_loader, get_supplementary_params
-from .annotations import Package, FilePath, Sep, DecimalSep
+from coordo.loaders import Loader, get_file_loader
+from .annotations import Package, FilePath
 
 
 app = typer.Typer()
@@ -13,16 +13,13 @@ app = typer.Typer()
 @app.command()
 def file(
     path: FilePath, 
-    package: Package, 
-    sep: Sep = Separator.COMMA, 
-    decimal_sep: DecimalSep = Separator.DOT
+    package: Package
 ):
     """
-    Delete data from a datapackage resource. By default, the resource name is inferred from the file name.
+    Delete data from the resource(s) contained in the file.
     """
-    params = get_supplementary_params()
-    file_loader_cls = get_file_loader(path, params)
-    file_loader_cls(package, path, **params).update(method=UpdateMethod.DELETE)
+    file_loader_cls = get_file_loader(path, {})
+    file_loader_cls(package, path).delete()
 
 
 @app.command()

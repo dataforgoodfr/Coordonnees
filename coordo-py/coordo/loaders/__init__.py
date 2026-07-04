@@ -41,6 +41,10 @@ def get_file_loader(path: Path, supplementary_params: dict) -> Type[FileLoader]:
 
 
 def get_supplementary_params() -> dict:
+    """
+    Get all parameters found locally in the scope of the caller,
+    that are not part of a shortlist of expected parameters
+    """
     return {k: v for k, v in locals().items() if k not in ["package", "path", "resource_name"]}
 
 

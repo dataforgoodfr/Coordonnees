@@ -86,3 +86,15 @@ class ExcelFileLoader(FileLoader):
                 self.dataframes[resource.name],
                 existing_resource
             )
+
+
+    def parse_resource_names(self) -> list[str]:
+        """
+        Parse the names of the resources in the Excel file.
+        """
+        table_name_to_df_dict: dict[str, pd.DataFrame] = pd.read_excel(
+            self.path, 
+            sheet_name=None,
+            nrows=0
+        )
+        return list(table_name_to_df_dict.keys())

@@ -233,6 +233,11 @@ class KoboToolboxLoader(Loader):
         self.resources = [self.main_resource] + parsed_resources
 
 
+    def parse_resource_names(self) -> list[str]:
+        self.parse_xlsform_and_get_resources()
+        return [resource.name for resource in self.resources]
+
+
     def extract_xlsdata(self):
         """
         The xlsdata is parsed with pandas read_excel or read_csv functions.

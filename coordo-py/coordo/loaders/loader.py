@@ -85,6 +85,18 @@ class Loader(ABC):
         self.dp.save()
 
 
+    @abstractmethod
+    def parse_resource_names(self) -> list[str]:
+        """
+        Return the names of the resources that could be parsed from the provided input.
+        """
+        raise NotImplementedError()
+
+
+    ######################################
+    # ADD / REMOVE RESOURCES
+    ######################################
+
     def add(self):
         """
         Extract the corresponding resources to add, transform, and load them into the package.
@@ -117,6 +129,10 @@ class Loader(ABC):
         dp.save()
 
 
+    ######################################
+    # UPDATE (APPEND / REPLACE)
+    ######################################
+
     def update(self, method: UpdateMethod, resource_name: str | None = None):
         """
         Update the package with the current resources.
@@ -129,8 +145,6 @@ class Loader(ABC):
                 self.append_data(resource_name)
             case UpdateMethod.REPLACE:
                 self.replace_data(resource_name)
-            case UpdateMethod.DELETE:
-                self.delete_data()
         # NOTE: there is no need to save here
         # as the modifications are done on the data only, not on the schema
 
@@ -145,10 +159,16 @@ class Loader(ABC):
         raise NotImplementedError()
 
 
-    def delete_data(self):
-        for resource in self.resources:
-            df = self.dp.read_resource(resource.name)
-            logger.info(f"Deleting data from resource {resource.name}")
+    ######################################
+    # DELETE
+    ######################################
+
+    def delete(self):
+        resource_names = self.parse_resource_names()
+        for resouce_name in resource_names:
+            resource = self.dp.get_resource(resouce_name)
+            df = self.dp.read_resource(resouce_name)
+            logger.info(f"Deleting data from resource {resouce_name}")
             empty_df_with_same_schema = df.head(0).copy()
             self.write_to_package(empty_df_with_same_schema, resource)
 
@@ -168,27 +188,9 @@ class Loader(ABC):
         write_parquet(empty_df_with_same_schema, target_path)
 
 
-    def load_conn(self) -> duckdb.DuckDBPyConnection:
-        return load_conn()
-
-
-    @staticmethod
-    def clean_str(s: str) -> str:
-        return re.sub(r"[^a-z0-9._-]", "", s.strip().lower())
-
-
-    def create_resource(self, name: str, schema: Schema) -> Resource:
-        """
-        Create and return a Resource object with the specified schema
-        """
-        resource_name = self.clean_str(name)
-        logger.info(f"Creating resource '{resource_name}'")
-        return Resource(
-            name=resource_name,
-            path=f"{resource_name}.parquet",
-            schema=schema,
-        )
-
+    ######################################
+    # READ / WRITE PARQUET
+    ######################################
 
     def read_parquet(self, resource: Resource) -> pd.DataFrame:
         target_filename = resource.name + ".parquet"
@@ -201,3 +203,29 @@ class Loader(ABC):
         target_path = self.dp.get_path() / target_filename
         logger.info(f"Writing parquet file to package at {target_path}")
         write_parquet(df, target_path, geo)
+
+
+    ######################################
+    # MISC.
+    ######################################
+
+    def load_conn(self) -> duckdb.DuckDBPyConnection:
+        return load_conn()
+    
+    
+    @staticmethod
+    def clean_str(s: str) -> str:
+        return re.sub(r"[^a-z0-9._-]", "", s.strip().lower())
+    
+    
+    def create_resource(self, name: str, schema: Schema) -> Resource:
+        """
+        Create and return a Resource object with the specified schema
+        """
+        resource_name = self.clean_str(name)
+        logger.info(f"Creating resource '{resource_name}'")
+        return Resource(
+            name=resource_name,
+            path=f"{resource_name}.parquet",
+            schema=schema,
+        )
