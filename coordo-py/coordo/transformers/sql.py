@@ -180,4 +180,4 @@ class SQLTransformer(Transformer):
         return None
 
 
-parse = Lark(GRAMMAR, parser="lalr", transformer=SQLTransformer()).parse
+sql_parser = Lark(GRAMMAR, parser="lalr", transformer=SQLTransformer())

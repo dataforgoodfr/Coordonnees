@@ -10,7 +10,7 @@ from pygeofilter.ast import And
 from pygeofilter.parsers.cql2_text import parse as parse_filter
 
 from coordo.datapackage import DataPackage
-from coordo.sql.parser import parse as parse_expr
+from coordo.transformers.sql import sql_parser
 
 from ..helpers import safe
 from .base import BaseLayerModel
@@ -144,7 +144,7 @@ class DataPackageLayer(BaseLayerModel):
 
         columns = None
         if self.columns:
-            columns = {alias: parse_expr(expr) for alias, expr in self.columns.items()}
+            columns = {alias: sql_parser.parse(expr) for alias, expr in self.columns.items()}
         df = package.read_resource(
             self.resource,
             columns,
