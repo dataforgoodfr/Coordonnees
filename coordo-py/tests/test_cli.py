@@ -175,7 +175,6 @@ def test_004_append_replace_delete_file_data(
                 ["add", "file", input_files["external_data.csv"]],
                 ["append", "file", input_files["external_data.csv"]],
                 ["replace", "file", input_files["external_data.csv"]],
-                ["delete", "file", input_files["external_data.csv"]],
                 [
                     "append",
                     "file",
@@ -221,7 +220,6 @@ def test_005_add_remove_delete_excel_file(
                 ["add", "file", input_files["external_data.xlsx"]],
                 ["remove", "file", input_files["external_data.xlsx"]],
                 ["add", "file", input_files["external_data.xlsx"]],
-                ["delete", "file", input_files["external_data.xlsx"]],
                 ["replace", "file", input_files["external_data.xlsx"]],
                 ["append", "file", input_files["external_data.xlsx"]],
                 ["delete", "resource", "bio_samp"],
@@ -280,12 +278,6 @@ def test_007_james_bond(input_files: dict[str, str], output_files: dict[str, str
             [
                 [
                     "add",
-                    "kobotoolbox",
-                    input_files["kobotoolbox_inquiry.xlsx"],
-                    input_files["kobotoolbox_data.xlsx"],
-                ],
-                [
-                    "delete",
                     "kobotoolbox",
                     input_files["kobotoolbox_inquiry.xlsx"],
                     input_files["kobotoolbox_data.xlsx"],

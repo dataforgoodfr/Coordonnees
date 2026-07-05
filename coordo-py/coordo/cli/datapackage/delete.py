@@ -3,24 +3,11 @@
 
 import typer
 
-from coordo.loaders import KoboToolboxLoader, Loader, get_file_loader
-from .annotations import Package, FilePath, XlsForm, XlsData
+from coordo.loaders import Loader
+from .annotations import Package
 
 
 app = typer.Typer()
-
-
-@app.command()
-def kobotoolbox(xlsform: XlsForm, xlsdata: XlsData, package: Package):
-    KoboToolboxLoader(package, xlsform, xlsdata).delete()
-
-
-@app.command()
-def file(path: FilePath, package: Package):
-    """
-    Delete data from the resource(s) contained in the file.
-    """
-    get_file_loader(package, path).delete()
 
 
 @app.command()
@@ -29,6 +16,6 @@ def resource(
     package: Package,
 ):
     """
-    Delete data from a resource.
+    Delete data from a specific resource.
     """
-    Loader.delete_one_resource(package, resource_name)
+    Loader.delete_data_from_resource(package, resource_name)

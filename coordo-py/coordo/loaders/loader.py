@@ -185,17 +185,8 @@ class Loader(ABC):
     # DELETE
     ######################################
 
-    def delete(self):
-        resource_names = self.parse_resource_names()
-        for resouce_name in resource_names:
-            resource = self.dp.get_resource(resouce_name)
-            df = self.dp.read_resource(resouce_name)
-            logger.info(f"Deleting data from resource {resouce_name}")
-            empty_df_with_same_schema = df.head(0).copy()
-            self.write_to_package(empty_df_with_same_schema, resource)
-
     @staticmethod
-    def delete_one_resource(package: Path, resource_name: str):
+    def delete_data_from_resource(package: Path, resource_name: str):
         """
         Delete data from a resource.
         """
