@@ -10,7 +10,7 @@ from pygeofilter.ast import And
 from pygeofilter.parsers.cql2_text import parse as parse_filter
 
 from coordo.datapackage import DataPackage
-from coordo.transformers.sql import sql_parser
+from coordo.syntax_parsers import sql_parser
 
 from ..helpers import safe
 from .base import BaseLayerModel

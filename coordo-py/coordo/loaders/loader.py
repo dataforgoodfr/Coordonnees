@@ -10,20 +10,13 @@ import geopandas as gpd
 import logging
 import duckdb
 import re
+from dataclasses import dataclass
 
 from ..datapackage import DataPackage, Resource, Schema
 from ..sql.helpers import load_conn
 
 
 logger = logging.getLogger(__name__)
-
-
-class Separator(str, Enum):
-    COMMA = ","
-    SEMICOLON = ";"
-    TAB = "\t"
-    PIPE = "|"
-    DOT = "."
 
 
 class UpdateMethod(str, Enum):
@@ -46,6 +39,7 @@ def write_parquet(df: pd.DataFrame, path: Path | str):
         raise TypeError(f"Unknown dataframe type: {type(df)}")
 
 
+@dataclass
 class Loader(ABC):
     _ACCEPTS_TARGET_RESOURCES: ClassVar[bool] = False
 
@@ -121,10 +115,22 @@ class Loader(ABC):
     # UPDATE (APPEND / REPLACE)
     ######################################
 
+    def append(self, resource_name: str | None = None):
+        """
+        High level method that abstracts appending data to resources.
+        """
+        self.update(method=UpdateMethod.APPEND, resource_name=resource_name)
+
+    def replace(self, resource_name: str | None = None):
+        """
+        High level method that abstracts replacing data from resources.
+        """
+        self.update(method=UpdateMethod.REPLACE, resource_name=resource_name)
+
     def update(self, method: UpdateMethod, resource_name: str | None = None):
         """
         Update the package with the current resources.
-        The method is common whether appending or replacing data.
+        The backbone of the method is common to both appending and replacing data.
         """
         if resource_name is not None:
             self.check_resource_name_can_be_supplied()
@@ -139,6 +145,10 @@ class Loader(ABC):
         # as the modifications are done on the data only, not on the schema
 
     def check_resource_name_can_be_supplied(self):
+        """
+        Raise an error if the calling object belongs to a class that does not support
+        the 'resource_name' argument when updating data.
+        """
         if not self._ACCEPTS_TARGET_RESOURCES:
             raise ValueError(
                 f"Cannot supply a target resource name with {self.__class__.__name__}"
@@ -146,10 +156,16 @@ class Loader(ABC):
 
     @abstractmethod
     def append_data(self, resource_name: str | None = None):
+        """
+        Lower level method that defines how classes handle appending data to existing resources
+        """
         raise NotImplementedError()
 
     @abstractmethod
     def replace_data(self, resource_name: str | None = None):
+        """
+        Lower level method that defines how classes handle replacing data from existing resources
+        """
         raise NotImplementedError()
 
     def append_datafame_to_resource(self, df: pd.DataFrame, resource: Resource):

@@ -20,8 +20,7 @@ def file(path: FilePath, package: Package):
     """
     Delete data from the resource(s) contained in the file.
     """
-    file_loader_cls = get_file_loader(path, {})
-    file_loader_cls(package, path).delete()
+    get_file_loader(package, path).delete()
 
 
 @app.command()

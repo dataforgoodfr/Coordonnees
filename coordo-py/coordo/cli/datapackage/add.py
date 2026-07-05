@@ -5,9 +5,7 @@ import typer
 
 from coordo.loaders import (
     KoboToolboxLoader,
-    Separator,
     get_file_loader,
-    get_supplementary_params,
 )
 from coordo.datapackage import DataPackage
 from .annotations import Package, From, To, XlsForm, XlsData, FilePath, Sep, DecimalSep
@@ -25,15 +23,13 @@ def kobotoolbox(xlsform: XlsForm, xlsdata: XlsData, package: Package):
 def file(
     path: FilePath,
     package: Package,
-    sep: Sep = Separator.COMMA,
-    decimal_sep: DecimalSep = Separator.DOT,
+    sep: Sep = None,
+    decimal_sep: DecimalSep = None,
 ):
     """
     Add a file to a datapackage.
     """
-    params = get_supplementary_params()
-    file_loader_cls = get_file_loader(path, params)
-    file_loader_cls(package, path, **params).add()
+    get_file_loader(package, path, sep=sep, decimal_sep=decimal_sep).add()
 
 
 @app.command()

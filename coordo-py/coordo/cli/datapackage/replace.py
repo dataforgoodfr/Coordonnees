@@ -5,10 +5,7 @@ import typer
 
 from coordo.loaders import (
     KoboToolboxLoader,
-    Separator,
-    UpdateMethod,
     get_file_loader,
-    get_supplementary_params,
 )
 from .annotations import (
     Package,
@@ -33,22 +30,20 @@ def kobotoolbox(
     """
     Replace data of datapackage resources by data parsed from Kobotoolbox XLS form and XLS data files.
     """
-    KoboToolboxLoader(package, xlsform, xlsdata).update(method=UpdateMethod.REPLACE)
+    KoboToolboxLoader(package, xlsform, xlsdata).replace()
 
 
 @app.command()
 def file(
     path: FilePath,
     package: Package,
-    resource: ResourceName = None,
-    sep: Sep = Separator.COMMA,
-    decimal_sep: DecimalSep = Separator.DOT,
+    resource_name: ResourceName = None,
+    sep: Sep = None,
+    decimal_sep: DecimalSep = None,
 ):
     """
     Replace data in a datapackage resource from a file. By default, the resource name is inferred from the file name.
     """
-    params = get_supplementary_params()
-    file_loader_cls = get_file_loader(path, params)
-    file_loader_cls(package, path, **params).update(
-        resource_name=resource, method=UpdateMethod.REPLACE
+    get_file_loader(package, path, sep=sep, decimal_sep=decimal_sep).replace(
+        resource_name
     )

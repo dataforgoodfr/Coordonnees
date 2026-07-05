@@ -3,13 +3,7 @@
 
 import typer
 
-from coordo.loaders import (
-    KoboToolboxLoader,
-    Separator,
-    UpdateMethod,
-    get_file_loader,
-    get_supplementary_params,
-)
+from coordo.loaders import KoboToolboxLoader, get_file_loader
 from .annotations import (
     Package,
     ResourceName,
@@ -29,22 +23,20 @@ def kobotoolbox(xlsform: XlsForm, xlsdata: XlsData, package: Package):
     """
     Append data from Kobotoolbox XLS form and XLS data files to datapackage resources.
     """
-    KoboToolboxLoader(package, xlsform, xlsdata).update(method=UpdateMethod.APPEND)
+    KoboToolboxLoader(package, xlsform, xlsdata).append()
 
 
 @app.command()
 def file(
     path: FilePath,
     package: Package,
-    resource: ResourceName = None,
-    sep: Sep = Separator.COMMA,
-    decimal_sep: DecimalSep = Separator.DOT,
+    resource_name: ResourceName = None,
+    sep: Sep = None,
+    decimal_sep: DecimalSep = None,
 ):
     """
     Append data from a file to a datapackage resource. By default, the resource name is inferred from the file name.
     """
-    params = get_supplementary_params()
-    file_loader_cls = get_file_loader(path, params)
-    file_loader_cls(package, path, **params).update(
-        resource_name=resource, method=UpdateMethod.APPEND
+    get_file_loader(package, path, sep=sep, decimal_sep=decimal_sep).append(
+        resource_name
     )

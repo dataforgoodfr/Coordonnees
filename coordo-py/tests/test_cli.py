@@ -26,6 +26,7 @@ def run(command: list):
 
 
 def check_files_are_identical(file1: str, file2: str):
+    print(f"diff {file1} {file2}")
     result = subprocess.run(["diff", file1, file2], capture_output=True, text=True)
     assert result.returncode == 0, (
         f"Files {file1} and {file2} are not identical: {result.stdout}"
@@ -198,7 +199,7 @@ def test_004_append_replace_delete_file_data(
         )
     finally:
         logger.info(f"Removing package '{CATALOG_DIR}'")
-        # shutil.rmtree(CATALOG_DIR)
+        shutil.rmtree(CATALOG_DIR)
 
 
 def test_005_add_remove_delete_excel_file(

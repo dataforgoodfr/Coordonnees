@@ -24,7 +24,7 @@ from coordo.datapackage import (
 )
 from coordo.helpers import safe
 from coordo.loaders import Loader
-from coordo.transformers.range import constraint_parser
+from coordo.syntax_parsers import constraint_parser
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ def coords_to_point(coords):
     try:
         lat, lon, alt, prec = map(float, str(coords).split(" "))
     except Exception:
-        print("[WARN] Could not convert coords to Point:", coords)
+        logger.warning(f"Could not convert coords to Point: {coords}")
         return None
     return Point(lon, lat, alt)
 

@@ -39,11 +39,11 @@ PS: if you are using the SQLAlchemy ORM you can use `Base.metadata`
 
 Using this field mapper you can then parse an expression using our simplified language
 ```py
-from coordo.sql.parser import parse
+from coordo.syntax_parsers import sql_parser
 from coordo.sql.evaluator import to_sql
 from coordo.sql.builder import compile_query
 
-ast = parse("centroid(some_column if other_column > 5)")
+ast = sql_parser.parse("centroid(some_column if other_column > 5)")
 expr, joins = to_sql(ast, mapper)
 >>> print(compile_query(expr))
 st_centroid(CASE WHEN (parents.other_column > 5.0) THEN parents.some_column END)

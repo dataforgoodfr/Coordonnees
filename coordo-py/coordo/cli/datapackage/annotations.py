@@ -6,8 +6,6 @@ from typing import Annotated
 
 import typer
 
-from coordo.loaders import Separator
-
 # general arguments
 Package = Annotated[
     Path, typer.Option("--package", "-p", help="Path to the package directory")
@@ -30,9 +28,9 @@ XlsData = Annotated[Path, typer.Argument(help="Path to the XLS data")]
 # file arguments
 FilePath = Annotated[Path, typer.Argument(help="Path to the file")]
 Sep = Annotated[
-    Separator, typer.Option("--separator", "-s", help="Separator for the file")
+    str | None, typer.Option("--separator", "-s", help="Separator for the file")
 ]
 DecimalSep = Annotated[
-    Separator,
+    str | None,
     typer.Option("--decimal-separator", "-d", help="Decimal separator for the file"),
 ]
