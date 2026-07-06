@@ -23,7 +23,7 @@ It is also possible to:
 >[!WARNING]
 >If resources are linked to other resources by foreign keys, removing them will raise an error. 
 >In such case, you'll have to remove the foreign keys beforehand. 
->Once the foreign keys wre removed individually, you can safely remove the resources.
+>Once the foreign keys were removed individually, you can safely remove the resources.
 
 As of now, the following types of input data can be used to populate a `coordo` Datapackage:
 - Kobotoolbox data
@@ -36,33 +36,33 @@ As of now, the following types of input data can be used to populate a `coordo` 
 ### Resources
 
 Add a new resource and populate it with parsed data:
-```
+```bash
 coordo add <type of input> <arguments> --package <path/to/datapackage>
 ```
 
 Remove a resource corresponding to the input data:
-```
+```bash
 coordo remove <type of input> <arguments> --package <path/to/datapackage>
 ```
 
 >[!TIP]
 >One can also do:
->```
+>```bash
 >coordo remove resource <name of resource> --package <path/to/datapackage>
 >```
 
 Append data to existing resources:
-```
+```bash
 coordo append <type of input> <arguments> --package <path/to/datapackage>
 ```
 
 Replace data of existing resources by new data (the resource schemas stay unchanged):
-```
+```bash
 coordo replace <type of input> <arguments> --package <path/to/datapackage>
 ```
 
 Delete all data in a resource (but keep its schema and foreign keys):
-```
+```bash
 coordo delete resource <name of resource> --package <path/to/datapackage>
 ```
 
@@ -70,12 +70,12 @@ coordo delete resource <name of resource> --package <path/to/datapackage>
 ### Foreign keys
 
 Add new foreign keys from one resource to another one:
-```
+```bash
 coordo add foreignkey <source resource>.<field name> <target resource>.<field name> --package <path/to/datapackage>
 ```
 
 The command to remove it is almost the same:
-```
+```bash
 coordo remove foreignkey <source resource>.<field name> <target resource>.<field name> --package <path/to/datapackage>
 ```
 
@@ -84,8 +84,8 @@ coordo remove foreignkey <source resource>.<field name> <target resource>.<field
 #### Kobotoolbox
 
 To add / remove / append / replace a new Datapackage resource with Kobotoolbox data, you can use the command line:
-```
-coordo add kobotoolbox <path/to/form (`.xlsx` format)> <path/to/data (`.xlsx` format)> --package <path/to/datapackage>
+```bash
+coordo < add / remove / append / replace > kobotoolbox <path/to/form (`.xlsx` format)> <path/to/data (`.xlsx` format)> --package <path/to/datapackage>
 ```
 
 This is the API equivalent:
@@ -107,8 +107,8 @@ kb.replace()
 #### File (Excel / character-separated)
 
 To add / remove / append / replace a new Datapackage resource with data from a single file, you can use the command line:
-```
-coordo add file <path/to/file> --package <path/to/datapackage>
+```bash
+coordo < add / remove / append / replace > file <path/to/file> --package <path/to/datapackage>
 ```
 
 and its API equivalent:
@@ -126,7 +126,7 @@ file_loader.append()
 file_loader.replace()
 ```
 
-#### Remove resource / detelete resource data using the API
+#### Remove resource / delete resource data using the API
 
 ```py
 from pathlib import Path
@@ -144,7 +144,7 @@ Loader.remove_one_resource(package, resource_name)
 
 #### Foreign keys
 
-```
+```bash
 coordo add file file1.csv --package catalog/mydatapackage
 coordo add file file2.csv --package catalog/mydatapackage
 coordo add foreignkey file1.colA file2.colB --package catalog/mydatapackage
@@ -152,45 +152,23 @@ coordo remove foreignkey file1.colA file2.colB --package catalog/mydatapackage
 ```
 
 or using the API:
-
-
-### Specific use cases
-
-#### Kobotoolbox
-
-
-
-
-
-To remove resources corresponding to Kobotoolbox data:
-```
-coordo remove kobotoolbox <path/to/form (`.xlsx` format)> <path/to/data (`.xlsx` format)> --package <path/to/datapackage>
-```
-
-or using the API:
 ```py
 from pathlib import Path
-from coordo.loaders import KoboToolboxLoader
+from coordo.loaders import Loader
 
-package = Path("path/to/datapackage")
-xlsform = Path("path/to/form (`.xlsx` format)")
-xlsdata = Path("path/to/data (`.xlsx` format)")
+package = "path/to/datapackage"
+source_field = "resourceA.colA"
+target_field = "resourceB.colB"
 
-KoboToolboxLoader(package, xlsform, xlsdata).add()
+# add
+Loader.add_foreign_key(package, source_field, target_field)
+# remove
+Loader.remove_foreign_key(package, source_field, target_field)
 ```
 
+## Syntax parsers
 
-
-
-
-## Parse data and populate a Datapackage
-
-
-
-
-
-
-### Syntax parsers
+Under the hood, `coordo` uses syntax parsers to translate its specific syntax into SQL.
 
 Let's start with some SQLAlchemy tables
 ```py
@@ -290,9 +268,12 @@ To run the pytest tests, simply run in `coordo-py` directory:
 pytest
 ```
 
-### Data types
+## Data types
 
-#### KoboToolbox
+### KoboToolbox
+
+>[!WARNING]
+>This section is still under construction.
 
 For surveys, Kobotoolbox uses the standard XLSForm format.
 Briefly, each `xlsx` file contains 3 sheets:
