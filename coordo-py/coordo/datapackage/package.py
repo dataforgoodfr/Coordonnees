@@ -69,7 +69,8 @@ class DataPackage(pydantic.BaseModel):
         return Path(self._basepath)
 
     @classmethod
-    def from_path(cls, path: Path) -> "DataPackage":
+    def from_path(cls, path: Path | str) -> "DataPackage":
+        path = Path(path)
         if path.is_dir() or not path.exists():
             path = path / "datapackage.json"
         path.parent.mkdir(parents=True, exist_ok=True)

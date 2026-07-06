@@ -108,10 +108,10 @@ class KoboToolboxLoader(Loader):
 
     main_resource: Resource
 
-    def __init__(self, package: Path, xlsform: Path, xlsdata: Path):
+    def __init__(self, package: Path | str, xlsform: Path | str, xlsdata: Path | str):
         super().__init__(package)
-        self.xlsform = xlsform
-        self.xlsdata = xlsdata
+        self.xlsform = Path(xlsform)
+        self.xlsdata = Path(xlsdata)
         if not self.xlsform.exists():
             raise FileNotFoundError(f"XLSform not found: {self.xlsform}")
         if not self.xlsdata.exists():

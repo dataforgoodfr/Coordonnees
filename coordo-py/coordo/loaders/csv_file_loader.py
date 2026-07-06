@@ -16,8 +16,8 @@ class CSVFileLoader(FileLoader):
 
     def __init__(
         self,
-        package: Path,
-        path: Path,
+        package: Path | str,
+        path: Path | str,
         sep: str = ",",
         decimal_sep: str = ".",
     ):

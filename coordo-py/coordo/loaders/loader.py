@@ -43,7 +43,7 @@ def write_parquet(df: pd.DataFrame, path: Path | str):
 class Loader(ABC):
     _ACCEPTS_TARGET_RESOURCES: ClassVar[bool] = False
 
-    def __init__(self, package: Path):
+    def __init__(self, package: Path | str):
         self.dp = DataPackage.from_path(package)
         self.resources: list[Resource] = []
         self.dataframes: dict[str, pd.DataFrame | gpd.GeoDataFrame] = {}
@@ -103,7 +103,7 @@ class Loader(ABC):
         self.save()
 
     @staticmethod
-    def remove_one_resource(package: Path, resource_name: str):
+    def remove_one_resource(package: Path | str, resource_name: str):
         """
         Remove the specified resource from the package.
         """
@@ -186,7 +186,7 @@ class Loader(ABC):
     ######################################
 
     @staticmethod
-    def delete_data_from_resource(package: Path, resource_name: str):
+    def delete_data_from_resource(package: Path | str, resource_name: str):
         """
         Delete data from a resource.
         """

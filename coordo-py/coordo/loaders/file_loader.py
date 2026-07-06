@@ -19,9 +19,9 @@ class FileLoader(Loader):
 
     resource: Resource
 
-    def __init__(self, package: Path, path: Path):
+    def __init__(self, package: Path | str, path: Path | str):
         super().__init__(package)
-        self.path = path
+        self.path = Path(path)
         if not self.path.exists():
             raise FileNotFoundError(f"File not found: {self.path}")
 
