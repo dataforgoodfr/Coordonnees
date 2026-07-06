@@ -120,6 +120,7 @@ class KoboToolboxLoader(Loader):
     def parse_input(self):
         self.parse_xlsform_and_get_resources()
         self.extract_xlsdata()
+        self.get_resources_and_dataframes_match()
 
     def get_resource_schema(self) -> Schema:
         return Schema(
@@ -144,10 +145,6 @@ class KoboToolboxLoader(Loader):
         parsed_resources = self.parse_questions(form["children"], self.main_resource)
         # NOTE: we must add the main resource first so that foreign keys are resolved correctly
         self.resources = [self.main_resource] + parsed_resources
-
-    def parse_resource_names(self) -> list[str]:
-        self.parse_xlsform_and_get_resources()
-        return [resource.name for resource in self.resources]
 
     def extract_xlsdata(self):
         """
@@ -182,6 +179,22 @@ class KoboToolboxLoader(Loader):
 
         else:
             raise ValueError(f"Unsupported file format: {suffix}")
+
+    def get_resources_and_dataframes_match(self):
+        """
+        Removing resources parsed from the form which do not have a corresponding table in data.
+        TODO: better handle Kobotoolbox sheet naming to avoid having to perform this check
+        """
+        table_names = list(self.dataframes.keys())
+        valid_resources = []
+        for resource in self.resources:
+            if resource.name in table_names:
+                valid_resources.append(resource)
+            else:
+                logger.error(
+                    f"Could not find resource name '{resource.name}' in parsed tables. Removing resource."
+                )
+        self.resources = valid_resources
 
     def get_foreignkey_to(self, parent_resource: Resource) -> ForeignKey:
         return ForeignKey(

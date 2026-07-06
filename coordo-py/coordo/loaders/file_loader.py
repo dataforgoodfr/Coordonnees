@@ -62,14 +62,6 @@ class FileLoader(Loader):
         # storing parsed dataframe
         self.dataframes[self.resource.name] = df
 
-    def parse_resource_names(self) -> list[str]:
-        """
-        Return the names of the resources that could be parsed from the provided input.
-        By default, returns the stem of the file path,
-        but this can be overridden in child classes.
-        """
-        return [self.path.stem]
-
     def transform(self):
         # TODO: if needed, implement transformation logic here or in child classes
         pass

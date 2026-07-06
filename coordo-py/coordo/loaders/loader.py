@@ -86,13 +86,6 @@ class Loader(ABC):
         """
         self.dp.save()
 
-    @abstractmethod
-    def parse_resource_names(self) -> list[str]:
-        """
-        Return the names of the resources that could be parsed from the provided input.
-        """
-        raise NotImplementedError()
-
     ######################################
     # ADD / REMOVE RESOURCES
     ######################################
