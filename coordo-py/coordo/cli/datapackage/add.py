@@ -4,10 +4,10 @@
 import typer
 
 from coordo.loaders import (
+    Loader,
     KoboToolboxLoader,
     get_file_loader,
 )
-from coordo.datapackage import DataPackage
 from .annotations import Package, From, To, XlsForm, XlsData, FilePath, Sep, DecimalSep
 
 
@@ -37,14 +37,4 @@ def foreignkey(from_: From, to: To, package: Package):
     """
     Add a foreign key constraint between two resources.
     """
-    dp = DataPackage.from_path(package)
-    resource, field = from_.split(".")
-    foreign_resource, foreign_field = to.split(".")
-    dp.get_resource(
-        resource,
-    ).add_foreignkey(
-        fields=[field],
-        foreign_fields=[foreign_field],
-        foreign_resource=foreign_resource,
-    )
-    dp.save()
+    Loader.add_foreign_key(package, from_, to)

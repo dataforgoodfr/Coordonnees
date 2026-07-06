@@ -39,6 +39,21 @@ def write_parquet(df: pd.DataFrame, path: Path | str):
         raise TypeError(f"Unknown dataframe type: {type(df)}")
 
 
+def handle_foreign_key(package: Path | str, from_: str, to: str, method_name: str):
+    dp = DataPackage.from_path(package)
+    resource, field = from_.split(".")
+    foreign_resource, foreign_field = to.split(".")
+    resource = dp.get_resource(resource)
+    kwargs = dict(
+        fields=[field],
+        foreign_fields=[foreign_field],
+        foreign_resource=foreign_resource,
+    )
+    method = getattr(resource, method_name)
+    method(**kwargs)
+    dp.save()
+
+
 @dataclass
 class Loader(ABC):
     _ACCEPTS_TARGET_RESOURCES: ClassVar[bool] = False
@@ -198,6 +213,18 @@ class Loader(ABC):
         target_path = dp.get_path() / resource.path
         logger.info(f"Writing parquet file to package at {target_path}")
         write_parquet(empty_df_with_same_schema, target_path)
+
+    ######################################
+    # HANDLE FOREIGN KEYS
+    ######################################
+
+    @staticmethod
+    def add_foreign_key(package: Path | str, from_: str, to: str):
+        handle_foreign_key(package, from_, to, method_name="add_foreignkey")
+
+    @staticmethod
+    def remove_foreign_key(package: Path | str, from_: str, to: str):
+        handle_foreign_key(package, from_, to, method_name="remove_foreignkey")
 
     ######################################
     # READ / WRITE PARQUET

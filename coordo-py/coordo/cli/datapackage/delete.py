@@ -11,10 +11,7 @@ app = typer.Typer()
 
 
 @app.command()
-def resource(
-    resource_name: str,
-    package: Package,
-):
+def resource(resource_name: str, package: Package):
     """
     Delete data from a specific resource.
     """
