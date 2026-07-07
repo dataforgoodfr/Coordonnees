@@ -13,7 +13,7 @@ from ..map import Map
 
 app = typer.Typer()
 options = {}
-static_dir = Path(__file__).parent / "static"
+static_dir = Path(__file__).parents[1] / "static"
 
 
 @app.callback()
@@ -35,7 +35,10 @@ def explore(package_path: Path):
 def serve(config_file: str):
     from flask import Flask, request, send_from_directory
 
-    app = Flask(__name__)
+    app = Flask(
+        __name__,
+        static_url_path="",  # frees up the /static route, which is normally reserved by Flask
+    )
 
     @app.route("/")
     def home():
