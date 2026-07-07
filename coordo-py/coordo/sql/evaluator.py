@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from pygeofilter.ast import AstType
-from sqlalchemy import Float, Integer, and_, case, cast, func, or_, select, text
+from sqlalchemy import Float, Integer, and_, case, cast, func, or_, select, text, literal_column
 from sqlalchemy.sql.functions import coalesce
 
 from coordo.sql.helpers import AGGREGATES, SPATIAL_FUNCTIONS
@@ -101,6 +101,10 @@ class SQLEvaluator:
 
         return Context(expr, lhs.joins.union(rhs.joins))
 
+    def lambdafunc(self, node, rhs, mapper):        
+        full_lambda_sql = f"x {node.arrow} x {node.op} {rhs.expr}"        
+        return Context(literal_column(full_lambda_sql), oset())
+
     def column(self, node, *, mapper):
         joins = oset()
         col = mapper
@@ -180,6 +184,8 @@ class SQLEvaluator:
                 f = args[0].distinct()
             case "interval":
                 f = text(f"{args[0]}::INTERVAL")
+            case "non_null_count":
+                f = sum(case((col.isnot(None), 1), else_=0) for col in args)
             case _:
                 f = getattr(func, node.name)(*args)
 
