@@ -62,10 +62,6 @@ class FileLoader(Loader):
         # storing parsed dataframe
         self.dataframes[self.resource.name] = df
 
-    def transform(self):
-        # TODO: if needed, implement transformation logic here or in child classes
-        pass
-
     def append_data(self, resource_name: str | None = None):
         # if no resource name is provided, use the current resource's name
         resource_name = resource_name or self.resource.name
