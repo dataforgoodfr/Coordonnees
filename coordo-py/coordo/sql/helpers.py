@@ -7,13 +7,14 @@ from pathlib import Path
 import duckdb
 
 AGGREGATES_SQL = (Path(__file__).parent / "aggregates.sql").read_text()
-
+MACROS_SQL = (Path(__file__).parent / "macros.sql").read_text()
 
 def load_conn() -> duckdb.DuckDBPyConnection:
     conn = duckdb.connect()
     conn.install_extension("SPATIAL")
     conn.load_extension("SPATIAL")
     conn.execute(AGGREGATES_SQL)
+    conn.execute(MACROS_SQL)
     return conn
 
 
