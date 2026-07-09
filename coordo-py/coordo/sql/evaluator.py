@@ -157,6 +157,7 @@ class SQLEvaluator:
     def func(self, node, *, mapper: FieldMapper):
         args = []
         joins = oset()
+        node_name = node.name.lower()
         if node.target:
             ctx = self.evaluate(node.target, mapper)
 
@@ -172,10 +173,10 @@ class SQLEvaluator:
             args.append(ctx.expr)
             joins.update(ctx.joins)
 
-        if node.name.lower() in SPATIAL_FUNCTIONS:
+        if node_name in SPATIAL_FUNCTIONS:
             node.name = "st_" + node.name
 
-        match node.name:
+        match node_name:
             case "int":
                 f = cast(args[0], Integer)
             case "float":
@@ -189,7 +190,7 @@ class SQLEvaluator:
             case _:
                 f = getattr(func, node.name)(*args)
 
-        if node.name.lower() in AGGREGATES:
+        if node_name in AGGREGATES:
             query = self.base_query
             for join, on in joins:
                 query = query.join(join, on, isouter=True)

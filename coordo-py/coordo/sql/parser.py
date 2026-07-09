@@ -13,10 +13,7 @@ GRAMMAR = r"""
     ?condition: boolean_or -> bool_op
     ?boolean_or: boolean_and OR boolean_or -> bool_op | boolean_and
     ?boolean_and: comparison AND boolean_and -> bool_op | comparison
-
-    ARROW: "->"
-    SUM: "+" | "-"
-    OP: ">" | "<" | "=" | "!=" | ">=" | "<=" | "in"
+    comparison: sum OP sum
 
     ?sum: sum SUM term -> op | term
     ?term: term MULT power -> op | power
@@ -28,12 +25,14 @@ GRAMMAR = r"""
     func_call: CNAME "(" arg_list? ")"
     variable: CNAME
     NULL: "null"
-    arg_list: arg ("," arg)*
-    
-    arg: expr | lambda_func    
-    lambda_func: "x" ARROW "x" OP expr
 
-    comparison: sum OP sum
+    arg_list: arg ("," arg)*
+    arg: expr | lambda_func    
+    lambda_func: "x" ARROW "x" ( OP | SUM | MULT | POW ) expr
+
+    ARROW: "->"
+    SUM: "+" | "-"
+    OP: ">" | "<" | "=" | "!=" | ">=" | "<=" | "in"
     MULT: "*" | "/"
     POW: "^"
     AND: "and" | "&&"
