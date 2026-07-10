@@ -10,55 +10,33 @@ GRAMMAR = r"""
     ?start: expr
 
     ?expr: sum ("if" condition ("else" expr)?)?
-
     ?condition: boolean_or -> bool_op
-
-    ?boolean_or: boolean_and OR boolean_or -> bool_op
-            | boolean_and
-
-    ?boolean_and: comparison AND boolean_and -> bool_op
-            | comparison
-
-    SUM: "+" | "-"
-
-    ?sum: sum SUM term -> op
-        | term
-
-    MULT: "*" | "/"
-
-    ?term: term MULT power -> op
-        | power
-
-    POW: "^"
-
-    ?power: factor POW NUMBER -> op
-        | factor
-
-    ?factor: "-" factor -> op
-            | atom
-
-    ?atom: call_chain
-        | func_call
-        | NUMBER
-        | QUOTED
-        | NULL
-        | "(" expr ")"
-
-    call_chain: variable ("." (func_call | variable))*
-
-    func_call: CNAME "(" arg_list? ")"
-
-    variable: CNAME
-
-    NULL: "null"
-
-    arg_list: expr ("," expr)*
-
+    ?boolean_or: boolean_and OR boolean_or -> bool_op | boolean_and
+    ?boolean_and: comparison AND boolean_and -> bool_op | comparison
     comparison: sum OP sum
 
+    ?sum: sum SUM term -> op | term
+    ?term: term MULT power -> op | power
+    ?power: factor POW NUMBER -> op | factor
+    ?factor: "-" factor -> op | atom
+    ?atom: call_chain | func_call | NUMBER | QUOTED | NULL | "(" expr ")"
+
+    call_chain: variable ("." (func_call | variable))*
+    func_call: CNAME "(" arg_list? ")"
+    variable: CNAME
+    NULL: "null"
+
+    arg_list: arg ("," arg)*
+    arg: expr | lambda_func    
+    lambda_func: "x" ARROW "x" ( OP | SUM | MULT | POW ) expr
+
+    ARROW: "->"
+    SUM: "+" | "-"
+    OP: ">" | "<" | "=" | "!=" | ">=" | "<=" | "in"
+    MULT: "*" | "/"
+    POW: "^"
     AND: "and" | "&&"
     OR: "or" | "||"
-    OP: ">" | "<" | "=" | "!=" | ">=" | "<=" | "in"
     QUOTED: /'[^']*'|"[^"]*"/
 
     %import common.CNAME
@@ -92,7 +70,6 @@ class BinaryOp(Node):
     def get_template(self) -> str:
         return f"{{}} {self.op} {{}}"
 
-
 @dataclass
 class Arithmetic(BinaryOp):
     pass
@@ -101,6 +78,15 @@ class Arithmetic(BinaryOp):
 @dataclass
 class Comparison(BinaryOp):
     pass
+
+@dataclass
+class LambdaFunc(Node):
+    arrow: str
+    op: str
+    rhs: Node
+
+    def get_sub_nodes(self) -> list[AstType]:
+        return [self.rhs]
 
 
 @dataclass
@@ -154,6 +140,12 @@ class SQLTransformer(Transformer):
 
     def comparison(self, children):
         return Comparison(*children)
+
+    def lambda_func(self, children):
+        return LambdaFunc(*children)
+
+    def arg(self, children): 
+        return children[0]
 
     def query(self, children):
         return Query(*children)
