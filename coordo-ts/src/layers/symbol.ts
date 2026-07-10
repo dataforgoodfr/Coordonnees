@@ -53,6 +53,17 @@ export function makeSetLayerSymbol({ map }: { map: MapLibreMap }) {
       map.setLayoutProperty(layerId, "icon-allow-overlap", true);
       map.setLayoutProperty(layerId, "icon-overlap", 'always');
       map.setLayoutProperty(layerId, "text-overlap", 'always');
+      map.setPaintProperty(layerId, "icon-color", [
+          "interpolate",
+          ["linear"],
+          ["get", "type"],
+          0,
+          "blue",
+          1,
+          "yellow",
+          2,
+          "red"
+        ])
     }
 
     console.log('Setting image symbol in coordo');
