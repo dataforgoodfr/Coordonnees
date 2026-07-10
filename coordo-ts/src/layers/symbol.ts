@@ -50,8 +50,12 @@ export function makeSetLayerSymbol({ map }: { map: MapLibreMap }) {
         : pictureId;
       map.setLayoutProperty(layerId, "icon-image", finalId);
       map.setLayoutProperty(layerId, "icon-size", iconSize);
+      map.setLayoutProperty(layerId, "icon-allow-overlap", true);
+      map.setLayoutProperty(layerId, "icon-overlap", 'always');
+      map.setLayoutProperty(layerId, "text-overlap", 'always');
     }
 
+    console.log('Setting image symbol in coordo');
     if (spriteId) {
       setLayerIconImage(spriteId);
       return;
@@ -73,6 +77,8 @@ export function makeSetLayerSymbol({ map }: { map: MapLibreMap }) {
         image.onload = resolve;
       });
       image.src = svg;
+      console.log("Image", image)
+      console.log("svg: ", svg)
       await promise; // Wait for the image to load
       const imageId = getLayerSymbolPictureId({ layerId });
       map.addImage(imageId, image);
