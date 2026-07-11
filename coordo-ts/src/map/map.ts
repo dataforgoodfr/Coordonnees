@@ -25,7 +25,7 @@ export type CreateMapOptions = Partial<maplibregl.MapOptions> & {
     LayerControlConstructorProps,
     "renderAnchor" | "renderLayerRow"
   >;
-  headers?: Record<string, string>
+  headers?: Record<string, string>;
 };
 
 export function createMap(
@@ -57,17 +57,17 @@ export function createMap(
     center: mergedMapLibreOptions.center,
     container: el,
     style: styleUrl,
-    zoom: mergedMapLibreOptions.zoom,
     // Inject transformRequest to handle headers
     transformRequest: (url, _) => {
-      if (Object.keys(customHeaders).length > 0 && url == styleUrl) {
+      if (Object.keys(customHeaders).length > 0 && url === styleUrl) {
         return {
-          url,
           headers: customHeaders,
+          url,
         };
       }
       return { url };
     },
+    zoom: mergedMapLibreOptions.zoom,
   });
 
   function getLayerMetadata(layerId: string) {
