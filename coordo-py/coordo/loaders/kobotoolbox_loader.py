@@ -128,7 +128,7 @@ class KoboToolboxLoader(Loader):
             if not self.xlsform.exists():
                 raise FileNotFoundError(f"Kobotoolbox form not found: {self.xlsform}")
             if stored_xlsform:
-                raise ValueError(
+                logger.warning(
                     f"Stored Kobotoolbox form exists: {self.get_stored_xlsform()}, but a form was provided: {self.xlsform}"
                 )
             else:

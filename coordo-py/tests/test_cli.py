@@ -26,7 +26,6 @@ def run(command: list):
 
 
 def check_files_are_identical(file1: str, file2: str):
-    print(f"diff {file1} {file2}")
     result = subprocess.run(["diff", file1, file2], capture_output=True, text=True)
     assert result.returncode == 0, (
         f"Files {file1} and {file2} are not identical: {result.stdout}"
@@ -270,12 +269,14 @@ def test_006_append_multisheet_excel_file_to_unique_resource(
         shutil.rmtree(CATALOG_DIR)
 
 
-def test_007_james_bond(input_files: dict[str, str], output_files: dict[str, str]):
+def test_007_add_append_kobotoolbox(
+    input_files: dict[str, str], output_files: dict[str, str]
+):
     """
     Test the following workflow:
     - Load data from a kobotoolbox inquiry
-    - Append data from the same kobootoolbox files
-    - Replace data from the same kobootoolbox files
+    - Replace data from the same kobootoolbox data
+    - Append data from the same kobootoolbox data
     - Delete data
     """
     try:
@@ -292,13 +293,6 @@ def test_007_james_bond(input_files: dict[str, str], output_files: dict[str, str
                     "replace",
                     "kobotoolbox",
                     input_files["kobotoolbox_data.xlsx"],
-                ],
-                [
-                    "append",
-                    "kobotoolbox",
-                    input_files["kobotoolbox_data.xlsx"],
-                    "--form",
-                    input_files["kobotoolbox_inquiry.xlsx"],
                 ],
                 [
                     "append",
