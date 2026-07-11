@@ -13,7 +13,6 @@ from .annotations import (
     FilePath,
     Sep,
     DecimalSep,
-    XlsForm,
     XlsData,
 )
 
@@ -22,15 +21,11 @@ app = typer.Typer()
 
 
 @app.command()
-def kobotoolbox(
-    xlsform: XlsForm,
-    xlsdata: XlsData,
-    package: Package,
-):
+def kobotoolbox(xlsdata: XlsData, package: Package):
     """
-    Replace data of datapackage resources by data parsed from Kobotoolbox XLS form and XLS data files.
+    Replace data of datapackage Kobotoolbox resources.
     """
-    KoboToolboxLoader(package, xlsform, xlsdata).replace()
+    KoboToolboxLoader(package, xlsdata).replace()
 
 
 @app.command()

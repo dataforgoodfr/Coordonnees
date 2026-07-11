@@ -16,7 +16,7 @@ app = typer.Typer()
 
 @app.command()
 def kobotoolbox(xlsform: XlsForm, xlsdata: XlsData, package: Package):
-    KoboToolboxLoader(package, xlsform, xlsdata).add()
+    KoboToolboxLoader(package, xlsdata, xlsform).add()
 
 
 @app.command()

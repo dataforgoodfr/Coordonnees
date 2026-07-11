@@ -10,7 +10,7 @@ import geopandas as gpd
 import logging
 import duckdb
 import re
-from dataclasses import dataclass
+import inspect
 
 from ..datapackage import DataPackage, Resource, Schema
 from ..sql.helpers import load_conn
@@ -54,7 +54,6 @@ def handle_foreign_key(package: Path | str, from_: str, to: str, method_name: st
     dp.save()
 
 
-@dataclass
 class Loader(ABC):
     _ACCEPTS_TARGET_RESOURCES: ClassVar[bool] = False
 
@@ -256,3 +255,7 @@ class Loader(ABC):
             path=f"{resource_name}.parquet",
             schema=schema,
         )
+
+    @staticmethod
+    def get_calling_function():
+        return inspect.stack()[2][3]

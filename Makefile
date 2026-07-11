@@ -5,7 +5,7 @@ build:
 
 catalog:
 	# All 4 Trees - Inventaire forestier
-	uv run coordo add kobotoolbox data/all4trees/inventaire_for/20260519_InventaireForestier_QuestionnaireK.xlsx data/all4trees/inventaire_for/20260422_InventaireForestier_DonneesK.xlsx --package catalog/inventaire_for
+	uv run coordo add kobotoolbox data/all4trees/inventaire_for/20260422_InventaireForestier_DonneesK.xlsx --form data/all4trees/inventaire_for/20260519_InventaireForestier_QuestionnaireK.xlsx --package catalog/inventaire_for
 	uv run coordo add file data/all4trees/inventaire_for/20260422_InventaireForestier_DonneesExternes.xlsx --package catalog/inventaire_for
 
 	uv run coordo add foreignkey adu.decay for_dw.decay --package catalog/inventaire_for
@@ -31,7 +31,7 @@ catalog:
 	uv run coordo add foreignkey barbd_001.barbD_tax3 for_mf_tax3.tax3 --package catalog/inventaire_for
 
 	# All 4 Trees - Inventaire Biologique
-	uv run coordo add kobotoolbox data/all4trees/inventaire_bio/20260519_InventaireBiologique_QuestionnaireK.xlsx data/all4trees/inventaire_bio/20260422_InventaireBiologique_DonneesK.xlsx --package catalog/inventaire_bio
+	uv run coordo add kobotoolbox data/all4trees/inventaire_bio/20260422_InventaireBiologique_DonneesK.xlsx --form data/all4trees/inventaire_bio/20260519_InventaireBiologique_QuestionnaireK.xlsx --package catalog/inventaire_bio
 	uv run coordo add file data/all4trees/inventaire_bio/20260422_InventaireBiologique_DonneesExternes.xlsx --package catalog/inventaire_bio
 
 	uv run coordo add foreignkey inv_bio.proj bio_samp.proj --package catalog/inventaire_bio
@@ -39,7 +39,7 @@ catalog:
 	uv run coordo add foreignkey inv_001.tax3 bio_sp.tax3 --package catalog/inventaire_bio
 
 	# All 4 Trees - Enquête ménage
-	uv run coordo add kobotoolbox data/all4trees/enquete/20260519_EnqueteMenage_QuestionnaireK.xlsx data/all4trees/enquete/20260422_EnqueteMenage_DonneesK.csv --package catalog/enquete
+	uv run coordo add kobotoolbox data/all4trees/enquete/20260422_EnqueteMenage_DonneesK.csv --form data/all4trees/enquete/20260519_EnqueteMenage_QuestionnaireK.xlsx --package catalog/enquete
 	uv run coordo add file data/all4trees/enquete/20260422_EnqueteMenage_DonneesExternes.xlsx --package catalog/enquete
 
 	uv run coordo add foreignkey enquete_menage.proj enq_samp.proj --package catalog/enquete

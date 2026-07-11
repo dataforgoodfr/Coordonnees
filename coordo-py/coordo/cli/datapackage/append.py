@@ -10,7 +10,6 @@ from .annotations import (
     FilePath,
     Sep,
     DecimalSep,
-    XlsForm,
     XlsData,
 )
 
@@ -19,11 +18,11 @@ app = typer.Typer()
 
 
 @app.command()
-def kobotoolbox(xlsform: XlsForm, xlsdata: XlsData, package: Package):
+def kobotoolbox(xlsdata: XlsData, package: Package):
     """
-    Append data from Kobotoolbox XLS form and XLS data files to datapackage resources.
+    Append data to the datapackage Kobotoolbox resources.
     """
-    KoboToolboxLoader(package, xlsform, xlsdata).append()
+    KoboToolboxLoader(package, xlsdata).append()
 
 
 @app.command()

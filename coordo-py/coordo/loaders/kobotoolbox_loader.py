@@ -7,6 +7,7 @@ from pathlib import Path
 from time import time
 from typing import Any, Dict, List, cast, ClassVar
 import logging
+import shutil
 
 import geopandas as gpd
 import numpy as np
@@ -106,21 +107,65 @@ class KoboToolboxLoader(Loader):
         "datetime": datetime,
     }
 
+    package_name: str
     main_resource: Resource
 
-    def __init__(self, package: Path | str, xlsform: Path | str, xlsdata: Path | str):
+    def __init__(
+        self,
+        package: Path | str,
+        xlsdata: Path | str,
+        xlsform: Path | str | None = None,
+    ):
         super().__init__(package)
-        self.xlsform = Path(xlsform)
+        self.package_name = Path(package).stem
         self.xlsdata = Path(xlsdata)
-        if not self.xlsform.exists():
-            raise FileNotFoundError(f"XLSform not found: {self.xlsform}")
         if not self.xlsdata.exists():
-            raise FileNotFoundError(f"XLSdata not found: {self.xlsdata}")
+            raise FileNotFoundError(f"Kobotoolbox data not found: {self.xlsdata}")
+
+        stored_xlsform: Path | None = self.get_stored_xlsform()
+        if xlsform:  # str != "" and is not None
+            self.xlsform = Path(xlsform)
+            if not self.xlsform.exists():
+                raise FileNotFoundError(f"Kobotoolbox form not found: {self.xlsform}")
+            if stored_xlsform:
+                raise ValueError(
+                    f"Stored Kobotoolbox form exists: {self.get_stored_xlsform()}, but a form was provided: {self.xlsform}"
+                )
+            else:
+                logger.info(
+                    f"Stored Kobotoolbox form not found, using provided form: {self.xlsform}"
+                )
+        else:
+            if not stored_xlsform:
+                raise FileNotFoundError(
+                    f"Could not find XLS form at {self.dp.get_path() / (self.package_name + 'form.*')}"
+                )
+            self.xlsform = stored_xlsform
+
+    def get_stored_xlsform(self) -> Path | None:
+        try:
+            return list(self.dp.get_path().glob(f"{self.package_name}.form.*"))[0]
+        except IndexError:
+            return None
 
     def parse_input(self):
         self.parse_xlsform_and_get_resources()
         self.extract_xlsdata()
         self.get_resources_and_dataframes_match()
+
+    def get_path_to_copied_xlsform(self):
+        return
+
+    def load(self):
+        for resource in self.resources:
+            self.write_to_package(self.dataframes[resource.name], resource)
+        # in addition to this, copying the xlsform in the datapackage
+        # if we load, it means that we're in the add method
+        # therefore self.xlsform is not None
+        copied_xlsform = (
+            self.dp.get_path() / f"{self.package_name}.form{self.xlsform.suffix}"
+        )
+        shutil.copy(self.xlsform, copied_xlsform)
 
     def get_resource_schema(self) -> Schema:
         return Schema(

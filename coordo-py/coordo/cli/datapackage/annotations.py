@@ -22,7 +22,10 @@ From = Annotated[str, typer.Argument(help="Foreign key source")]
 To = Annotated[str, typer.Argument(help="Foreign key target")]
 
 # kobotoolbox arguments
-XlsForm = Annotated[Path, typer.Argument(help="Path to the XLS form")]
+XlsForm = Annotated[Path, typer.Option("--form", "-f", help="Path to the XLS form")]
+OptionalXlsForm = Annotated[
+    Path | None, typer.Option("--form", "-f", help="Path to the XLS form")
+]
 XlsData = Annotated[Path, typer.Argument(help="Path to the XLS data")]
 
 # file arguments

@@ -55,8 +55,9 @@ def test_001_add_remove_kobotoolbox(
                 [
                     "add",
                     "kobotoolbox",
-                    input_files["kobotoolbox_inquiry.xlsx"],
                     input_files["kobotoolbox_data.xlsx"],
+                    "--form",
+                    input_files["kobotoolbox_inquiry.xlsx"],
                 ],
                 ["remove", "foreignkey", "reg.parent_id", "inventaire_id._id"],
                 ["remove", "foreignkey", "ind.parent_id", "inventaire_id._id"],
@@ -68,14 +69,16 @@ def test_001_add_remove_kobotoolbox(
                 [
                     "remove",
                     "kobotoolbox",
-                    input_files["kobotoolbox_inquiry.xlsx"],
                     input_files["kobotoolbox_data.xlsx"],
+                    "--form",
+                    input_files["kobotoolbox_inquiry.xlsx"],
                 ],
                 [
                     "add",
                     "kobotoolbox",
-                    input_files["kobotoolbox_inquiry.xlsx"],
                     input_files["kobotoolbox_data.xlsx"],
+                    "--form",
+                    input_files["kobotoolbox_inquiry.xlsx"],
                 ],
             ]
         )
@@ -102,8 +105,9 @@ def test_002_add_remove_file(input_files: dict[str, str], output_files: dict[str
                 [
                     "add",
                     "kobotoolbox",
-                    input_files["kobotoolbox_inquiry.xlsx"],
                     input_files["kobotoolbox_data.xlsx"],
+                    "--form",
+                    input_files["kobotoolbox_inquiry.xlsx"],
                 ],
                 ["add", "file", input_files["external_data.csv"]],
                 ["remove", "file", input_files["external_data.csv"]],
@@ -138,8 +142,9 @@ def test_003_add_kobotoolbox_file_foreignkey(
                 [
                     "add",
                     "kobotoolbox",
-                    input_files["kobotoolbox_inquiry.xlsx"],
                     input_files["kobotoolbox_data.xlsx"],
+                    "--form",
+                    input_files["kobotoolbox_inquiry.xlsx"],
                 ],
                 ["add", "file", input_files["external_data.csv"]],
                 ["add", "foreignkey", "ind.ess_arb", "external_data.ess_arb"],
@@ -279,19 +284,25 @@ def test_007_james_bond(input_files: dict[str, str], output_files: dict[str, str
                 [
                     "add",
                     "kobotoolbox",
-                    input_files["kobotoolbox_inquiry.xlsx"],
                     input_files["kobotoolbox_data.xlsx"],
+                    "--form",
+                    input_files["kobotoolbox_inquiry.xlsx"],
                 ],
                 [
                     "replace",
                     "kobotoolbox",
-                    input_files["kobotoolbox_inquiry.xlsx"],
                     input_files["kobotoolbox_data.xlsx"],
                 ],
                 [
                     "append",
                     "kobotoolbox",
+                    input_files["kobotoolbox_data.xlsx"],
+                    "--form",
                     input_files["kobotoolbox_inquiry.xlsx"],
+                ],
+                [
+                    "append",
+                    "kobotoolbox",
                     input_files["kobotoolbox_data.xlsx"],
                 ],
             ]
