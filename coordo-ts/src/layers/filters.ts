@@ -13,9 +13,11 @@ export type SetLayerFiltersParams<T> = {
 export function makeSetLayerFilters({
   map,
   baseUrl,
+  options,
 }: {
   map: MapLibreMap;
   baseUrl: URL;
+  options: any;
 }) {
   /**
    * Update map data of the selected layer based on the provided filters.
@@ -46,11 +48,15 @@ export function makeSetLayerFilters({
     }
 
     const dataUrl = new URL(layerId, baseUrl).toString();
+    const customHeaders = options?.headers || {};
 
     // Fetch data based on filters
     const res = await fetch(dataUrl, {
       body: JSON.stringify(filters),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...customHeaders,
+      },
       method: "POST",
     });
     const data = await res.json();
