@@ -25,6 +25,7 @@ export type CreateMapOptions = Partial<maplibregl.MapOptions> & {
     LayerControlConstructorProps,
     "renderAnchor" | "renderLayerRow"
   >;
+  headers?: Record<string, string>;
 };
 
 export function createMap(
@@ -49,10 +50,23 @@ export function createMap(
     ...providedMapLibreOptions,
   };
 
+  // Extract headers from CreateMapOptions
+  const customHeaders = options?.headers || {};
+
   const map = new maplibregl.Map({
     center: mergedMapLibreOptions.center,
     container: el,
     style: styleUrl,
+    // Inject transformRequest to handle headers
+    transformRequest: (url, _) => {
+      if (Object.keys(customHeaders).length > 0 && url === styleUrl) {
+        return {
+          headers: customHeaders,
+          url,
+        };
+      }
+      return { url };
+    },
     zoom: mergedMapLibreOptions.zoom,
   });
 
@@ -70,7 +84,7 @@ export function createMap(
 
   const addSprite = map.addSprite;
 
-  const setLayerFilters = makeSetLayerFilters({ baseUrl, map });
+  const setLayerFilters = makeSetLayerFilters({ baseUrl, map, options });
 
   const setLayerPopup = makeSetLayerPopup({ map });
 
