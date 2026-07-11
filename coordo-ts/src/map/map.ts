@@ -60,7 +60,7 @@ export function createMap(
     zoom: mergedMapLibreOptions.zoom,
     // Inject transformRequest to handle headers
     transformRequest: (url, _) => {
-      if (Object.keys(customHeaders).length > 0) {
+      if (Object.keys(customHeaders).length > 0 && url == styleUrl) {
         return {
           url,
           headers: customHeaders,
