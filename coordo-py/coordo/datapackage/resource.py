@@ -17,7 +17,7 @@ from dplib.models import (
 )
 from pydantic import model_validator
 
-from .db_helpers import prepare_path
+from .db_helpers import prepare_path, clean_str
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +44,19 @@ class Resource(pydantic.BaseModel):
         from .package import DataPackage
 
         _package: "DataPackage | None" = None
+
+    @classmethod
+    def create(cls, name: str, schema: Schema) -> Self:
+        """
+        Create and return a Resource object with the specified schema
+        """
+        resource_name = clean_str(name)
+        logger.info(f"Creating resource '{resource_name}'")
+        return cls(
+            name=resource_name,
+            path=f"{resource_name}.parquet",
+            schema=schema,
+        )
 
     @property
     def package(self):

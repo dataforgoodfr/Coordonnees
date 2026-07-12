@@ -128,6 +128,8 @@ class KoboToolboxLoader(Loader):
             if not self.xlsform.exists():
                 raise FileNotFoundError(f"Kobotoolbox form not found: {self.xlsform}")
             if stored_xlsform:
+                # this is not an error at all in itself (like when we provide the form to remove the existing resources)
+                # but it may be important to log it
                 logger.warning(
                     f"Stored Kobotoolbox form exists: {self.get_stored_xlsform()}, but a form was provided: {self.xlsform}"
                 )
@@ -183,7 +185,7 @@ class KoboToolboxLoader(Loader):
         """
         logger.info(f"Parsing form from {self.xlsform}")
         form: dict = parse_file_to_json(str(self.xlsform))
-        self.main_resource = self.create_resource(
+        self.main_resource = Resource.create(
             self.get_form_name(form), self.get_resource_schema()
         )
         # parses questions from JSON form and add resources to the datapackage
@@ -293,7 +295,7 @@ class KoboToolboxLoader(Loader):
                 parsed_resources += parsed_children_resources
 
             elif qtype == "repeat":
-                child_resource = self.create_resource(
+                child_resource = Resource.create(
                     question["name"].lower(), self.get_resource_schema()
                 )
                 # Use a different variable name to not change the schema used in the for loop

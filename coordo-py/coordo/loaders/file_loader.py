@@ -9,6 +9,7 @@ import logging
 from coordo.loaders import Loader
 from ..datapackage import Resource, Schema, Field
 from ..datapackage.db_helpers import prepare_path, duckdb_type_to_dp_type
+from ..sql.helpers import load_conn
 
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ class FileLoader(Loader):
         Parses data from the file and writes it to the raw staging directory.
         """
         schema = Schema()
-        with self.load_conn() as conn:
+        with load_conn() as conn:
             sql_query = self.get_sql_query(path)
             rel = conn.sql(sql_query)
 
@@ -50,7 +51,7 @@ class FileLoader(Loader):
                 schema.add_field(Field(name=name, **duckdb_type_to_dp_type(type)))
 
             # creating a new resource
-            resource = self.create_resource(path.stem, schema)
+            resource = Resource.create(path.stem, schema)
             # parsing data from the file
             df = rel.to_df()
 

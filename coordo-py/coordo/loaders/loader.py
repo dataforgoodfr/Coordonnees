@@ -8,12 +8,8 @@ from enum import Enum
 import pandas as pd
 import geopandas as gpd
 import logging
-import duckdb
-import re
-import inspect
 
-from ..datapackage import DataPackage, Resource, Schema
-from ..sql.helpers import load_conn
+from ..datapackage import DataPackage, Resource
 
 
 logger = logging.getLogger(__name__)
@@ -232,30 +228,3 @@ class Loader(ABC):
         target_path = self.dp.get_path() / target_filename
         logger.info(f"Writing parquet file to package at {target_path}")
         write_parquet(df, target_path)
-
-    ######################################
-    # MISC.
-    ######################################
-
-    def load_conn(self) -> duckdb.DuckDBPyConnection:
-        return load_conn()
-
-    @staticmethod
-    def clean_str(s: str) -> str:
-        return re.sub(r"[^a-z0-9._-]", "", s.strip().lower())
-
-    def create_resource(self, name: str, schema: Schema) -> Resource:
-        """
-        Create and return a Resource object with the specified schema
-        """
-        resource_name = self.clean_str(name)
-        logger.info(f"Creating resource '{resource_name}'")
-        return Resource(
-            name=resource_name,
-            path=f"{resource_name}.parquet",
-            schema=schema,
-        )
-
-    @staticmethod
-    def get_calling_function():
-        return inspect.stack()[2][3]

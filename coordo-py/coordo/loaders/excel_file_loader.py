@@ -8,7 +8,7 @@ import pandas as pd
 import logging
 
 from coordo.loaders import FileLoader
-from ..datapackage import Schema, Field
+from ..datapackage import Schema, Field, Resource
 from ..datapackage.db_helpers import pandas_type_to_dp_type
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class ExcelFileLoader(FileLoader):
                 schema.add_field(Field(name=name, **pandas_type_to_dp_type(dtype)))
 
             # creating a new resource
-            resource = self.create_resource(path.stem, schema)
+            resource = Resource.create(path.stem, schema)
             # writing the data parsed from the file to the raw staging directory as a parquet file
             self.dataframes[resource.name] = sheet_df
             self.resources.append(resource)

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from pathlib import Path
+import re
 
 from pandas.api.types import (
     is_integer_dtype,
@@ -55,3 +56,7 @@ def pandas_type_to_dp_type(type: str) -> dict:
         return {"type": "date"}
     else:
         return {"type": "string"}
+
+
+def clean_str(s: str) -> str:
+    return re.sub(r"[^a-z0-9._-]", "", s.strip().lower())
