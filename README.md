@@ -89,11 +89,11 @@ coordo remove foreignkey <source resource>.<field name> <target resource>.<field
 #### Kobotoolbox
 
 > [!NOTE]
-> For Kobotoolbox, a supplementary argument `--form <path/to/form (.xlsx format)>` **must be provided when adding / removing resources** and can be optionally supplied when updating data.
+> For Kobotoolbox, a supplementary argument `--form <path/to/form (Excel file)>` **must be provided when adding / removing resources** and can be optionally supplied when updating data.
 
 To add / remove / append / replace a new Datapackage resource with Kobotoolbox data, you can use the command line:
 ```bash
-coordo < add / remove / append / replace > kobotoolbox <path/to/data (`.xlsx` format)> [--form <path/to/form (`.xlsx` format)>] --package <path/to/datapackage>
+coordo < add / remove / append / replace > kobotoolbox <path/to/data (Excel file)> [--form <path/to/form (Excel file)>] --package <path/to/datapackage>
 ```
 
 This is the API equivalent:
@@ -102,8 +102,8 @@ from pathlib import Path
 from coordo.loaders import KoboToolboxLoader
 
 package = "path/to/datapackage"
-xlsform = "path/to/form (`.xlsx` format)"
-xlsdata = "path/to/data (`.xlsx` format)"
+xlsform = "path/to/form (Excel file)"
+xlsdata = "path/to/data (Excel file)"
 
 kb = KoboToolboxLoader(package, xlsform, xlsdata)
 kb.add()
