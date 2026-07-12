@@ -28,10 +28,10 @@ const DEFAULT_CLUSTER_STYLE: ClusterStyle = {
 const IS_CLUSTER: FilterSpecification = ["has", "point_count"];
 const IS_NOT_CLUSTER: FilterSpecification = ["!", ["has", "point_count"]];
 
-function getClusterLayerIds(sourceId: string) {
+export function getClusterLayerIds(layerId: string) {
   return {
-    circle: `${sourceId}-clusters`,
-    count: `${sourceId}-cluster-count`,
+    circle: `${layerId}-clusters`,
+    count: `${layerId}-cluster-count`,
   };
 }
 

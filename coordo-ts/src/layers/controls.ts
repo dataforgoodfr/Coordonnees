@@ -6,6 +6,7 @@
 import type { LayerSpecification, Map as MapLibreMap } from "maplibre-gl";
 
 import { EVENTS } from "../events";
+import { getClusterLayerIds } from "./cluster";
 
 export const CONTROLS = {
   COMPASS: "compass",
@@ -106,6 +107,34 @@ export class LayerControl {
     );
   }
 
+  _updateMapLayoutProperty(layerId: string, isChecked: boolean) {
+    const nextVisibility = isChecked
+      ? LAYER_VISIBILITY.VISIBLE
+      : LAYER_VISIBILITY.NONE;
+
+    this._map?.setLayoutProperty(layerId, "visibility", nextVisibility);
+
+    try {
+      // Try to apply same visibility changes to cluster layers
+      const { circle, count } = getClusterLayerIds(layerId);
+      const layers = this._map?.getStyle().layers?.map((layer) => layer.id);
+      if (layers?.includes(circle)) {
+        this._map?.setLayoutProperty(circle, "visibility", nextVisibility);
+      }
+      if (layers?.includes(count)) {
+        this._map?.setLayoutProperty(count, "visibility", nextVisibility);
+      }
+    } catch (error) {
+      // Since we mutate only existing layer, only unexpected errors can be raised
+      // biome-ignore lint/suspicious/noConsole: <Required for debugging, just in case>
+      console.error(error);
+    }
+
+    this._dispatchEvent(
+      isChecked ? EVENTS.LAYER_SHOW(layerId) : EVENTS.LAYER_HIDE(layerId),
+    );
+  }
+
   _buildLayerList() {
     const layers = this._map?.getStyle().layers;
 
@@ -121,14 +150,7 @@ export class LayerControl {
 
       // Dispatch state update to map layout property
       const onClick = (isChecked: boolean) => {
-        this._map?.setLayoutProperty(
-          layerId,
-          "visibility",
-          isChecked ? LAYER_VISIBILITY.VISIBLE : LAYER_VISIBILITY.NONE,
-        );
-        this._dispatchEvent(
-          isChecked ? EVENTS.LAYER_SHOW(layerId) : EVENTS.LAYER_HIDE(layerId),
-        );
+        this._updateMapLayoutProperty(layerId, isChecked);
       };
 
       if (this._renderLayerRow) {

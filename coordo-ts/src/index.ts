@@ -6,6 +6,7 @@
 export type { PopupOptions } from "maplibre-gl";
 
 export { EVENTS } from "./events";
+export { getClusterLayerIds } from "./layers/cluster";
 export {
   LAYER_CONTROL_ELEMENTS,
   type LayerControlRenderAnchor,
