@@ -3,6 +3,7 @@
 
 from pathlib import Path
 from typing import Type
+import inspect
 import logging
 
 from .loader import Loader
@@ -35,24 +36,16 @@ def get_file_loader_class(path: Path) -> Type[FileLoader]:
 
 
 def filter_params(cls: Type[Loader], params: dict):
-    static_attributes = get_static_attributes(cls)
+    sig = inspect.signature(cls.__init__)
+    valid_params = set(sig.parameters) - {"self"}
     filtrered_params = {}
     for k, v in params.items():
         if v is None:
             continue
-        if k not in static_attributes:
+        if k not in valid_params:
             logger.warning(
                 f"Unrecognized argument {k} for class {cls.__name__}. This argument is ignored."
             )
             continue
         filtrered_params[k] = params[k]
     return filtrered_params
-
-
-def get_static_attributes(cls: Type[Loader]) -> list:
-    """
-    Returns the static instance attributes (defined in __init__) of the loader class.
-    There is no direct way to get the static attributes of a class in Python,
-    so we use the `__static_attributes__`, which should work.
-    """
-    return list(vars(cls)["__static_attributes__"])
