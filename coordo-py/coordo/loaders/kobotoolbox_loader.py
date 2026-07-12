@@ -230,7 +230,6 @@ class KoboToolboxLoader(Loader):
     def get_resources_and_dataframes_match(self):
         """
         Removing resources parsed from the form which do not have a corresponding table in data.
-        TODO: better handle Kobotoolbox sheet naming to avoid having to perform this check
         """
         table_names = list(self.dataframes.keys())
         valid_resources = []

@@ -36,7 +36,7 @@ def isCustomConstraint(constraint: str) -> bool:
     return not (isinstance(constraint, float) or isinstance(constraint, int))
 
 
-class RangeTransformer(Transformer):
+class ConstraintTransformer(Transformer):
     def arg_list(self, items):
         return items
 
@@ -82,5 +82,5 @@ class RangeTransformer(Transformer):
 
 
 constraint_parser = Lark(
-    CONSTRAINT_GRAMMAR, parser="lalr", transformer=RangeTransformer()
+    CONSTRAINT_GRAMMAR, parser="lalr", transformer=ConstraintTransformer()
 )
