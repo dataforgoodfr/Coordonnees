@@ -41,6 +41,7 @@ def build_query(
     if columns:
         base_query = query
 
+        joined = set()
         for alias, ast in columns.items():
             expr, joins = to_sql(ast, field_map, base_query)
             if groupby:
@@ -48,6 +49,9 @@ def build_query(
             else:
                 query = query.add_columns(label(alias, expr))
             for join, on in joins:
+                if join.name in joined:
+                    continue
+                joined.add(join.name)
                 query = query.join(join, on, isouter=True)
     else:
         query = query.with_only_columns(table)
