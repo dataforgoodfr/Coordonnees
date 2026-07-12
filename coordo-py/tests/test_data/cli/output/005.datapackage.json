@@ -1,0 +1,117 @@
+{
+  "name": "test_cli",
+  "resources": [
+    {
+      "name": "bio_samp",
+      "path": "bio_samp.parquet",
+      "schema": {
+        "fields": [
+          {
+            "name": "proj",
+            "type": "string"
+          },
+          {
+            "name": "samp",
+            "type": "string"
+          },
+          {
+            "name": "group1",
+            "type": "number"
+          },
+          {
+            "name": "group2",
+            "type": "number"
+          },
+          {
+            "name": "group3",
+            "type": "number"
+          },
+          {
+            "name": "PSU",
+            "type": "number"
+          },
+          {
+            "name": "_index",
+            "type": "integer"
+          }
+        ]
+      }
+    },
+    {
+      "name": "bio_pop",
+      "path": "bio_pop.parquet",
+      "schema": {
+        "fields": [
+          {
+            "name": "ess_arb",
+            "type": "integer"
+          },
+          {
+            "name": "value",
+            "type": "integer"
+          },
+          {
+            "name": "_index",
+            "type": "integer"
+          }
+        ]
+      }
+    },
+    {
+      "name": "bio_sp",
+      "path": "bio_sp.parquet",
+      "schema": {
+        "fields": [
+          {
+            "name": "tax3",
+            "type": "integer"
+          },
+          {
+            "name": "stat::Français(fr)",
+            "type": "string"
+          },
+          {
+            "name": "stat::English(en)",
+            "type": "string"
+          },
+          {
+            "name": "stat::Español(es)",
+            "type": "string"
+          },
+          {
+            "name": "_index",
+            "type": "integer"
+          }
+        ]
+      }
+    },
+    {
+      "name": "bio_choic",
+      "path": "bio_choic.parquet",
+      "schema": {
+        "fields": [
+          {
+            "name": "samp",
+            "type": "string"
+          },
+          {
+            "name": "group1",
+            "type": "string"
+          },
+          {
+            "name": "group2",
+            "type": "string"
+          },
+          {
+            "name": "group3",
+            "type": "string"
+          },
+          {
+            "name": "_index",
+            "type": "integer"
+          }
+        ]
+      }
+    }
+  ]
+}

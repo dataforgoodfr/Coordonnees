@@ -1,8 +1,13 @@
  # coordo-py
 
-This is the Python side of coordo. It is divided in 3 main modules :
+This is the Python side of coordo. It can be used to:
+- parse data (Excel, CSV / TSV, Kobotoolbox) and populate a DataPackage
+- read with a Datapackage
+- translate `coordo`-like syntax in SQL
 
-## sql
+## Syntax parsers
+
+Under the hood, `coordo` uses syntax parsers to translate its specific syntax into SQL.
 
 Let's start with some SQLAlchemy tables
 ```py
@@ -39,11 +44,11 @@ PS: if you are using the SQLAlchemy ORM you can use `Base.metadata`
 
 Using this field mapper you can then parse an expression using our simplified language
 ```py
-from coordo.sql.parser import parse
+from coordo.syntax_parsers import sql_parser
 from coordo.sql.evaluator import to_sql
 from coordo.sql.builder import compile_query
 
-ast = parse("centroid(some_column if other_column > 5)")
+ast = sql_parser.parse("centroid(some_column if other_column > 5)")
 expr, joins = to_sql(ast, mapper)
 >>> print(compile_query(expr))
 st_centroid(CASE WHEN (parents.other_column > 5.0) THEN parents.some_column END)
@@ -94,9 +99,20 @@ FROM anon_1
 
 ## Development
 
-### Data types
+### Testing
 
-#### KoboToolbox
+To run the pytest tests, simply run in `coordo-py` directory:
+
+```bash
+pytest
+```
+
+## Data types
+
+### KoboToolbox
+
+>[!WARNING]
+>This section is still under construction.
 
 For surveys, Kobotoolbox uses the standard XLSForm format.
 Briefly, each `xlsx` file contains 3 sheets:

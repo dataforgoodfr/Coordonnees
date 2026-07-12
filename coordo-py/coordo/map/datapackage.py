@@ -10,14 +10,24 @@ from pygeofilter.ast import And
 from pygeofilter.parsers.cql2_text import parse as parse_filter
 
 from coordo.datapackage import DataPackage
-from coordo.sql.parser import parse as parse_expr
+from coordo.syntax_parsers import sql_parser
 
 from ..helpers import safe
 from .base import BaseLayerModel
 from .maplibre_style_spec_v8 import GeoJSONSource, Layer
 
 # https://birkskyum.github.io/maplibre-style/layers/#layer-properties
-ALLOWED_LAYER_KEYS = ["id", "source", "metadata", "paint", "layout", "minzoom", "maxzoom", "source-layer"]
+ALLOWED_LAYER_KEYS = [
+    "id",
+    "source",
+    "metadata",
+    "paint",
+    "layout",
+    "minzoom",
+    "maxzoom",
+    "source-layer",
+]
+
 
 class Popup(BaseModel):
     trigger: str
@@ -58,7 +68,7 @@ class ClusterConfig(BaseModel):
 
 
 class DataPackageLayer(BaseLayerModel):
-    model_config = ConfigDict(extra='allow')  # Allows arbitrary extra fields
+    model_config = ConfigDict(extra="allow")  # Allows arbitrary extra fields
 
     type: Literal["datapackage"]
     path: str
@@ -110,7 +120,7 @@ class DataPackageLayer(BaseLayerModel):
                     exclude_none=True, warnings="none"
                 ),
             },
-            "references": self.findAllResourceReferences(resource, package)
+            "references": self.findAllResourceReferences(resource, package),
         }
         if self.popup:
             metadata.update(popup=self.popup.model_dump())
@@ -144,7 +154,9 @@ class DataPackageLayer(BaseLayerModel):
 
         columns = None
         if self.columns:
-            columns = {alias: parse_expr(expr) for alias, expr in self.columns.items()}
+            columns = {
+                alias: sql_parser.parse(expr) for alias, expr in self.columns.items()
+            }
         df = package.read_resource(
             self.resource,
             columns,
@@ -153,13 +165,13 @@ class DataPackageLayer(BaseLayerModel):
         )
         assert isinstance(df, GeoDataFrame), "No geometry column found."
         return df.to_geo_dict(show_bbox=True)  # type: ignore
-    
+
     def infer_layer_type(self, features):
         # We check the type of the first non-null geometry, it doesn't support yet mixed geometries
         geom_type = (
             next(f["geometry"] for f in features if f["geometry"])["type"]
             if features
-                else "Point"
+            else "Point"
         )
         if "Polygon" in geom_type:
             layer_type = "fill"
@@ -169,19 +181,23 @@ class DataPackageLayer(BaseLayerModel):
             layer_type = "circle"
 
         return layer_type
-    
+
     def findAllResourceReferences(self, resource, package):
         references = []
         added_references = []
         for res in package.resources:
             for fk in res.schema.foreignKeys:
-                if fk.reference.resource == resource.name and res.name not in added_references:
-                    references.append({
-                        "name": res.name,
-                        "schema": safe(res, "schema").model_dump(
-                            exclude_none=True, warnings="none"
-                        )
-                    })
+                if (
+                    fk.reference.resource == resource.name
+                    and res.name not in added_references
+                ):
+                    references.append(
+                        {
+                            "name": res.name,
+                            "schema": safe(res, "schema").model_dump(
+                                exclude_none=True, warnings="none"
+                            ),
+                        }
+                    )
                     added_references.append(res.name)
         return references
-

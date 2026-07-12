@@ -2,8 +2,14 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from pathlib import Path
+import re
 
-from dplib.models.field.types import IField
+from pandas.api.types import (
+    is_integer_dtype,
+    is_float_dtype,
+    is_string_dtype,
+    is_datetime64_dtype,
+)
 from duckdb.sqltypes import DuckDBPyType
 
 
@@ -18,23 +24,7 @@ def prepare_path(path: Path):
     return from_
 
 
-def to_db_type(field: IField):
-    match field.type:
-        case "integer":
-            return "INTEGER"
-        case "string":
-            return "VARCHAR"
-        case "geojson":
-            return "GEOMETRY"
-        case "number":
-            return "DOUBLE"
-        case "date":
-            return "DATE"
-        case "list":
-            return field.itemType + "[]"
-
-
-def to_dp_type(type: DuckDBPyType):
+def duckdb_type_to_dp_type(type: DuckDBPyType) -> dict:
     match type.id:
         case "bigint" | "integer":
             return {"type": "integer"}
@@ -48,3 +38,25 @@ def to_dp_type(type: DuckDBPyType):
             return {"type": "list", "itemType": type.children[0]}
         case _:
             return {"type": "string"}
+
+
+def pandas_type_to_dp_type(type: str) -> dict:
+    """
+    Convert a pandas type to a Data Package type.
+    Note that pandas parses list columns as object,
+    and that pandas (unlike Geopandas) does not have a built-in dtype of geometry data.
+    """
+    if is_integer_dtype(type):
+        return {"type": "integer"}
+    elif is_float_dtype(type):
+        return {"type": "number"}
+    elif is_string_dtype(type):
+        return {"type": "string"}
+    elif is_datetime64_dtype(type):
+        return {"type": "date"}
+    else:
+        return {"type": "string"}
+
+
+def clean_str(s: str) -> str:
+    return re.sub(r"[^a-z0-9._-]", "", s.strip().lower())

@@ -2,79 +2,77 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from pathlib import Path
+from typing import ClassVar
 import pandas as pd
-import shutil
+import logging
 
-from coordo.loaders import Loader, ResourceAction, Separator
-from ..datapackage import Field, Resource, Schema
-from ..datapackage.db_helpers import prepare_path, to_dp_type
+from coordo.loaders import Loader
+from ..datapackage import Resource, Schema, Field
+from ..datapackage.db_helpers import prepare_path, duckdb_type_to_dp_type
+from ..sql.helpers import load_conn
+
+
+logger = logging.getLogger(__name__)
 
 
 class FileLoader(Loader):
-    def __init__(
-        self,
-        package: Path,
-        path: Path,
-        action: ResourceAction,
-        sep: Separator = Separator.COMMA,
-        decimal_sep: Separator = Separator.DOT
-    ):
-        super().__init__(package, action)
-        self.path = path
-        self.sep = sep
-        self.decimal_sep = decimal_sep
+    _ACCEPTS_TARGET_RESOURCES: ClassVar[bool] = True
 
-    def extract(self):
-        extension = self.path.suffix.lower()
+    resource: Resource
 
-        if extension == ".xlsx":
-            self.readExcelFile()
+    def __init__(self, package: Path | str, path: Path | str):
+        super().__init__(package)
+        self.path = Path(path)
+        if not self.path.exists():
+            raise FileNotFoundError(f"File not found: {self.path}")
 
-        else:
-            query= csv_query(self.path, sep=self.sep, decimal_sep=self.decimal_sep) if extension == ".csv" else f"""
-                SELECT * FROM {prepare_path(self.path)}
-            """
-            self.resources = [self._create_resource(self.path, query)]
+    def get_sql_query(self, path: Path) -> str:
+        """
+        Returns the SQL query to extract the schema from the file.
+        """
+        return f"""
+            SELECT * FROM {prepare_path(path)}
+        """
 
-    def transform(self):
-        pass
-
-    def load(self):
-        shutil.copy(self.path, self.dp._basepath / self.path.name)
-
-
-    def readExcelFile(self):
-        sheets = pd.read_excel(self.path, sheet_name=None)
-        for i, (sheet_name, sheet) in enumerate(sheets.items()):
-            path = Path(self.dp._basepath, sheet_name + '.parquet')
-            sheet['_index'] = sheet.index + 1
-            # to_parquet method fails if column names contain dots
-            sheet.columns = [col.replace('.', '_') for col in sheet.columns]
-            sheet.to_parquet(path, index=False)
-            query= f"SELECT * FROM {prepare_path(path)}"
-
-            self.resources.append(self._create_resource(path, query))
-
-
-    def _create_resource(self, path: Path, query: str) -> Resource:
+    def parse_file(self, path: Path) -> tuple[Resource, pd.DataFrame]:
+        """
+        Parse a file and infer its schema using a SQL query.
+        The DuckDB engine can read both parquet and CSV files.
+        Create a resource from the schema and the provided path.
+        Parses data from the file and writes it to the raw staging directory.
+        """
         schema = Schema()
-        conn, _ = self.dp.prepare_db()
-        rel = conn.sql(query)
+        with load_conn() as conn:
+            sql_query = self.get_sql_query(path)
+            rel = conn.sql(sql_query)
 
-        for name, type in zip(rel.columns, rel.types):
-            schema.add_field(Field(name=name, **to_dp_type(type)))
+            # parse schema from the SQL query result
+            for name, type in zip(rel.columns, rel.types):
+                schema.add_field(Field(name=name, **duckdb_type_to_dp_type(type)))
 
-        conn.close()
+            # creating a new resource
+            resource = Resource.create(path.stem, schema)
+            # parsing data from the file
+            df = rel.to_df()
 
-        # creating resurce for file
-        return Resource(
-            name=path.stem,
-            path=path.name,
-            schema=schema,
-        )
-    
-def csv_query(path: Path, sep: Separator = Separator.COMMA, decimal_sep: Separator = Separator.DOT):
-    return f"""
-        SELECT * 
-        FROM read_csv({prepare_path(path)}, sep='{sep.value}', decimal_separator='{decimal_sep.value}', auto_detect=true)
-    """
+        return resource, df
+
+    def parse_input(self):
+        self.resource, df = self.parse_file(self.path)
+        self.resources = [self.resource]
+        # storing parsed dataframe
+        self.dataframes[self.resource.name] = df
+
+    def append_data(self, resource_name: str | None = None):
+        # if no resource name is provided, use the current resource's name
+        resource_name = resource_name or self.resource.name
+        resource = self.dp.get_resource(resource_name)
+        df = self.dataframes[self.resource.name]
+        self.append_datafame_to_resource(df, resource)
+
+    def replace_data(self, resource_name: str | None = None):
+        # if no resource name is provided, use the current resource's name
+        resource_name = resource_name or self.resource.name
+        resource = self.dp.get_resource(resource_name)
+        df = self.dataframes[self.resource.name]
+        self.replace_resource_data_by_dataframe(df, resource)
