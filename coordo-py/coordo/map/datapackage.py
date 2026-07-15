@@ -167,7 +167,8 @@ class DataPackageLayer(BaseLayerModel):
             self.groupby,
         )
         assert isinstance(df, GeoDataFrame), "No geometry column found."
-        return df.to_geo_dict(show_bbox=True)  # type: ignore
+        # Only show bbox when df is not empty to avoid NaN values
+        return df.to_geo_dict(show_bbox=(not df.empty))  # type: ignore
 
     def infer_layer_type(self, features):
         # We check the type of the first non-null geometry, it doesn't support yet mixed geometries
