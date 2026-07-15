@@ -23,3 +23,6 @@ class BaseLayerModel(BaseModel):
 
     def get_data(self, *, base_path: Path, filter: Filter | None = None):
         raise NotImplementedError
+
+    def set_filter(self, filter: str):
+        raise NotImplementedError
