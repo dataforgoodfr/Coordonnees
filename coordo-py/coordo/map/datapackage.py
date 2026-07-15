@@ -141,6 +141,9 @@ class DataPackageLayer(BaseLayerModel):
 
         return {self.id: source}, layer
 
+    def set_filter(self, filter: str):
+        self.filter = filter
+
     def get_data(self, *, base_path, filter=None) -> FeatureCollection:
         package = DataPackage.from_path(base_path / self.path)
         final_filter = None
