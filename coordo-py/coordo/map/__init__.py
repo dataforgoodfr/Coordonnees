@@ -53,6 +53,11 @@ class Map(BaseModel):
             raise ValueError(f"Layer with id {layer_id} not found")
         return layer
 
+    def set_filters(self, layer_ids: list[str], filter: str):
+        for layer_id in layer_ids:
+            layer = self._get_layer(layer_id)
+            layer.set_filter(filter)
+
     def get_layer_data(
         self, layer_id: str, json_filters: dict | None = None
     ) -> FeatureCollection:

@@ -141,6 +141,9 @@ class DataPackageLayer(BaseLayerModel):
 
         return {self.id: source}, layer
 
+    def set_filter(self, filter: str):
+        self.filter = filter
+
     def get_data(self, *, base_path, filter=None) -> FeatureCollection:
         package = DataPackage.from_path(base_path / self.path)
         final_filter = None
@@ -164,7 +167,8 @@ class DataPackageLayer(BaseLayerModel):
             self.groupby,
         )
         assert isinstance(df, GeoDataFrame), "No geometry column found."
-        return df.to_geo_dict(show_bbox=True)  # type: ignore
+        # Only show bbox when df is not empty to avoid NaN values
+        return df.to_geo_dict(show_bbox=(not df.empty))  # type: ignore
 
     def infer_layer_type(self, features):
         # We check the type of the first non-null geometry, it doesn't support yet mixed geometries
