@@ -46,7 +46,11 @@ class ExcelFileLoader(FileLoader):
             sheet_df.columns = [col.replace(".", "_") for col in sheet_df.columns]
             # parse schema from the SQL query result
             for name, dtype in sheet_df.dtypes.items():
-                schema.add_field(Field(name=name, **pandas_type_to_dp_type(dtype)))
+                type = pandas_type_to_dp_type(dtype)
+                schema.add_field(Field(name=name, **type))
+                if dtype == "object":
+                    # convert object column to string in the df to avoid problems when saving to parquet later.
+                    sheet_df[name] = sheet_df[name].astype(str)
 
             # creating a new resource
             resource = Resource.create(path.stem, schema)
