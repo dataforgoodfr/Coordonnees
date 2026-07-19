@@ -46,7 +46,7 @@ class ClusterConfig(BaseModel):
     colors: list[str] | None = None
     radii: list[int] | None = None
     steps: list[int] | None = None
-    opacity: float = 1
+    opacity: float | None = None
 
     @model_validator(mode="after")
     def _check_style_lengths(self):
@@ -59,12 +59,21 @@ class ClusterConfig(BaseModel):
                 raise ValueError(
                     f"cluster.{name} must have exactly len(steps)+1 entries"
                 )
+
         if (
             self.colors is not None
             and self.radii is not None
             and len(self.colors) != len(self.radii)
         ):
             raise ValueError("cluster.colors and cluster.radii must have equal length")
+
+        if (
+            self.opacity is not None
+            and ( self.opacity < 0
+              or  self.opacity > 1 )
+        ):
+            raise ValueError("cluster.opacity must be between 0 and 1")
+
         return self
 
 

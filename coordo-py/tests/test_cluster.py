@@ -56,6 +56,7 @@ def test_cluster_render_style_in_metadata():
             "colors": ["#99D6C2", "#009966", "#006B47"],
             "radii": [20, 30, 40],
             "steps": [100, 750],
+            "opacity": 0.5
         }
     )
     meta = layer._cluster_metadata()
@@ -63,6 +64,7 @@ def test_cluster_render_style_in_metadata():
         "colors": ["#99D6C2", "#009966", "#006B47"],
         "radii": [20, 30, 40],
         "steps": [100, 750],
+        "opacity": 0.5
     }
     # Render style stays out of the source (not a valid MapLibre source option)
     source = layer._build_source(EMPTY_FC)
@@ -89,3 +91,5 @@ def test_cluster_rejects_inconsistent_lengths():
         make_layer(cluster={"colors": ["#a", "#b"], "steps": [10, 20]})  # need 3 colors
     with pytest.raises(ValidationError):
         make_layer(cluster={"colors": ["#a", "#b", "#c"], "radii": [1, 2]})
+    with pytest.raises(ValidationError):
+        make_layer(cluster={"colors": ["#a", "#b", "#c"], "opacity": 3.2})

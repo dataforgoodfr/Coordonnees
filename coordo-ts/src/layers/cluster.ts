@@ -22,9 +22,9 @@ type ClusterStyle = {
 
 const DEFAULT_CLUSTER_STYLE: ClusterStyle = {
   colors: ["#51bbd6", "#f1f075", "#f28cb1"],
+  opacity: 1,
   radii: [20, 30, 40],
   steps: [100, 750],
-  opacity: 1,
 };
 
 const IS_CLUSTER: FilterSpecification = ["has", "point_count"];
@@ -57,7 +57,8 @@ function isValidClusterStyle(style: ClusterStyle) {
     style.colors.length >= 1 &&
     style.colors.length === style.radii.length &&
     style.steps.length === style.colors.length - 1 &&
-    style.opacity >= 0 && style.opacity <= 1 
+    style.opacity >= 0 &&
+    style.opacity <= 1
   );
 }
 
@@ -71,9 +72,9 @@ function readClusterStyle(metadata: unknown): ClusterStyle {
     ?.cluster;
   const style: ClusterStyle = {
     colors: raw?.colors ?? DEFAULT_CLUSTER_STYLE.colors,
+    opacity: raw?.opacity ?? DEFAULT_CLUSTER_STYLE.opacity,
     radii: raw?.radii ?? DEFAULT_CLUSTER_STYLE.radii,
     steps: raw?.steps ?? DEFAULT_CLUSTER_STYLE.steps,
-    opacity: raw?.opacity ?? DEFAULT_CLUSTER_STYLE.opacity,
   };
   if (!isValidClusterStyle(style)) {
     console.warn(
@@ -109,8 +110,8 @@ function addClusterLayers(
       id: circle,
       paint: {
         "circle-color": stepByPointCount(style.colors, style.steps),
-        "circle-radius": stepByPointCount(style.radii, style.steps),
         "circle-opacity": style.opacity,
+        "circle-radius": stepByPointCount(style.radii, style.steps),
       },
       source: sourceId,
       type: "circle",
