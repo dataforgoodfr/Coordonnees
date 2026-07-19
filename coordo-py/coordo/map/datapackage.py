@@ -46,6 +46,7 @@ class ClusterConfig(BaseModel):
     colors: list[str] | None = None
     radii: list[int] | None = None
     steps: list[int] | None = None
+    opacity: float = 1
 
     @model_validator(mode="after")
     def _check_style_lengths(self):
@@ -101,6 +102,7 @@ class DataPackageLayer(BaseLayerModel):
                 "colors": self.cluster.colors,
                 "radii": self.cluster.radii,
                 "steps": self.cluster.steps,
+                "opacity": self.cluster.opacity,
             }.items()
             if value is not None
         }
