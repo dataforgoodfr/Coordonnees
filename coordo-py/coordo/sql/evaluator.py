@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from pygeofilter.ast import AstType
-from sqlalchemy import Float, Integer, and_, case, cast, func, or_, select, text, literal_column
+from sqlalchemy import Double, Float, Integer, and_, case, cast, func, or_, select, text, literal_column
 from sqlalchemy.sql.functions import coalesce
 
 from coordo.sql.helpers import AGGREGATES, SPATIAL_FUNCTIONS
@@ -181,6 +181,8 @@ class SQLEvaluator:
                 f = cast(args[0], Integer)
             case "float":
                 f = cast(args[0], Float)
+            case "double":
+                f = cast(args[0], Double)
             case "unique":
                 f = args[0].distinct()
             case "interval":
