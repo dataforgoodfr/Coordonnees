@@ -10,7 +10,7 @@ GRAMMAR = r"""
     ?start: expr
 
     ?expr: sum ("if" condition ("else" expr)?)?
-    ?condition: boolean_or -> bool_op
+    ?condition: boolean_or -> bool_op | func_call
     ?boolean_or: boolean_and OR boolean_or -> bool_op | boolean_and
     ?boolean_and: comparison AND boolean_and -> bool_op | comparison
     comparison: sum OP sum
