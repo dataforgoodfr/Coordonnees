@@ -19,18 +19,12 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
-
-      - name: Set up Python
-        run: uv python install
-
-      - name: Create virtual environment
-        run: uv sync --locked
-
-      - name: Install coordo-py
-        run: uv pip install .
+        with:
+          working-directory: coordo-py
+          activate-environment: true
 
       - name: Run linter
         run: uv run ruff check .
-      
+
       - name: Run pytest
         run: uv run pytest
