@@ -77,12 +77,6 @@ class Resource(pydantic.BaseModel):
     def add_foreignkey(
         self, fields: list[str], foreign_fields: list[str], foreign_resource: str
     ) -> None:
-        # TODO: remove this check when addition of multiple fields at once is supported
-        if len(fields) > 1 or len(foreign_fields) > 1:
-            raise ValueError(
-                "Adding a foreign key with multiple fields is not supported yet."
-            )
-
         fk = ForeignKey(
             fields=fields,
             reference=ForeignKeyReference(

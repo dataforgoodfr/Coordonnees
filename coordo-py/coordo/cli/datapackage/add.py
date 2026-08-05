@@ -4,12 +4,12 @@
 import typer
 
 from coordo.loaders import (
-    Loader,
     KoboToolboxLoader,
+    Loader,
     get_file_loader,
 )
-from .annotations import Package, From, To, XlsForm, XlsData, FilePath, Sep, DecimalSep
 
+from .annotations import DecimalSep, FilePath, Package, Sep, XlsData, XlsForm
 
 app = typer.Typer()
 
@@ -33,8 +33,10 @@ def file(
 
 
 @app.command()
-def foreignkey(from_: From, to: To, package: Package):
+def foreignkey(
+    package: Package, resource: str, foreign_resource: str, pairs: list[str]
+):
     """
     Add a foreign key constraint between two resources.
     """
-    Loader.add_foreign_key(package, from_, to)
+    Loader.add_foreign_key(package, resource, foreign_resource, pairs)
