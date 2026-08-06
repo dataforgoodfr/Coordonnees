@@ -39,7 +39,7 @@
       "type": "datapackage",
       "path": "../catalog/inventaire_for",
       "resource": "inv_for",
-      "layerType": "symbol",
+      "layerType": "circle",
       "cluster": {
         "radius": 40,
         "maxZoom": 12,
@@ -105,7 +105,7 @@
       "type": "datapackage",
       "path": "../catalog/inventaire_bio",
       "resource": "inv_bio",
-      "layerType": "symbol",
+      "layerType": "circle",
       "cluster": {
         "radius": 40,
         "maxZoom": 12,
@@ -150,7 +150,7 @@
       "type": "datapackage",
       "path": "../catalog/enquete",
       "resource": "enquete_menage",
-      "layerType": "symbol",
+      "layerType": "circle",
       "groupby": [
         "proj",
         "loc2",
