@@ -84,13 +84,13 @@ coordo delete resource <name of resource> --package <path/to/datapackage>
 Add new foreign keys from one resource to another one:
 
 ```bash
-coordo add foreignkey <source resource>.<field name> <target resource>.<field name> --package <path/to/datapackage>
+coordo add foreignkey <source resource> <target resource> [<source field> <target field> ...] --package <path/to/datapackage>
 ```
 
-The command to remove it is almost the same:
+The command to remove it:
 
 ```bash
-coordo remove foreignkey <source resource>.<field name> <target resource>.<field name> --package <path/to/datapackage>
+coordo remove foreignkey <source resource><target resource> --package <path/to/datapackage>
 ```
 
 ### Examples

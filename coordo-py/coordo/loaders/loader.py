@@ -203,6 +203,18 @@ class Loader(ABC):
         fields = pairs[::2]
         foreign_fields = pairs[1::2]
         resource.add_foreignkey(fields, foreign_fields, foreign_resource_name)
+        dp.save()
+
+    @staticmethod
+    def remove_foreign_key(
+        package: Path | str,
+        resource_name: str,
+        foreign_resource_name: str,
+    ):
+        dp = DataPackage.from_path(package)
+        resource = dp.get_resource(resource_name)
+        resource.remove_foreignkey(foreign_resource_name)
+        dp.save()
 
     ######################################
     # READ / WRITE PARQUET

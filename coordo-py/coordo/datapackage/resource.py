@@ -17,7 +17,7 @@ from dplib.models import (
 )
 from pydantic import model_validator
 
-from .db_helpers import prepare_path, clean_str
+from .db_helpers import clean_str, prepare_path
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +77,12 @@ class Resource(pydantic.BaseModel):
     def add_foreignkey(
         self, fields: list[str], foreign_fields: list[str], foreign_resource: str
     ) -> None:
+        if any(
+            fk.reference.resource == foreign_resource for fk in self.schema.foreignKeys
+        ):
+            raise ValueError(
+                f"A foreign key already exists between {self.name} and {foreign_resource}"
+            )
         fk = ForeignKey(
             fields=fields,
             reference=ForeignKeyReference(
@@ -109,22 +115,20 @@ class Resource(pydantic.BaseModel):
             )
         self.schema.foreignKeys.append(fk)
 
-    def remove_foreignkey(
-        self, fields: list[str], foreign_fields: list[str], foreign_resource: str
-    ) -> None:
-        fk = ForeignKey(
-            fields=fields,
-            reference=ForeignKeyReference(
-                fields=foreign_fields,
-                resource=None if self.name == foreign_resource else foreign_resource,
+    def remove_foreignkey(self, foreign_resource: str) -> None:
+        fk = next(
+            (
+                fk
+                for fk in self.schema.foreignKeys
+                if fk.reference.resource == foreign_resource
             ),
+            None,
         )
-        fk_part_names_str = " & ".join(self.get_fk_names(fk))
-        logger.info(f"Removing foreign key {fk_part_names_str}")
-        if fk not in self.schema.foreignKeys:
+        if fk is None:
             raise ValueError(
-                f"Foreign key {fk_part_names_str} not found in resource {self.name}"
+                f"No foreign key to {foreign_resource} found in resource {self.name}"
             )
+        logger.info(f"Removing foreign key to {foreign_resource}")
         self.schema.foreignKeys.remove(fk)
 
     @model_validator(mode="after")
