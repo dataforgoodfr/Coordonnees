@@ -6,8 +6,8 @@ build:
 catalog:
 	# All 4 Trees - Inventaire forestier
 
-	uv run coordo add kobotoolbox data/all4trees/inventaire_for/20260422_InventaireForestier_DonneesK.xlsx --form data/all4trees/inventaire_for/20260519_InventaireForestier_QuestionnaireK.xlsx --package catalog/inventaire_for
-	uv run coordo add file data/all4trees/inventaire_for/20260713_InventaireForestier_DonneesExternes.xlsx --package catalog/inventaire_for
+	uv run coordo add kobotoolbox data/all4trees/inventaire_for/20260422_InventaireForestier_DonneesK_test.xlsx --form data/all4trees/inventaire_for/20260519_InventaireForestier_QuestionnaireK.xlsx --package catalog/inventaire_for
+	uv run coordo add file data/all4trees/inventaire_for/20260713_InventaireForestier_DonneesExternes_test.xlsx --package catalog/inventaire_for
 
 	uv run coordo add foreignkey adu for_dw decay decay --package catalog/inventaire_for
 	uv run coordo add foreignkey inv_for for_samp proj proj --package catalog/inventaire_for
