@@ -2,14 +2,13 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import typer
-
 from coordo.loaders import (
-    Loader,
     KoboToolboxLoader,
+    Loader,
     get_file_loader,
 )
-from .annotations import Package, From, To, XlsForm, XlsData, FilePath, Sep, DecimalSep
 
+from .annotations import DecimalSep, FilePath, From, Package, Sep, To, XlsData, XlsForm
 
 app = typer.Typer()
 
@@ -38,8 +37,8 @@ def resource(resource_name: str, package: Package):
 
 
 @app.command()
-def foreignkey(from_: From, to: To, package: Package):
+def foreignkey(package: Package, resource: str, foreign_resource: str):
     """
     Remove a foreign key constraint from a resource.
     """
-    Loader.remove_foreign_key(package, from_, to)
+    Loader.remove_foreign_key(package, resource, foreign_resource)

@@ -4,40 +4,43 @@ version = "0.10.0"
 description = "A set of modules to help with using spatio-temporal data and creating maps"
 requires-python = ">=3.11"
 dependencies = [
-    "dplib-py>=1.1.0",
-    "duckdb>=1.5",
-    "flask>=3.1.2",
-    "geojson>=3.2.0",
-    "geopandas>=1.1.2",
-    "lark>=1.3.1",
-    "numpy>=2.2.6",
-    "pandas==3.0.3",
-    "pyarrow>=23.0.1",
-    "pydantic>=2.12.5",
-    "pygeofilter>=0.3.3",
-    "pyxform>=4.2.0",
-    "shapely>=2.1.2",
-    "sqlalchemy>=2.0.48",
-    "typer>=0.24.0",
-    "xyzservices>=2025.11.0",
+  "dplib-py>=1.1.0",
+  "duckdb>=1.5",
+  "flask>=3.1.2",
+  "geojson>=3.2.0",
+  "geopandas>=1.1.2",
+  "lark>=1.3.1",
+  "numpy>=2.2.6",
+  "pandas==3.0.3",
+  "pyarrow>=23.0.1",
+  "pydantic>=2.12.5",
+  "pygeofilter>=0.3.3",
+  "pyxform>=4.2.0",
+  "shapely>=2.1.2",
+  "sqlalchemy>=2.0.48",
+  "typer>=0.24.0",
+  "xyzservices>=2025.11.0",
 ]
 
 [project.scripts]
 coordo = "coordo.cli.main:app"
 
+[dependency-groups]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.15.8",
+]
+
+[tool.pytest.ini_options]
+addopts = ["-s"]
+log_cli = true
+log_cli_date_format = "%Y-%m-%d %H-%M-%S"
+log_cli_format = "%(asctime)s [%(levelname)s] (%(filename)s:%(lineno)d) %(message)s"
+log_cli_level = "INFO"
+testpaths = ["tests"]
+
 [tool.setuptools.package-data]
 "coordo" = ["static/*", "**/*.sql"]
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = ["-s"]
-log_cli = true
-log_cli_level = "INFO"
-log_cli_format = '%(asctime)s [%(levelname)s] (%(filename)s:%(lineno)d) %(message)s'
-log_cli_date_format = '%Y-%m-%d %H-%M-%S'
-
-[dependency-groups]
-dev = [
-    "ruff>=0.15.8",
-    "pytest>=8.0",
-]
+[tool.uv]
+package = true

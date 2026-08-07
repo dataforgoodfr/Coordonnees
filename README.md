@@ -17,71 +17,80 @@ Each resource is stored as a `.parquet` file in the Datapackage. Resources can b
 
 Resources can be created on the fly after parsing input data and determining their schema.
 Likewise, by parsing input data and determining the underlying resources, one can:
+
 - remove the associated resources if they exist
 - append the newly parsed input data to the existing resources
 - replace the existing resources by the newly parsed input data
 
 It is also possible to:
+
 - remove individual resources
 - delete all data for a specific resource (but the resource, its schema and foreign keys are kept)
 
 > [!WARNING]
-> If resources are linked to other resources by foreign keys, removing them will raise an error. 
-> In such case, you'll have to remove the foreign keys beforehand. 
+> If resources are linked to other resources by foreign keys, removing them will raise an error.
+> In such case, you'll have to remove the foreign keys beforehand.
 > Once the foreign keys were removed individually, you can safely remove the resources.
 
 As of now, the following types of input data can be used to populate a `coordo` Datapackage:
+
 - Kobotoolbox data
 - Excel files
 - CSV / TSV files (or any file containing data separated by a character)
-
 
 ## Usage
 
 ### Resources
 
 Add a new resource and populate it with parsed data:
+
 ```bash
 coordo add <type of input> <arguments> --package <path/to/datapackage>
 ```
 
 Remove a resource corresponding to the input data:
+
 ```bash
 coordo remove <type of input> <arguments> --package <path/to/datapackage>
 ```
 
->[!TIP]
->One can also do:
->```bash
->coordo remove resource <name of resource> --package <path/to/datapackage>
->```
+> [!TIP]
+> One can also do:
+>
+> ```bash
+> coordo remove resource <name of resource> --package <path/to/datapackage>
+> ```
 
 Append data to existing resources:
+
 ```bash
 coordo append <type of input> <arguments> --package <path/to/datapackage>
 ```
 
 Replace data of existing resources by new data (the resource schemas stay unchanged):
+
 ```bash
 coordo replace <type of input> <arguments> --package <path/to/datapackage>
 ```
 
 Delete all data in a resource (but keep its schema and foreign keys):
+
 ```bash
 coordo delete resource <name of resource> --package <path/to/datapackage>
 ```
 
-
 ### Foreign keys
 
 Add new foreign keys from one resource to another one:
+
 ```bash
-coordo add foreignkey <source resource>.<field name> <target resource>.<field name> --package <path/to/datapackage>
+coordo add foreignkey <source resource> <target resource> [<source field> <target field> ...] --package <path/to/datapackage>
 ```
 
-The command to remove it is almost the same:
+The command to remove it:
+
 ```bash
-coordo remove foreignkey <source resource>.<field name> <target resource>.<field name> --package <path/to/datapackage>
+coordo remove foreignkey <source resource><target resource> --package <path/to/datapackage>
 ```
 
 ### Examples
@@ -92,11 +101,13 @@ coordo remove foreignkey <source resource>.<field name> <target resource>.<field
 > For Kobotoolbox, a supplementary argument `--form <path/to/form (Excel file)>` **must be provided when adding / removing resources** and can be optionally supplied when updating data.
 
 To add / remove / append / replace a new Datapackage resource with Kobotoolbox data, you can use the command line:
+
 ```bash
 coordo < add / remove / append / replace > kobotoolbox <path/to/data (Excel file)> [--form <path/to/form (Excel file)>] --package <path/to/datapackage>
 ```
 
 This is the API equivalent:
+
 ```py
 from pathlib import Path
 from coordo.loaders import KoboToolboxLoader
@@ -115,11 +126,13 @@ kb.replace()
 #### File (Excel / character-separated)
 
 To add / remove / append / replace a new Datapackage resource with data from a single file, you can use the command line:
+
 ```bash
 coordo < add / remove / append / replace > file <path/to/file> --package <path/to/datapackage>
 ```
 
 and its API equivalent:
+
 ```py
 from pathlib import Path
 from coordo.loaders import get_file_loader
@@ -160,6 +173,7 @@ coordo remove foreignkey file1.colA file2.colB --package catalog/mydatapackage
 ```
 
 or using the API:
+
 ```py
 from pathlib import Path
 from coordo.loaders import Loader
@@ -173,7 +187,6 @@ Loader.add_foreign_key(package, source_field, target_field)
 # remove
 Loader.remove_foreign_key(package, source_field, target_field)
 ```
-
 
 ## Map server
 
@@ -257,9 +270,7 @@ For development or to quickly test the library
 Install
 
 ```
-uv venv
-uv pip install -e coordo-py
-make build
+uv sync
 ```
 
 Import data into catalog

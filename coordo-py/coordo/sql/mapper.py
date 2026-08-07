@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import logging
-
 from collections import UserDict
 from functools import cached_property
 
@@ -34,16 +33,16 @@ class FieldMapper:
         for col in self.table.columns:
             field_map[col.name] = col
 
-        for fk in self.table.foreign_keys:
-            tbl = fk.column.table
+        for fk in self.table.foreign_key_constraints:
+            tbl = fk.referred_table
             if self.table == tbl:
                 logger.warning("Self-referencing foreign keys are not yet supported.")
             else:
                 field_map[tbl.name] = FieldMapper(tbl.name, self.metadata)
 
         for tbl in self.metadata.tables.values():
-            for fk in tbl.foreign_keys:
-                if fk.column.table == self.table:
+            for fk in tbl.foreign_key_constraints:
+                if fk.referred_table == self.table:
                     field_map[tbl.name] = FieldMapper(
                         tbl.name, self.metadata, is_reverse=True
                     )

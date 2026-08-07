@@ -1,16 +1,16 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
-from abc import ABC, abstractmethod
-from typing import ClassVar
-from pathlib import Path
-from enum import Enum
-import pandas as pd
-import geopandas as gpd
 import logging
+from abc import ABC, abstractmethod
+from enum import Enum
+from pathlib import Path
+from typing import ClassVar
+
+import geopandas as gpd
+import pandas as pd
 
 from ..datapackage import DataPackage, Resource
-
 
 logger = logging.getLogger(__name__)
 
@@ -33,21 +33,6 @@ def write_parquet(df: pd.DataFrame, path: Path | str):
         df.to_parquet(path, index=False)
     else:
         raise TypeError(f"Unknown dataframe type: {type(df)}")
-
-
-def handle_foreign_key(package: Path | str, from_: str, to: str, method_name: str):
-    dp = DataPackage.from_path(package)
-    resource, field = from_.split(".")
-    foreign_resource, foreign_field = to.split(".")
-    resource = dp.get_resource(resource)
-    kwargs = dict(
-        fields=[field],
-        foreign_fields=[foreign_field],
-        foreign_resource=foreign_resource,
-    )
-    method = getattr(resource, method_name)
-    method(**kwargs)
-    dp.save()
 
 
 class Loader(ABC):
@@ -207,12 +192,29 @@ class Loader(ABC):
     ######################################
 
     @staticmethod
-    def add_foreign_key(package: Path | str, from_: str, to: str):
-        handle_foreign_key(package, from_, to, method_name="add_foreignkey")
+    def add_foreign_key(
+        package: Path | str,
+        resource_name: str,
+        foreign_resource_name: str,
+        pairs: list[str],
+    ):
+        dp = DataPackage.from_path(package)
+        resource = dp.get_resource(resource_name)
+        fields = pairs[::2]
+        foreign_fields = pairs[1::2]
+        resource.add_foreignkey(fields, foreign_fields, foreign_resource_name)
+        dp.save()
 
     @staticmethod
-    def remove_foreign_key(package: Path | str, from_: str, to: str):
-        handle_foreign_key(package, from_, to, method_name="remove_foreignkey")
+    def remove_foreign_key(
+        package: Path | str,
+        resource_name: str,
+        foreign_resource_name: str,
+    ):
+        dp = DataPackage.from_path(package)
+        resource = dp.get_resource(resource_name)
+        resource.remove_foreignkey(foreign_resource_name)
+        dp.save()
 
     ######################################
     # READ / WRITE PARQUET
