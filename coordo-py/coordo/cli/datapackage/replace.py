@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import typer
+
 from coordo.loaders import (
     KoboToolboxLoader,
     get_file_loader,

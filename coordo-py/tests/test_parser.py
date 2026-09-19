@@ -1,11 +1,12 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
+from sqlalchemy import Column, ForeignKey, Integer, MetaData, String, Table
+
 from coordo.sql.builder import compile_query
 from coordo.sql.evaluator import to_sql
 from coordo.sql.mapper import FieldMapper
 from coordo.syntax_parsers import sql_parser
-from sqlalchemy import Column, ForeignKey, Integer, MetaData, String, Table
 
 
 def test_sql_mapper_and_parser():

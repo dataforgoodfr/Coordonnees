@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import pytest
-from coordo.map.datapackage import DataPackageLayer
 from pydantic import ValidationError
+
+from coordo.map.datapackage import DataPackageLayer
 
 EMPTY_FC = {"type": "FeatureCollection", "features": []}
 
