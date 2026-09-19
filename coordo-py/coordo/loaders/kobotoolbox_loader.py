@@ -24,8 +24,9 @@ from coordo.datapackage import (
     Schema,
 )
 from coordo.helpers import safe
-from coordo.loaders import Loader
 from coordo.syntax_parsers import constraint_parser
+
+from .loader import Loader
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,8 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
-from .package import DataPackage, Field, ForeignKeyReference
+from dplib.models import ForeignKeyReference
+from .package import DataPackage, Field
 from .resource import ForeignKey, Resource, Schema
 
 __all__ = [

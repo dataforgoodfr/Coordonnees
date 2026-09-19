@@ -7,9 +7,8 @@ from typing import ClassVar
 
 import pandas as pd
 
-from coordo.loaders import FileLoader
-
 from ..datapackage import Field, Resource, Schema
+from .file_loader import FileLoader
 from ..datapackage.db_helpers import pandas_type_to_dp_type
 
 logger = logging.getLogger(__name__)
