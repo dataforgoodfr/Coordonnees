@@ -48,6 +48,7 @@
         "code": "cod",
         "type": "typ",
         "cohort": "coh",
+        "survey_date": "survey_date",
         "loc1": "int(loc1)",
         "loc2": "int(loc2)",
         "ecos": "int(ecos)",
