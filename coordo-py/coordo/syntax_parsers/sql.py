@@ -70,6 +70,7 @@ class BinaryOp(Node):
     def get_template(self) -> str:
         return f"{{}} {self.op} {{}}"
 
+
 @dataclass
 class Arithmetic(BinaryOp):
     pass
@@ -78,6 +79,7 @@ class Arithmetic(BinaryOp):
 @dataclass
 class Comparison(BinaryOp):
     pass
+
 
 @dataclass
 class LambdaFunc(Node):
@@ -144,7 +146,7 @@ class SQLTransformer(Transformer):
     def lambda_func(self, children):
         return LambdaFunc(*children)
 
-    def arg(self, children): 
+    def arg(self, children):
         return children[0]
 
     def query(self, children):

@@ -15,15 +15,19 @@ from sqlalchemy import MetaData, Table, Column, Integer, String, ForeignKey
 
 metadata = MetaData()
 
-Table("parents", metadata,
+Table(
+    "parents",
+    metadata,
     Column("id", Integer, primary_key=True),
     Column("some_column", String),
     Column("other_column", String),
 )
 
-Table("children", metadata,
+Table(
+    "children",
+    metadata,
     Column("id", Integer, primary_key=True),
-    Column("parent_id", Integer, ForeignKey('parents.id')),
+    Column("parent_id", Integer, ForeignKey("parents.id")),
     Column("another_column", String),
 )
 ```
