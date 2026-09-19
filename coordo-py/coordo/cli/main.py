@@ -5,7 +5,6 @@ import signal
 from pathlib import Path
 
 import typer
-
 from coordo.datapackage import DataPackage
 from coordo.sql.builder import build_query
 
