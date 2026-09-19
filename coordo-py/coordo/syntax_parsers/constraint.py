@@ -33,7 +33,7 @@ VAR: "${" /[A-Za-z_][A-Za-z_0-9]*/ "}"
 
 
 def isCustomConstraint(constraint: str) -> bool:
-    return not (isinstance(constraint, float) or isinstance(constraint, int))
+    return not isinstance(constraint, (float, int))
 
 
 class ConstraintTransformer(Transformer):

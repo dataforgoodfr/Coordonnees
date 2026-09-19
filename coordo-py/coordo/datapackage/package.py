@@ -16,9 +16,6 @@ from dplib.models import (
     License,
     Source,
 )
-from dplib.models import (
-    ForeignKeyReference as ForeignKeyReference,
-)
 from dplib.plugins.sql.models import SqlSchema
 from pygeofilter.ast import AstType
 
@@ -169,10 +166,10 @@ class DataPackage(pydantic.BaseModel):
                 ).table.to_metadata(metadata)
                 try:
                     resource.load_table(conn)
-                except Exception as e:
+                except (TypeError, ValueError, duckdb.Error, sa.exc.SQLAlchemyError) as e:
                     raise ValueError(
                         f"Error occurred while loading table for resource {resource.name}: {e}"
-                    )
+                    ) from e
 
         return conn, metadata
 

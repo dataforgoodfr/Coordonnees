@@ -3,6 +3,7 @@
 
 import signal
 from pathlib import Path
+from typing import Annotated
 
 import typer
 from coordo.datapackage import DataPackage
@@ -18,7 +19,7 @@ static_dir = Path(__file__).parents[1] / "static"
 
 @app.callback()
 def global_options(
-    catalog: Path = typer.Option(Path("./catalog"), help="Root catalog folder"),
+    catalog: Annotated[Path, typer.Option(help="Root catalog folder")] = Path("./catalog"),
 ):
     options["catalog"] = catalog
 
@@ -105,8 +106,8 @@ dp = typer.Typer()
 def query(
     package: Path,
     resource: str,
-    select: str | None = typer.Option(None, "--select", "-s"),
-    groupby: list[str] = typer.Option(None, "--group-by", "-g"),
+    select: Annotated[str | None, typer.Option("--select", "-s")] = None,
+    groupby: Annotated[list[str] | None, typer.Option("--group-by", "-g")] = None,
 ):
     dp = DataPackage.from_path(package)
     columns = {}

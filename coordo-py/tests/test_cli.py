@@ -28,7 +28,12 @@ def run(command: list):
 
 
 def check_files_are_identical(file1: str, file2: str):
-    result = subprocess.run(["diff", file1, file2], capture_output=True, text=True)
+    result = subprocess.run(
+        ["diff", file1, file2],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
     assert result.returncode == 0, (
         f"Files {file1} and {file2} are not identical: {result.stdout}"
     )

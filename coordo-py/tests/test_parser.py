@@ -30,7 +30,7 @@ def test_sql_mapper_and_parser():
     assert mapper["children"]["another_column"] == children_table.c.another_column
 
     ast = sql_parser.parse("centroid(some_column if other_column > 5)")
-    expr, joins = to_sql(ast, mapper)
+    expr, _joins = to_sql(ast, mapper)
     assert (
         compile_query(expr)
         == "st_centroid(CASE WHEN (parents.other_column > 5.0) THEN parents.some_column END)"

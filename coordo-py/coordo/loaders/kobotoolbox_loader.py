@@ -12,6 +12,7 @@ from typing import Any, ClassVar, cast
 import geopandas as gpd
 import numpy as np
 import pandas as pd
+from lark.exceptions import LarkError
 from pyxform.xls2json import parse_file_to_json
 from shapely.geometry import Point
 
@@ -43,8 +44,8 @@ def coords_to_point(coords):
     ):
         return None
     try:
-        lat, lon, alt, prec = map(float, str(coords).split(" "))
-    except Exception:
+        lat, lon, alt, _ = map(float, str(coords).split(" "))
+    except (TypeError, ValueError):
         logger.warning(f"Could not convert coords to Point: {coords}")
         return None
     return Point(lon, lat, alt)
@@ -145,8 +146,8 @@ class KoboToolboxLoader(Loader):
 
     def get_stored_xlsform(self) -> Path | None:
         try:
-            return list(self.dp.get_path().glob(f"{self.package_name}.form.*"))[0]
-        except IndexError:
+            return next(iter(self.dp.get_path().glob(f"{self.package_name}.form.*")))
+        except StopIteration:
             return None
 
     def parse_input(self):
@@ -308,7 +309,7 @@ class KoboToolboxLoader(Loader):
                 parsed_resources += parsed_children_resources
 
             elif qtype in self.DP_FIELDS:
-                kwargs = dict(name=question["name"], type=self.DP_FIELDS[qtype])
+                kwargs = {"name": question["name"], "type": self.DP_FIELDS[qtype]}
                 if "label" in question:
                     kwargs["title"] = stringify(question["label"])
                 constraints = {"required": False}
@@ -325,7 +326,7 @@ class KoboToolboxLoader(Loader):
                             constraint = constraint_parser.parse(bind["constraint"])
                             constraints.update(constraint)  # type: ignore
                         # Fallback in case of unsupported constraint syntax
-                        except Exception as e:
+                        except (AttributeError, TypeError, ValueError, LarkError) as e:
                             logger.error(
                                 f"Error parsing constraint for question {question['name']}: {e}"
                             )
@@ -335,7 +336,7 @@ class KoboToolboxLoader(Loader):
                 kwargs["constraints"] = constraints
                 if "choices" in question:
                     kwargs["categories"] = [
-                        dict(value=choice["name"], label=stringify(choice["label"]))
+                        {"value": choice["name"], "label": stringify(choice["label"])}
                         for choice in question["choices"]
                     ]
                 schema.fields.append(Field(**kwargs))
