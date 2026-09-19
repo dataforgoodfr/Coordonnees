@@ -1,16 +1,17 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
+import logging
 from pathlib import Path
 from typing import ClassVar
+
 import pandas as pd
-import logging
 
 from coordo.loaders import Loader
-from ..datapackage import Resource, Schema, Field
-from ..datapackage.db_helpers import prepare_path, duckdb_type_to_dp_type
-from ..sql.helpers import load_conn
 
+from ..datapackage import Field, Resource, Schema
+from ..datapackage.db_helpers import duckdb_type_to_dp_type, prepare_path
+from ..sql.helpers import load_conn
 
 logger = logging.getLogger(__name__)
 

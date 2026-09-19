@@ -1,7 +1,7 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from .base import BaseLayerModel
 from .maplibre_style_spec_v8 import Layer, Source
@@ -56,7 +56,7 @@ BOUNDARY_LAYER = {"type": "line"}
 class OpenMapTilesLayer(BaseLayerModel):
     type: Literal["openmaptiles"]
     layer: str
-    filters: Optional[dict[str, Any]] = None
+    filters: dict[str, Any] | None = None
 
     def to_maplibre(self, base_path=None):
         layer: Layer = {

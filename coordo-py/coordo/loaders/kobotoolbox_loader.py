@@ -2,17 +2,16 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import json
+import logging
+import shutil
 from datetime import date, datetime
 from pathlib import Path
 from time import time
-from typing import Any, Dict, List, cast, ClassVar
-import logging
-import shutil
+from typing import Any, ClassVar, cast
 
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-
 from pyxform.xls2json import parse_file_to_json
 from shapely.geometry import Point
 
@@ -252,7 +251,7 @@ class KoboToolboxLoader(Loader):
         )
 
     def parse_questions(
-        self, questions: List[Dict[str, Any]], resource: Resource
+        self, questions: list[dict[str, Any]], resource: Resource
     ) -> list[Resource]:
         """
         Parses questions (list of dictionaries) and adds them to the resource's schema.

@@ -1,11 +1,12 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
+import logging
 from pathlib import Path
 from typing import ClassVar
-import logging
 
 from coordo.loaders import FileLoader
+
 from ..datapackage.db_helpers import prepare_path
 
 logger = logging.getLogger(__name__)

@@ -13,10 +13,10 @@ from sqlalchemy import (
     case,
     cast,
     func,
+    literal_column,
     or_,
     select,
     text,
-    literal_column,
 )
 from sqlalchemy.sql.functions import coalesce
 

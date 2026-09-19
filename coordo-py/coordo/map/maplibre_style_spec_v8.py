@@ -6,12 +6,9 @@
 
 from typing import (
     Any,
-    Dict,
     Generic,
-    List,
     Literal,
     NotRequired,
-    Tuple,
     TypedDict,
     TypeVar,
     Union,
@@ -22,14 +19,14 @@ from geojson import GeoJSON
 T = TypeVar("T")
 
 ColorSpecification = str
-PaddingSpecification = Union[float, List[float]]
-NumberArraySpecification = Union[float, List[float]]
-ColorArraySpecification = Union[str, List[str]]
-VariableAnchorOffsetCollectionSpecification = List[Union[str, Tuple[float, float]]]
-SpriteSpecification = Union[str, List[Dict[str, str]]]
+PaddingSpecification = Union[float, list[float]]
+NumberArraySpecification = Union[float, list[float]]
+ColorArraySpecification = Union[str, list[str]]
+VariableAnchorOffsetCollectionSpecification = list[str | tuple[float, float]]
+SpriteSpecification = Union[str, list[dict[str, str]]]
 FormattedSpecification = str
 ResolvedImageSpecification = str
-PromoteIdSpecification = Union[Dict[str, str], str]
+PromoteIdSpecification = Union[dict[str, str], str]
 ExpressionInputType = Union[str, float, bool]
 CollatorExpression = TypedDict(
     "CollatorExpression",
@@ -39,14 +36,14 @@ CollatorExpression = TypedDict(
         "locale": NotRequired[Union[str, "ExpressionSpecification"]],
     },
 )
-CollatorExpressionSpecification = Tuple[Literal["collator"], CollatorExpression]
+CollatorExpressionSpecification = tuple[Literal["collator"], CollatorExpression]
 
 InterpolationSpecification = (
-    Tuple[Literal["linear"]]
-    | Tuple[Literal["exponential"], float]
-    | Tuple[Literal["cubic-bezier"], float, float, float, float]
+    tuple[Literal["linear"]]
+    | tuple[Literal["exponential"], float]
+    | tuple[Literal["cubic-bezier"], float, float, float, float]
 )
-ProjectionDefinition = Tuple[str, str, float]
+ProjectionDefinition = tuple[str, str, float]
 ProjectionDefinitionSpecification = Union[
     str,
     ProjectionDefinition,
@@ -54,192 +51,186 @@ ProjectionDefinitionSpecification = Union[
 ]
 
 ExpressionSpecification = (
-    Tuple[Literal["array"], "ExpressionSpecification"]
-    | Tuple[
+    tuple[Literal["array"], "ExpressionSpecification"]
+    | tuple[
         Literal["array"],
-        Union[Literal["string"], Literal["number"], Literal["boolean"]],
+        Literal["string", "number", "boolean"],
         "ExpressionSpecification",
     ]
-    | Tuple[
+    | tuple[
         Literal["array"],
-        Union[Literal["string"], Literal["number"], Literal["boolean"]],
+        Literal["string", "number", "boolean"],
         float,
         "ExpressionSpecification",
     ]
-    | Tuple[
+    | tuple[
         Literal["boolean"],
         Union[Any, "ExpressionSpecification"],
-        *Tuple[Union[Any, "ExpressionSpecification"], ...],
+        *tuple[Union[Any, "ExpressionSpecification"], ...],
     ]
     | CollatorExpressionSpecification
-    | Tuple[
+    | tuple[
         Literal["format"],
-        *Tuple[
+        *tuple[
             str
-            | Tuple[Literal["image"], "ExpressionSpecification"]
+            | tuple[Literal["image"], "ExpressionSpecification"]
             | "ExpressionSpecification"
-            | Dict[
+            | dict[
                 str,
-                Union[
-                    float,
-                    "ExpressionSpecification",
-                    ColorSpecification,
-                    "ExpressionSpecification",
-                    Literal["bottom", "center", "top"],
-                ],
+                Union[float, "ExpressionSpecification", ColorSpecification, Literal["bottom", "center", "top"]],
             ],
             ...,
         ],
     ]
-    | Tuple[Literal["image"], Union[str, "ExpressionSpecification"]]
-    | Tuple[Literal["literal"], Any]
-    | Tuple[
+    | tuple[Literal["image"], Union[str, "ExpressionSpecification"]]
+    | tuple[Literal["literal"], Any]
+    | tuple[
         Literal["number"],
         Union[Any, "ExpressionSpecification"],
-        *Tuple[Union[Any, "ExpressionSpecification"], ...],
+        *tuple[Union[Any, "ExpressionSpecification"], ...],
     ]
-    | Tuple[
+    | tuple[
         Literal["number-format"],
         Union[float, "ExpressionSpecification"],
-        Dict[str, Union[str, float, "ExpressionSpecification"]],
+        dict[str, Union[str, float, "ExpressionSpecification"]],
     ]
-    | Tuple[
+    | tuple[
         Literal["object"],
         Union[Any, "ExpressionSpecification"],
-        *Tuple[Union[Any, "ExpressionSpecification"], ...],
+        *tuple[Union[Any, "ExpressionSpecification"], ...],
     ]
-    | Tuple[
+    | tuple[
         Literal["string"],
         Union[Any, "ExpressionSpecification"],
-        *Tuple[Union[Any, "ExpressionSpecification"], ...],
+        *tuple[Union[Any, "ExpressionSpecification"], ...],
     ]
-    | Tuple[Literal["to-boolean"], Union[Any, "ExpressionSpecification"]]
-    | Tuple[
+    | tuple[Literal["to-boolean"], Union[Any, "ExpressionSpecification"]]
+    | tuple[
         Literal["to-color"],
         Union[Any, "ExpressionSpecification"],
-        *Tuple[Union[Any, "ExpressionSpecification"], ...],
+        *tuple[Union[Any, "ExpressionSpecification"], ...],
     ]
-    | Tuple[
+    | tuple[
         Literal["to-number"],
         Union[Any, "ExpressionSpecification"],
-        *Tuple[Union[Any, "ExpressionSpecification"], ...],
+        *tuple[Union[Any, "ExpressionSpecification"], ...],
     ]
-    | Tuple[Literal["to-string"], Union[Any, "ExpressionSpecification"]]
-    | Tuple[Literal["typeof"], Union[Any, "ExpressionSpecification"]]
-    | Tuple[Literal["accumulated"]]
-    | Tuple[Literal["feature-state"], Union[str, "ExpressionSpecification"]]
-    | Tuple[Literal["geometry-type"]]
-    | Tuple[Literal["id"]]
-    | Tuple[Literal["line-progress"]]
-    | Tuple[Literal["properties"]]
-    | Tuple[
+    | tuple[Literal["to-string"], Union[Any, "ExpressionSpecification"]]
+    | tuple[Literal["typeof"], Union[Any, "ExpressionSpecification"]]
+    | tuple[Literal["accumulated"]]
+    | tuple[Literal["feature-state"], Union[str, "ExpressionSpecification"]]
+    | tuple[Literal["geometry-type"]]
+    | tuple[Literal["id"]]
+    | tuple[Literal["line-progress"]]
+    | tuple[Literal["properties"]]
+    | tuple[
         Literal["at"],
         Union[float, "ExpressionSpecification"],
         "ExpressionSpecification",
     ]
-    | Tuple[
+    | tuple[
         Literal["get"],
         Union[str, "ExpressionSpecification"],
         # NotRequired["ExpressionSpecification"],
     ]
-    | Tuple[Literal["global-state"], str]
-    | Tuple[
+    | tuple[Literal["global-state"], str]
+    | tuple[
         Literal["has"],
         Union[str, "ExpressionSpecification"],
         NotRequired["ExpressionSpecification"],
     ]
-    | Tuple[
+    | tuple[
         Literal["in"],
         Union[None, ExpressionInputType, "ExpressionSpecification"],
         Union[str, "ExpressionSpecification"],
     ]
-    | Tuple[
+    | tuple[
         Literal["index-of"],
         Union[None, ExpressionInputType, "ExpressionSpecification"],
         Union[str, "ExpressionSpecification"],
         NotRequired[Union[float, "ExpressionSpecification"]],
     ]
-    | Tuple[Literal["length"], Union[str, "ExpressionSpecification"]]
-    | Tuple[
+    | tuple[Literal["length"], Union[str, "ExpressionSpecification"]]
+    | tuple[
         Literal["slice"],
         Union[str, "ExpressionSpecification"],
         Union[float, "ExpressionSpecification"],
         NotRequired[Union[float, "ExpressionSpecification"]],
     ]
-    | Tuple[Literal["!"], Union[bool, "ExpressionSpecification"]]
-    | Tuple[
+    | tuple[Literal["!"], Union[bool, "ExpressionSpecification"]]
+    | tuple[
         Literal["!="],
         Union[None, ExpressionInputType, "ExpressionSpecification"],
         Union[None, ExpressionInputType, "ExpressionSpecification"],
         NotRequired["CollatorExpressionSpecification"],
     ]
-    | Tuple[
+    | tuple[
         Literal["<"],
         Union[str, float, "ExpressionSpecification"],
         Union[str, float, "ExpressionSpecification"],
         NotRequired["CollatorExpressionSpecification"],
     ]
-    | Tuple[
+    | tuple[
         Literal["<="],
         Union[str, float, "ExpressionSpecification"],
         Union[str, float, "ExpressionSpecification"],
     ]
-    | Tuple[
+    | tuple[
         Literal["<="],
         Union[str, float, "ExpressionSpecification"],
         Union[str, float, "ExpressionSpecification"],
         "CollatorExpressionSpecification",
     ]
-    | Tuple[
+    | tuple[
         Literal["=="],
         Union[None, ExpressionInputType, "ExpressionSpecification"],
         Union[None, ExpressionInputType, "ExpressionSpecification"],
     ]
-    | Tuple[
+    | tuple[
         Literal["=="],
         Union[None, ExpressionInputType, "ExpressionSpecification"],
         Union[None, ExpressionInputType, "ExpressionSpecification"],
         "CollatorExpressionSpecification",
     ]
-    | Tuple[
+    | tuple[
         Literal[">"],
         Union[str, float, "ExpressionSpecification"],
         Union[str, float, "ExpressionSpecification"],
         NotRequired["CollatorExpressionSpecification"],
     ]
-    | Tuple[
+    | tuple[
         Literal[">="],
         Union[str, float, "ExpressionSpecification"],
         Union[str, float, "ExpressionSpecification"],
         NotRequired["CollatorExpressionSpecification"],
     ]
-    | Tuple[Literal["all"], *Tuple[Union[bool, "ExpressionSpecification"], ...]]
-    | Tuple[Literal["any"], *Tuple[Union[bool, "ExpressionSpecification"], ...]]
-    | Tuple[
+    | tuple[Literal["all"], *tuple[Union[bool, "ExpressionSpecification"], ...]]
+    | tuple[Literal["any"], *tuple[Union[bool, "ExpressionSpecification"], ...]]
+    | tuple[
         Literal["case"],
         Union[bool, "ExpressionSpecification"],
         Union[None, ExpressionInputType, "ExpressionSpecification"],
-        *Tuple[
+        *tuple[
             Union[bool, None, ExpressionInputType, "ExpressionSpecification"],
             ...,
         ],
         Union[None, ExpressionInputType, "ExpressionSpecification"],
     ]
-    | Tuple[
+    | tuple[
         Literal["coalesce"],
-        *Tuple[Union[ExpressionInputType, "ExpressionSpecification"], ...],
+        *tuple[Union[ExpressionInputType, "ExpressionSpecification"], ...],
     ]
-    | Tuple[
+    | tuple[
         Literal["match"],
         Union[str, float, "ExpressionSpecification"],
-        Union[str, float, List[str], List[float]],
+        str | float | list[str] | list[float],
         Union[None, ExpressionInputType, "ExpressionSpecification"],
-        *Tuple[
+        *tuple[
             Union[
                 str,
                 float,
-                List[str],
-                List[float],
+                list[str],
+                list[float],
                 None,
                 ExpressionInputType,
                 "ExpressionSpecification",
@@ -248,12 +239,12 @@ ExpressionSpecification = (
         ],
         Union[None, ExpressionInputType, "ExpressionSpecification"],
     ]
-    | Tuple[Literal["within"], Any]
-    | Tuple[
+    | tuple[Literal["within"], Any]
+    | tuple[
         Literal["interpolate"],
         InterpolationSpecification,
         Union[float, "ExpressionSpecification"],
-        *Tuple[
+        *tuple[
             Union[
                 float,
                 ColorSpecification,
@@ -263,139 +254,139 @@ ExpressionSpecification = (
             ...,
         ],
     ]
-    | Tuple[
+    | tuple[
         Literal["interpolate-hcl"],
         InterpolationSpecification,
         Union[float, "ExpressionSpecification"],
-        *Tuple[
+        *tuple[
             Union[float, ColorSpecification, "ExpressionSpecification"],
             ...,
         ],
     ]
-    | Tuple[
+    | tuple[
         Literal["interpolate-lab"],
         InterpolationSpecification,
         Union[float, "ExpressionSpecification"],
-        *Tuple[
+        *tuple[
             Union[float, ColorSpecification, "ExpressionSpecification"],
             ...,
         ],
     ]
-    | Tuple[
+    | tuple[
         Literal["step"],
         Union[float, "ExpressionSpecification"],
         Union[ExpressionInputType, "ExpressionSpecification"],
-        *Tuple[
+        *tuple[
             Union[float, ExpressionInputType, "ExpressionSpecification"],
             ...,
         ],
     ]
-    | Tuple[
+    | tuple[
         Literal["let"],
         str,
         Union[ExpressionInputType, "ExpressionSpecification"],
-        *Tuple[Union[str, ExpressionInputType, "ExpressionSpecification"], ...],
+        *tuple[Union[str, ExpressionInputType, "ExpressionSpecification"], ...],
     ]
-    | Tuple[Literal["var"], str]
-    | Tuple[
+    | tuple[Literal["var"], str]
+    | tuple[
         Literal["concat"],
-        *Tuple[Union[ExpressionInputType, "ExpressionSpecification"], ...],
+        *tuple[Union[ExpressionInputType, "ExpressionSpecification"], ...],
     ]
-    | Tuple[Literal["downcase"], Union[str, "ExpressionSpecification"]]
-    | Tuple[Literal["is-supported-script"], Union[str, "ExpressionSpecification"]]
-    | Tuple[Literal["resolved-locale"], CollatorExpressionSpecification]
-    | Tuple[Literal["upcase"], Union[str, "ExpressionSpecification"]]
-    | Tuple[
+    | tuple[Literal["downcase"], Union[str, "ExpressionSpecification"]]
+    | tuple[Literal["is-supported-script"], Union[str, "ExpressionSpecification"]]
+    | tuple[Literal["resolved-locale"], CollatorExpressionSpecification]
+    | tuple[Literal["upcase"], Union[str, "ExpressionSpecification"]]
+    | tuple[
         Literal["rgb"],
         Union[float, "ExpressionSpecification"],
         Union[float, "ExpressionSpecification"],
         Union[float, "ExpressionSpecification"],
     ]
-    | Tuple[
+    | tuple[
         Literal["rgba"],
         Union[float, "ExpressionSpecification"],
         Union[float, "ExpressionSpecification"],
         Union[float, "ExpressionSpecification"],
         Union[float, "ExpressionSpecification"],
     ]
-    | Tuple[Literal["to-rgba"], Union[ColorSpecification, "ExpressionSpecification"]]
-    | Tuple[
+    | tuple[Literal["to-rgba"], Union[ColorSpecification, "ExpressionSpecification"]]
+    | tuple[
         Literal["-"],
         Union[float, "ExpressionSpecification"],
         NotRequired[Union[float, "ExpressionSpecification"]],
     ]
-    | Tuple[
+    | tuple[
         Literal["*"],
         Union[float, "ExpressionSpecification"],
         Union[float, "ExpressionSpecification"],
-        *Tuple[Union[float, "ExpressionSpecification"], ...],
+        *tuple[Union[float, "ExpressionSpecification"], ...],
     ]
-    | Tuple[
+    | tuple[
         Literal["/"],
         Union[float, "ExpressionSpecification"],
         Union[float, "ExpressionSpecification"],
     ]
-    | Tuple[
+    | tuple[
         Literal["%"],
         Union[float, "ExpressionSpecification"],
         Union[float, "ExpressionSpecification"],
     ]
-    | Tuple[
+    | tuple[
         Literal["^"],
         Union[float, "ExpressionSpecification"],
         Union[float, "ExpressionSpecification"],
     ]
-    | Tuple[Literal["+"], *Tuple[Union[float, "ExpressionSpecification"], ...]]
-    | Tuple[Literal["abs"], Union[float, "ExpressionSpecification"]]
-    | Tuple[Literal["acos"], Union[float, "ExpressionSpecification"]]
-    | Tuple[Literal["asin"], Union[float, "ExpressionSpecification"]]
-    | Tuple[Literal["atan"], Union[float, "ExpressionSpecification"]]
-    | Tuple[Literal["ceil"], Union[float, "ExpressionSpecification"]]
-    | Tuple[Literal["cos"], Union[float, "ExpressionSpecification"]]
-    | Tuple[Literal["distance"], Any]
-    | Tuple[Literal["e"]]
-    | Tuple[Literal["floor"], Union[float, "ExpressionSpecification"]]
-    | Tuple[Literal["ln"], Union[float, "ExpressionSpecification"]]
-    | Tuple[Literal["ln2"]]
-    | Tuple[Literal["log10"], Union[float, "ExpressionSpecification"]]
-    | Tuple[Literal["log2"], Union[float, "ExpressionSpecification"]]
-    | Tuple[
+    | tuple[Literal["+"], *tuple[Union[float, "ExpressionSpecification"], ...]]
+    | tuple[Literal["abs"], Union[float, "ExpressionSpecification"]]
+    | tuple[Literal["acos"], Union[float, "ExpressionSpecification"]]
+    | tuple[Literal["asin"], Union[float, "ExpressionSpecification"]]
+    | tuple[Literal["atan"], Union[float, "ExpressionSpecification"]]
+    | tuple[Literal["ceil"], Union[float, "ExpressionSpecification"]]
+    | tuple[Literal["cos"], Union[float, "ExpressionSpecification"]]
+    | tuple[Literal["distance"], Any]
+    | tuple[Literal["e"]]
+    | tuple[Literal["floor"], Union[float, "ExpressionSpecification"]]
+    | tuple[Literal["ln"], Union[float, "ExpressionSpecification"]]
+    | tuple[Literal["ln2"]]
+    | tuple[Literal["log10"], Union[float, "ExpressionSpecification"]]
+    | tuple[Literal["log2"], Union[float, "ExpressionSpecification"]]
+    | tuple[
         Literal["max"],
         Union[float, "ExpressionSpecification"],
-        *Tuple[Union[float, "ExpressionSpecification"], ...],
+        *tuple[Union[float, "ExpressionSpecification"], ...],
     ]
-    | Tuple[
+    | tuple[
         Literal["min"],
         Union[float, "ExpressionSpecification"],
-        *Tuple[Union[float, "ExpressionSpecification"], ...],
+        *tuple[Union[float, "ExpressionSpecification"], ...],
     ]
-    | Tuple[Literal["pi"]]
-    | Tuple[Literal["round"], Union[float, "ExpressionSpecification"]]
-    | Tuple[Literal["sin"], Union[float, "ExpressionSpecification"]]
-    | Tuple[Literal["sqrt"], Union[float, "ExpressionSpecification"]]
-    | Tuple[Literal["tan"], Union[float, "ExpressionSpecification"]]
-    | Tuple[Literal["zoom"]]
-    | Tuple[Literal["heatmap-density"]]
-    | Tuple[Literal["elevation"]]
-    | Tuple[Literal["global-state"], str]
+    | tuple[Literal["pi"]]
+    | tuple[Literal["round"], Union[float, "ExpressionSpecification"]]
+    | tuple[Literal["sin"], Union[float, "ExpressionSpecification"]]
+    | tuple[Literal["sqrt"], Union[float, "ExpressionSpecification"]]
+    | tuple[Literal["tan"], Union[float, "ExpressionSpecification"]]
+    | tuple[Literal["zoom"]]
+    | tuple[Literal["heatmap-density"]]
+    | tuple[Literal["elevation"]]
+    | tuple[Literal["global-state"], str]
 )
 
 ExpressionFilterSpecification = Union[bool, "ExpressionSpecification"]
 
 LegacyFilterSpecification = (
-    Tuple[Literal["has"], str]
-    | Tuple[Literal["!has"], str]
-    | Tuple[Literal["=="], str, Union[str, float, bool]]
-    | Tuple[Literal["!="], str, Union[str, float, bool]]
-    | Tuple[Literal[">"], str, Union[str, float, bool]]
-    | Tuple[Literal[">="], str, Union[str, float, bool]]
-    | Tuple[Literal["<"], str, Union[str, float, bool]]
-    | Tuple[Literal["<="], str, Union[str, float, bool]]
-    | Tuple[Literal["in"], str, *Tuple[Union[str, float, bool], ...]]
-    | Tuple[Literal["!in"], str, *Tuple[Union[str, float, bool], ...]]
-    | Tuple[Literal["all"], *Tuple["LegacyFilterSpecification", ...]]
-    | Tuple[Literal["any"], *Tuple["LegacyFilterSpecification", ...]]
-    | Tuple[Literal["none"], *Tuple["LegacyFilterSpecification", ...]]
+    tuple[Literal["has"], str]
+    | tuple[Literal["!has"], str]
+    | tuple[Literal["=="], str, str | float | bool]
+    | tuple[Literal["!="], str, str | float | bool]
+    | tuple[Literal[">"], str, str | float | bool]
+    | tuple[Literal[">="], str, str | float | bool]
+    | tuple[Literal["<"], str, str | float | bool]
+    | tuple[Literal["<="], str, str | float | bool]
+    | tuple[Literal["in"], str, *tuple[str | float | bool, ...]]
+    | tuple[Literal["!in"], str, *tuple[str | float | bool, ...]]
+    | tuple[Literal["all"], *tuple["LegacyFilterSpecification", ...]]
+    | tuple[Literal["any"], *tuple["LegacyFilterSpecification", ...]]
+    | tuple[Literal["none"], *tuple["LegacyFilterSpecification", ...]]
 )
 
 FilterSpecification = Union[ExpressionFilterSpecification, LegacyFilterSpecification]
@@ -410,12 +401,12 @@ class TransitionSpecification(TypedDict):
 
 class ExponentialCameraFunctionSpecification(TypedDict, Generic[T]):
     type: Literal["exponential"]
-    stops: List[Tuple[float, T]]
+    stops: list[tuple[float, T]]
 
 
 class IntervalCameraFunctionSpecification(TypedDict, Generic[T]):
     type: Literal["interval"]
-    stops: List[Tuple[float, T]]
+    stops: list[tuple[float, T]]
 
 
 CameraFunctionSpecification = (
@@ -425,21 +416,21 @@ CameraFunctionSpecification = (
 
 class ExponentialSourceFunctionSpecification(TypedDict, Generic[T]):
     type: Literal["exponential"]
-    stops: List[Tuple[float, T]]
+    stops: list[tuple[float, T]]
     property: str
     default: NotRequired[T]
 
 
 class IntervalSourceFunctionSpecification(TypedDict, Generic[T]):
     type: Literal["interval"]
-    stops: List[Tuple[float, T]]
+    stops: list[tuple[float, T]]
     property: str
     default: NotRequired[T]
 
 
 class CategoricalSourceFunctionSpecification(TypedDict, Generic[T]):
     type: Literal["categorical"]
-    stops: List[Tuple[str | float | bool, T]]
+    stops: list[tuple[str | float | bool, T]]
     property: str
     default: NotRequired[T]
 
@@ -465,21 +456,21 @@ class ZoomValueDict(TypedDict):
 
 class ExponentialCompositeFunctionSpecification(TypedDict, Generic[T]):
     type: Literal["exponential"]
-    stops: List[Tuple[ZoomValueDict, T]]
+    stops: list[tuple[ZoomValueDict, T]]
     property: str
     default: NotRequired[T]
 
 
 class IntervalCompositeFunctionSpecification(TypedDict, Generic[T]):
     type: Literal["interval"]
-    stops: List[Tuple[ZoomValueDict, T]]
+    stops: list[tuple[ZoomValueDict, T]]
     property: str
     default: NotRequired[T]
 
 
 class CategoricalCompositeFunctionSpecification(TypedDict, Generic[T]):
     type: Literal["categorical"]
-    stops: List[Tuple[ZoomValueDict | float | bool, T]]
+    stops: list[tuple[ZoomValueDict | float | bool, T]]
     property: str
     default: NotRequired[T]
 
@@ -517,8 +508,8 @@ SymbolLayerSpecification = TypedDict(
         "minzoom": NotRequired[float],
         "maxzoom": NotRequired[float],
         "filter": NotRequired[FilterSpecification],
-        "layout": NotRequired[Dict[str, Any]],
-        "paint": NotRequired[Dict[str, Any]],
+        "layout": NotRequired[dict[str, Any]],
+        "paint": NotRequired[dict[str, Any]],
     },
 )
 
@@ -528,13 +519,13 @@ class VectorSource(TypedDict):
     url: NotRequired[str]
     tiles: NotRequired[list[str]]
     bounds: NotRequired[tuple[float, float, float, float]]
-    scheme: NotRequired[Union[Literal["xyz"], Literal["tms"]]]
+    scheme: NotRequired[Literal["xyz", "tms"]]
     minzoom: NotRequired[float]
     maxzoom: NotRequired[float]
     attribution: NotRequired[str]
-    promoteId: NotRequired[Union[dict[str, str], str]]
+    promoteId: NotRequired[dict[str, str] | str]
     volatile: NotRequired[bool]
-    encoding: NotRequired[Union[Literal["mvt"], Literal["mlt"]]]
+    encoding: NotRequired[Literal["mvt", "mlt"]]
 
 
 class RasterSource(TypedDict):
@@ -545,7 +536,7 @@ class RasterSource(TypedDict):
     minzoom: NotRequired[float]
     maxzoom: NotRequired[float]
     tileSize: NotRequired[float]
-    scheme: NotRequired[Union[Literal["xyz"], Literal["tms"]]]
+    scheme: NotRequired[Literal["xyz", "tms"]]
     attribution: NotRequired[str]
     promoteId: NotRequired[str | dict[str, str]]
     volatile: NotRequired[bool]
@@ -559,10 +550,10 @@ class RasterDEMSource(TypedDict):
     minzoom: NotRequired[float]
     maxzoom: NotRequired[float]
     tileSize: NotRequired[float]
-    scheme: NotRequired[Union[Literal["xyz"], Literal["tms"]]]
+    scheme: NotRequired[Literal["xyz", "tms"]]
     attribution: NotRequired[str]
-    encoding: Union[Literal["terrarium"], Literal["mapbox"], Literal["custom"]]
-    promoteId: Union[dict[str, str], NotRequired[str]]
+    encoding: Literal["terrarium", "mapbox", "custom"]
+    promoteId: dict[str, str] | NotRequired[str]
     redFactor: NotRequired[float]
     blueFactor: NotRequired[float]
     greenFactor: NotRequired[float]
@@ -643,8 +634,8 @@ FillLayer = TypedDict(
         "minzoom": NotRequired[int],
         "maxzoom": NotRequired[int],
         "filter": NotRequired[FilterSpecification],
-        "layout": NotRequired[Dict[str, Any]],
-        "paint": NotRequired[Dict[str, Any]],
+        "layout": NotRequired[dict[str, Any]],
+        "paint": NotRequired[dict[str, Any]],
     },
 )
 
@@ -660,8 +651,8 @@ LineLayer = TypedDict(
         "minzoom": NotRequired[int],
         "maxzoom": NotRequired[int],
         "filter": NotRequired[FilterSpecification],
-        "layout": NotRequired[Dict[str, Any]],
-        "paint": NotRequired[Dict[str, Any]],
+        "layout": NotRequired[dict[str, Any]],
+        "paint": NotRequired[dict[str, Any]],
     },
 )
 
@@ -677,8 +668,8 @@ SymbolLayer = TypedDict(
         "minzoom": NotRequired[float],
         "maxzoom": NotRequired[float],
         "filter": NotRequired[FilterSpecification],
-        "layout": NotRequired[Dict[str, Any]],
-        "paint": NotRequired[Dict[str, Any]],
+        "layout": NotRequired[dict[str, Any]],
+        "paint": NotRequired[dict[str, Any]],
     },
 )
 
@@ -713,7 +704,7 @@ RasterLayer = TypedDict(
         "minzoom": NotRequired[float],
         "maxzoom": NotRequired[float],
         "filter": NotRequired[FilterSpecification],
-        "layout": NotRequired[Dict[str, Any]],
+        "layout": NotRequired[dict[str, Any]],
         "paint": NotRequired[RasterPaint],
     },
 )

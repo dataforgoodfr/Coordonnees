@@ -6,9 +6,9 @@ from .resource import ForeignKey, Resource, Schema
 
 __all__ = [
     "DataPackage",
-    "Resource",
     "Field",
-    "Schema",
     "ForeignKey",
     "ForeignKeyReference",
+    "Resource",
+    "Schema",
 ]

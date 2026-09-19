@@ -2,13 +2,14 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import typer
+
 from coordo.loaders import (
     KoboToolboxLoader,
     Loader,
     get_file_loader,
 )
 
-from .annotations import DecimalSep, FilePath, From, Package, Sep, To, XlsData, XlsForm
+from .annotations import DecimalSep, FilePath, Package, Sep, XlsData, XlsForm
 
 app = typer.Typer()
 

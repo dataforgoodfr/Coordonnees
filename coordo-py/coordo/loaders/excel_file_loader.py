@@ -1,14 +1,15 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
+import logging
 from pathlib import Path
 from typing import ClassVar
 
 import pandas as pd
-import logging
 
 from coordo.loaders import FileLoader
-from ..datapackage import Schema, Field, Resource
+
+from ..datapackage import Field, Resource, Schema
 from ..datapackage.db_helpers import pandas_type_to_dp_type
 
 logger = logging.getLogger(__name__)

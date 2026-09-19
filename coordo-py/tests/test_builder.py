@@ -2,12 +2,12 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from sqlalchemy import (
-    MetaData,
-    Table,
     Column,
     Integer,
-    text,
+    MetaData,
+    Table,
     column,
+    text,
 )
 
 from coordo.sql import builder

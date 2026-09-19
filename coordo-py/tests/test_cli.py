@@ -1,14 +1,14 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
+import logging
 import shutil
 import subprocess
 
 import pandas as pd
 from typer.testing import CliRunner
-from coordo.cli.main import app
-import logging
 
+from coordo.cli.main import app
 
 logger = logging.getLogger(__name__)
 

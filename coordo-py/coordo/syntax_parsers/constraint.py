@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from lark import Lark, Transformer
-from coordo.helpers import removeQuotes
 
+from coordo.helpers import removeQuotes
 
 CONSTRAINT_GRAMMAR = r"""
 ?start: expression

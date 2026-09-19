@@ -3,7 +3,7 @@
 
 from typing import Literal
 
-import xyzservices.providers as providers
+from xyzservices import providers
 
 from .base import BaseLayerModel
 from .maplibre_style_spec_v8 import RasterLayer, RasterSource

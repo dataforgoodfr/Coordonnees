@@ -8,8 +8,9 @@ import typer
 
 from coordo.datapackage import DataPackage
 from coordo.sql.builder import build_query
-from .datapackage import add, remove, append, replace, delete
+
 from ..map import Map
+from .datapackage import add, append, delete, remove, replace
 
 app = typer.Typer()
 options = {}

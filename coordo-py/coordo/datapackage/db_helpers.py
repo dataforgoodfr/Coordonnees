@@ -1,16 +1,16 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
-from pathlib import Path
 import re
+from pathlib import Path
 
-from pandas.api.types import (
-    is_integer_dtype,
-    is_float_dtype,
-    is_string_dtype,
-    is_datetime64_dtype,
-)
 from duckdb.sqltypes import DuckDBPyType
+from pandas.api.types import (
+    is_datetime64_dtype,
+    is_float_dtype,
+    is_integer_dtype,
+    is_string_dtype,
+)
 
 
 def prepare_path(path: Path):

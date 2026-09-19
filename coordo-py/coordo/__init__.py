@@ -1,8 +1,8 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
-import warnings
 import logging
+import warnings
 
 LOG_LEVEL = logging.INFO
 LOGGING_FORMAT = "%(asctime)s [%(levelname)s] %(message)s"

@@ -4,8 +4,8 @@
 import typer
 
 from coordo.loaders import Loader
-from .annotations import Package
 
+from .annotations import Package
 
 app = typer.Typer()
 
