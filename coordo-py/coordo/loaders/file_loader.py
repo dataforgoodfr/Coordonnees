@@ -8,9 +8,9 @@ from typing import ClassVar
 import pandas as pd
 
 from ..datapackage import Field, Resource, Schema
-from .loader import Loader
 from ..datapackage.db_helpers import duckdb_type_to_dp_type, prepare_path
 from ..sql.helpers import load_conn
+from .loader import Loader
 
 logger = logging.getLogger(__name__)
 

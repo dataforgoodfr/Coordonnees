@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from dplib.models import ForeignKeyReference
+
 from .package import DataPackage, Field
 from .resource import ForeignKey, Resource, Schema
 
