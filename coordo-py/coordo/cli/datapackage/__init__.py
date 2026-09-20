@@ -1,6 +1,6 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
-from . import add, remove, append, replace, delete
+from . import add, append, delete, remove, replace
 
-__all__ = ["add", "remove", "append", "replace", "delete"]
+__all__ = ["add", "append", "delete", "remove", "replace"]

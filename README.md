@@ -209,6 +209,7 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
+
 @app.route("/maps/<path:subpath>")
 def maps(subpath: str):
     return jsonify(
@@ -228,22 +229,18 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 
+
 @csrf_exempt
 def my_map_view(request, subpath):
-    return JsonResponse(
-        map.handle_request(
-            request.method,
-            subpath,
-            request.body
-        )
-    )
+    return JsonResponse(map.handle_request(request.method, subpath, request.body))
+
 
 # urls.py
 from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('map/<path:subpath>/', views.map_view, name='map'),
+    path("map/<path:subpath>/", views.map_view, name="map"),
 ]
 ```
 

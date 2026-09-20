@@ -1,9 +1,8 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
-from pathlib import Path
-from typing import Optional
 import logging
+from pathlib import Path
 
 import duckdb
 import geopandas as gpd
@@ -16,9 +15,6 @@ from dplib.models import (
     Contributor,
     License,
     Source,
-)
-from dplib.models import (
-    ForeignKeyReference as ForeignKeyReference,
 )
 from dplib.plugins.sql.models import SqlSchema
 from pygeofilter.ast import AstType
@@ -44,19 +40,19 @@ def handle_path(path: str | list[str]) -> str:
 
 
 class DataPackage(pydantic.BaseModel):
-    id: Optional[str] = None
+    id: str | None = None
     name: str = pydantic.Field(pattern=r"^[a-z0-9._-]+$")
     resources: list[Resource] = []
-    title: Optional[str] = None
-    description: Optional[str] = None
-    homepage: Optional[str] = None
-    version: Optional[str] = None
+    title: str | None = None
+    description: str | None = None
+    homepage: str | None = None
+    version: str | None = None
     licenses: list[License] = []
     sources: list[Source] = []
     contributors: list[Contributor] = []
     keywords: list[str] = []
-    image: Optional[str] = None
-    created: Optional[str] = None
+    image: str | None = None
+    created: str | None = None
 
     _basepath: Path
 
@@ -170,10 +166,10 @@ class DataPackage(pydantic.BaseModel):
                 ).table.to_metadata(metadata)
                 try:
                     resource.load_table(conn)
-                except Exception as e:
+                except (TypeError, ValueError, duckdb.Error, sa.exc.SQLAlchemyError) as e:
                     raise ValueError(
                         f"Error occurred while loading table for resource {resource.name}: {e}"
-                    )
+                    ) from e
 
         return conn, metadata
 

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import logging
-from typing import TYPE_CHECKING, Any, Optional, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import duckdb
 import pydantic
@@ -24,18 +24,18 @@ logger = logging.getLogger(__name__)
 
 class Resource(pydantic.BaseModel):
     name: str = pydantic.Field(pattern=r"^[a-z0-9._-]+$")
-    type: Optional[str] = None
+    type: str | None = None
     path: str
-    data: Optional[Any] = None
-    dialect: Optional[Dialect | str] = None
+    data: Any | None = None
+    dialect: Dialect | str | None = None
     schema: Schema
-    title: Optional[str] = None
-    description: Optional[str] = None
-    format: Optional[str] = None
-    mediatype: Optional[str] = None
-    encoding: Optional[str] = None
-    bytes: Optional[int] = None
-    hash: Optional[str] = None
+    title: str | None = None
+    description: str | None = None
+    format: str | None = None
+    mediatype: str | None = None
+    encoding: str | None = None
+    bytes: int | None = None
+    hash: str | None = None
     sources: list[Source] = []
     licenses: list[License] = []
     contributors: list[Contributor] = []

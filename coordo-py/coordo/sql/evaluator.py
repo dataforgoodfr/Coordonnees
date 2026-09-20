@@ -5,7 +5,19 @@ from dataclasses import dataclass
 from typing import Any
 
 from pygeofilter.ast import AstType
-from sqlalchemy import Double, Float, Integer, and_, case, cast, func, or_, select, text, literal_column
+from sqlalchemy import (
+    Double,
+    Float,
+    Integer,
+    and_,
+    case,
+    cast,
+    func,
+    literal_column,
+    or_,
+    select,
+    text,
+)
 from sqlalchemy.sql.functions import coalesce
 
 from coordo.sql.helpers import AGGREGATES, SPATIAL_FUNCTIONS
@@ -101,8 +113,8 @@ class SQLEvaluator:
 
         return Context(expr, lhs.joins.union(rhs.joins))
 
-    def lambdafunc(self, node, rhs, mapper):        
-        full_lambda_sql = f"x {node.arrow} x {node.op} {rhs.expr}"        
+    def lambdafunc(self, node, rhs, mapper):
+        full_lambda_sql = f"x {node.arrow} x {node.op} {rhs.expr}"
         return Context(literal_column(full_lambda_sql), oset())
 
     def column(self, node, *, mapper):

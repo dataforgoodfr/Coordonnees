@@ -1,9 +1,13 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
+import logging
+
 from lark import Lark, Transformer
+
 from coordo.helpers import removeQuotes
 
+logging.getLogger("lark").setLevel(logging.INFO)
 
 CONSTRAINT_GRAMMAR = r"""
 ?start: expression
@@ -33,7 +37,7 @@ VAR: "${" /[A-Za-z_][A-Za-z_0-9]*/ "}"
 
 
 def isCustomConstraint(constraint: str) -> bool:
-    return not (isinstance(constraint, float) or isinstance(constraint, int))
+    return not isinstance(constraint, (float, int))
 
 
 class ConstraintTransformer(Transformer):

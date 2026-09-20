@@ -54,7 +54,6 @@ class Loader(ABC):
         """
         Apply any necessary transformations to the data before loading it into the staging directory.
         """
-        pass
 
     def load(self):
         for resource in self.resources:

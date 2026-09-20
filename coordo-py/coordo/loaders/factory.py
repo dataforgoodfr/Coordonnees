@@ -1,15 +1,14 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
-from pathlib import Path
-from typing import Type
 import inspect
 import logging
+from pathlib import Path
 
-from .loader import Loader
-from .file_loader import FileLoader
 from .csv_file_loader import CSVFileLoader
 from .excel_file_loader import ExcelFileLoader
+from .file_loader import FileLoader
+from .loader import Loader
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +22,7 @@ def get_file_loader(package: Path, path: Path, **params) -> FileLoader:
     return file_loader_cls(package, path, **filtered_params)
 
 
-def get_file_loader_class(path: Path) -> Type[FileLoader]:
+def get_file_loader_class(path: Path) -> type[FileLoader]:
     """
     Returns the appropriate file loader class based on the file extension.
     """
@@ -35,7 +34,7 @@ def get_file_loader_class(path: Path) -> Type[FileLoader]:
         return FileLoader
 
 
-def filter_params(cls: Type[Loader], params: dict):
+def filter_params(cls: type[Loader], params: dict):
     sig = inspect.signature(cls.__init__)
     valid_params = set(sig.parameters) - {"self"}
     filtrered_params = {}
@@ -47,5 +46,5 @@ def filter_params(cls: Type[Loader], params: dict):
                 f"Unrecognized argument {k} for class {cls.__name__}. This argument is ignored."
             )
             continue
-        filtrered_params[k] = params[k]
+        filtrered_params[k] = v
     return filtrered_params

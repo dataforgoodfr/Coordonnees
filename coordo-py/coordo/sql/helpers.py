@@ -9,6 +9,7 @@ import duckdb
 AGGREGATES_SQL = (Path(__file__).parent / "aggregates.sql").read_text()
 MACROS_SQL = (Path(__file__).parent / "macros.sql").read_text()
 
+
 def load_conn() -> duckdb.DuckDBPyConnection:
     conn = duckdb.connect()
     conn.install_extension("SPATIAL")
@@ -18,12 +19,9 @@ def load_conn() -> duckdb.DuckDBPyConnection:
     return conn
 
 
-AGGREGATES_MACROS = set(
-    map(
-        lambda s: s.lower(),
-        re.findall(r"CREATE(?: OR REPLACE)? MACRO (\w+)\s?\(", AGGREGATES_SQL),
-    )
-)
+AGGREGATES_MACROS = {
+    s.lower() for s in re.findall(r"CREATE(?: OR REPLACE)? MACRO (\w+)\s?\(", AGGREGATES_SQL)
+}
 AGGREGATES_FUNCTIONS = set(
     load_conn()
     .sql(

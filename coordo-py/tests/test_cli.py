@@ -1,14 +1,14 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
+import logging
 import shutil
 import subprocess
 
 import pandas as pd
 from typer.testing import CliRunner
-from coordo.cli.main import app
-import logging
 
+from coordo.cli.main import app
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,12 @@ def run(command: list):
 
 
 def check_files_are_identical(file1: str, file2: str):
-    result = subprocess.run(["diff", file1, file2], capture_output=True, text=True)
+    result = subprocess.run(
+        ["diff", file1, file2],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
     assert result.returncode == 0, (
         f"Files {file1} and {file2} are not identical: {result.stdout}"
     )

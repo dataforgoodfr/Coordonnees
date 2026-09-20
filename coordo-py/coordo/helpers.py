@@ -14,7 +14,7 @@ def safe(obj: Any, attr: str) -> T:
 
 
 def removeQuotes(s: str) -> str:
-    while s.startswith('"') or s.startswith("'"):
+    while s.startswith(('"', "'")):
         # Remove double quotes if present
         if s.startswith('"') and s.endswith('"'):
             s = s.removeprefix('"').removesuffix('"')

@@ -7,15 +7,15 @@ from coordo.loaders import (
     KoboToolboxLoader,
     get_file_loader,
 )
+
 from .annotations import (
+    DecimalSep,
+    FilePath,
     Package,
     ResourceName,
-    FilePath,
     Sep,
-    DecimalSep,
     XlsData,
 )
-
 
 app = typer.Typer()
 

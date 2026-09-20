@@ -24,7 +24,7 @@ jobs:
           activate-environment: true
 
       - name: Run linter
-        run: uv run ruff check .
+        run: uv run --active ruff check .
 
       - name: Run pytest
-        run: uv run pytest
+        run: uv run --active pytest
