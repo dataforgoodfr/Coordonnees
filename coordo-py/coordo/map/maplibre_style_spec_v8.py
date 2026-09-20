@@ -1,6 +1,6 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
-# ruff: noqa: UP007,TC010
+# ruff: noqa: UP007
 
 # Not all definitions have been imported from common/maplibre-style-spec-v8.ts
 # Please add them when needed
@@ -73,12 +73,19 @@ ExpressionSpecification = (
     | tuple[
         Literal["format"],
         *tuple[
-            str
-            | tuple[Literal["image"], "ExpressionSpecification"]
-            | "ExpressionSpecification"
-            | dict[
+            Union[
                 str,
-                Union[float, "ExpressionSpecification", ColorSpecification, Literal["bottom", "center", "top"]],
+                tuple[Literal["image"], "ExpressionSpecification"],
+                "ExpressionSpecification",
+                dict[
+                    str,
+                    Union[
+                        float,
+                        "ExpressionSpecification",
+                        ColorSpecification,
+                        Literal["bottom", "center", "top"],
+                    ],
+                ],
             ],
             ...,
         ],
