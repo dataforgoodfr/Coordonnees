@@ -572,6 +572,10 @@
             "constraints": {
               "required": false
             }
+          },
+          {
+            "name": "survey_date",
+            "type": "datetime"
           }
         ],
         "primaryKey": [

@@ -4,7 +4,7 @@
 import json
 import logging
 import shutil
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from time import time
 from typing import Any, ClassVar, cast
@@ -105,7 +105,7 @@ class KoboToolboxLoader(Loader):
         "number": float,
         "date": date,
         "time": time,
-        "datetime": datetime,
+        "datetime": "datetime64[ns]",
     }
 
     package_name: str
@@ -352,7 +352,10 @@ class KoboToolboxLoader(Loader):
 
             df = (
                 df.rename(
-                    columns={"_parent_index": "parent_id"},
+                    columns={
+                        "_parent_index": "parent_id",
+                        "_submission_time": "survey_date"
+                    },
                 )
                 .convert_dtypes()
                 .replace(np.nan, None)
@@ -378,6 +381,15 @@ class KoboToolboxLoader(Loader):
                     df[field.name] = None if field.type == "geojson" else ""
 
                 fields.append(field.name)
+
+            # In Kobotoolbox, the field "_submission_time" is added by default,
+            # and corresponds to the date the form has been uploaded on the platform.
+            # We want to keep that information in the data.
+            # We also check that the field is not already present in the field,
+            # which could happen in the case of appending new data.
+            if "survey_date" in df.columns and "survey_date" not in fields:
+                schema.add_field(Field(name="survey_date", type="datetime"))
+                fields.append("survey_date")
 
             df = df[fields]
             df = df.replace({np.nan: None})
