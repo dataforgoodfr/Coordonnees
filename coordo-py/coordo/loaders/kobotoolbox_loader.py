@@ -349,6 +349,7 @@ class KoboToolboxLoader(Loader):
         logger.info("Processing sheets...")
 
         self.rename_dataframes_columns()
+        self.change_df_ids()
         for name, df in self.dataframes.items():
             resource = self.dp.get_resource(name)
             schema = safe(resource, "schema")
@@ -427,7 +428,6 @@ class KoboToolboxLoader(Loader):
             df = (
                 df.rename(
                     columns={
-                        "_index": "_id",
                         "_submission__uuid": "parent_id",
                         "_submission_time": "survey_date",
                     }
@@ -435,14 +435,20 @@ class KoboToolboxLoader(Loader):
                 .convert_dtypes()
                 .replace(np.nan, None)
             )
+            df[self.INDEX_COLUMN] = df.index + 1
 
             # The column "_submission__id" is generated automatically by Kobotoolbox
             # to match with parent's sheet UUID, but in some cases the metadata does not appear.
             # Therefore we recreate this column using _parent_index and _index values that are not uuids.
+            if name != self.main_resource.name and "parent_id" not in df.columns:
+                df.insert(0, "parent_id", self.find_uuids(df))
             if name != self.main_resource.name and "_submission__id" not in df.columns:
-                logger.info(f"HERE with resource {name}")
-                df["_submission__id"] = self.find_uuids(df)
-    
+                df.insert(0, "_submission__id", [uuid.uuid4() for _ in range(len(df))])
+
+            self.dataframes[name] = df
+
+    def change_df_ids(self):
+        for name, df in self.dataframes.items():
             # Very Kobotoolbox specific. The main sheet has a column "_uuid",
             # the other sheet have a column "_submission__id"
             if name == self.main_resource.name:
@@ -454,17 +460,18 @@ class KoboToolboxLoader(Loader):
 
     def find_uuids(self, df):
         """
-        Map main_df UUIDs to df where df _parent_index matches with main_df _index
+        Map main_df UUIDs to df where df _parent_index matches with main_df _id
         Used to generate a normally auto-generated column in Kobotoolbox
         """
         main_df = self.dataframes[self.main_resource.name]
         duplicate_indexes = main_df.loc[
-            main_df["_id"].duplicated(keep=False), "_id"
-        ]
+            main_df[self.INDEX_COLUMN].duplicated(keep=False), self.INDEX_COLUMN
+        ].unique()
         if len(duplicate_indexes) > 0:
             raise ValueError(
                 "Main resource contains duplicate _id values: "
                 f"{duplicate_indexes.tolist()}"
             )
-        uuid_by_index = main_df.set_index("_id")["_uuid"]
+
+        uuid_by_index = main_df.set_index(self.INDEX_COLUMN)["_uuid"]
         return df["_parent_index"].map(uuid_by_index)
