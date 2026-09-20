@@ -4,6 +4,7 @@
 import json
 import logging
 import shutil
+import uuid
 from datetime import date
 from pathlib import Path
 from time import time
@@ -53,7 +54,7 @@ def coords_to_point(coords):
 
 
 class KoboToolboxLoader(Loader):
-    PRIMARY_KEY: ClassVar[str] = "_id"
+    INDEX_COLUMN: ClassVar[str] = "_id"
 
     METADATA_TYPES: ClassVar[list[str]] = [
         "start",
@@ -172,8 +173,8 @@ class KoboToolboxLoader(Loader):
 
     def get_resource_schema(self) -> Schema:
         return Schema(
-            fields=[Field(name=self.PRIMARY_KEY, type="integer")],
-            primaryKey=[self.PRIMARY_KEY],
+            fields=[Field(name=self.INDEX_COLUMN, type="string")],
+            primaryKey=[self.INDEX_COLUMN],
         )
 
     @staticmethod
@@ -248,7 +249,7 @@ class KoboToolboxLoader(Loader):
             fields=["parent_id"],
             reference=ForeignKeyReference(
                 resource=parent_resource.name,
-                fields=[self.PRIMARY_KEY],
+                fields=[self.INDEX_COLUMN],
             ),
         )
 
@@ -300,7 +301,7 @@ class KoboToolboxLoader(Loader):
                 )
                 # Use a different variable name to not change the schema used in the for loop
                 child_schema = safe(child_resource, "schema")
-                child_schema.add_field(Field(name="parent_id", type="integer"))
+                child_schema.add_field(Field(name="parent_id", type="string"))
                 child_schema.foreignKeys = [self.get_foreignkey_to(resource)]
                 parsed_resources.append(child_resource)
                 # recursively parse questions and get children resources
@@ -346,21 +347,11 @@ class KoboToolboxLoader(Loader):
 
     def transform(self):
         logger.info("Processing sheets...")
+
+        self.rename_dataframes_columns()
         for name, df in self.dataframes.items():
             resource = self.dp.get_resource(name)
             schema = safe(resource, "schema")
-
-            df = (
-                df.rename(
-                    columns={
-                        "_parent_index": "parent_id",
-                        "_submission_time": "survey_date"
-                    },
-                )
-                .convert_dtypes()
-                .replace(np.nan, None)
-            )
-            df[self.PRIMARY_KEY] = df.index + 1
 
             # adapting pandas dtypes to schema field types
             fields = []
@@ -426,3 +417,54 @@ class KoboToolboxLoader(Loader):
             self.replace_resource_data_by_dataframe(
                 self.dataframes[resource.name], resource
             )
+
+    def rename_dataframes_columns(self):
+        """
+        Rename some Kobotoolbox columns to match with Schema
+        field names as defined in :meth:`parse_questions`
+        """
+        for name, df in self.dataframes.items():
+            df = (
+                df.rename(
+                    columns={
+                        "_index": "_id",
+                        "_submission__uuid": "parent_id",
+                        "_submission_time": "survey_date",
+                    }
+                )
+                .convert_dtypes()
+                .replace(np.nan, None)
+            )
+
+            # The column "_submission__id" is generated automatically by Kobotoolbox
+            # to match with parent's sheet UUID, but in some cases the metadata does not appear.
+            # Therefore we recreate this column using _parent_index and _index values that are not uuids.
+            if name != self.main_resource.name and "_submission__id" not in df.columns:
+                logger.info(f"HERE with resource {name}")
+                df["_submission__id"] = self.find_uuids(df)
+    
+            # Very Kobotoolbox specific. The main sheet has a column "_uuid",
+            # the other sheet have a column "_submission__id"
+            if name == self.main_resource.name:
+                df[self.INDEX_COLUMN] = df["_uuid"]
+            else:
+                df[self.INDEX_COLUMN] = df["_submission__id"]
+
+            self.dataframes[name] = df
+
+    def find_uuids(self, df):
+        """
+        Map main_df UUIDs to df where df _parent_index matches with main_df _index
+        Used to generate a normally auto-generated column in Kobotoolbox
+        """
+        main_df = self.dataframes[self.main_resource.name]
+        duplicate_indexes = main_df.loc[
+            main_df["_id"].duplicated(keep=False), "_id"
+        ]
+        if len(duplicate_indexes) > 0:
+            raise ValueError(
+                "Main resource contains duplicate _id values: "
+                f"{duplicate_indexes.tolist()}"
+            )
+        uuid_by_index = main_df.set_index("_id")["_uuid"]
+        return df["_parent_index"].map(uuid_by_index)
