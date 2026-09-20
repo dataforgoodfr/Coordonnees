@@ -1,9 +1,13 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
+import logging
+
 from lark import Lark, Transformer
 
 from coordo.helpers import removeQuotes
+
+logging.getLogger("lark").setLevel(logging.INFO)
 
 CONSTRAINT_GRAMMAR = r"""
 ?start: expression
