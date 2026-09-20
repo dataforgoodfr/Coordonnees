@@ -21,7 +21,10 @@ CATALOG_DIR = "catalog/test_cli"
 def run(command: list):
     result = runner.invoke(app, command)
     assert result.exit_code == 0, (
-        f"Command '{' '.join(command)}' failed: {result.stdout}"
+        f"Command '{' '.join(command)}' failed with exit code "
+        f"{result.exit_code}:\n"
+        f"output:\n{result.output}\n"
+        f"exception: {result.exception!r}"
     )
 
 
@@ -58,13 +61,13 @@ def test_001_add_remove_kobotoolbox(
                     "--form",
                     input_files["kobotoolbox_inquiry.xlsx"],
                 ],
-                ["remove", "foreignkey", "reg.parent_id", "inventaire_id._id"],
-                ["remove", "foreignkey", "ind.parent_id", "inventaire_id._id"],
-                ["remove", "foreignkey", "tsbf_001.parent_id", "inventaire_id._id"],
-                ["remove", "foreignkey", "barba_001.parent_id", "inventaire_id._id"],
-                ["remove", "foreignkey", "barbb_001.parent_id", "inventaire_id._id"],
-                ["remove", "foreignkey", "barbc_001.parent_id", "inventaire_id._id"],
-                ["remove", "foreignkey", "barbd_001.parent_id", "inventaire_id._id"],
+                ["remove", "foreignkey", "reg", "inventaire_id"],
+                ["remove", "foreignkey", "ind", "inventaire_id"],
+                ["remove", "foreignkey", "tsbf_001", "inventaire_id"],
+                ["remove", "foreignkey", "barba_001", "inventaire_id"],
+                ["remove", "foreignkey", "barbb_001", "inventaire_id"],
+                ["remove", "foreignkey", "barbc_001", "inventaire_id"],
+                ["remove", "foreignkey", "barbd_001", "inventaire_id"],
                 [
                     "remove",
                     "kobotoolbox",
@@ -146,9 +149,23 @@ def test_003_add_kobotoolbox_file_foreignkey(
                     input_files["kobotoolbox_inquiry.xlsx"],
                 ],
                 ["add", "file", input_files["external_data.csv"]],
-                ["add", "foreignkey", "ind.ess_arb", "external_data.ess_arb"],
-                ["remove", "foreignkey", "ind.ess_arb", "external_data.ess_arb"],
-                ["add", "foreignkey", "ind.ess_arb", "external_data.ess_arb"],
+                [
+                    "add",
+                    "foreignkey",
+                    "ind",
+                    "external_data",
+                    "ess_arb",
+                    "ess_arb",
+                ],
+                ["remove", "foreignkey", "ind", "external_data"],
+                [
+                    "add",
+                    "foreignkey",
+                    "ind",
+                    "external_data",
+                    "ess_arb",
+                    "ess_arb",
+                ],
             ]
         )
         # check that the datapackage was created as expected
