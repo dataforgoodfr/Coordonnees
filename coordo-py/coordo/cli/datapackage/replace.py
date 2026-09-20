@@ -50,6 +50,6 @@ def primarykey(
     package: Package, resource: str, fields: list[str]
 ):
     """
-    Add a foreign key constraint between two resources.
+    Replace the primary key constraint in a resource.
     """
     Loader.replace_primary_key(package, resource, fields)
