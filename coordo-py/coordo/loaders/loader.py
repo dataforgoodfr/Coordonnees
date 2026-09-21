@@ -83,7 +83,7 @@ class Loader(ABC):
             self.load()
             self.save()
             return self._success_result("add")
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 - operation API returns failures as data
             return self._failure_result("add", error)
 
     def remove(self) -> dict:
@@ -96,7 +96,7 @@ class Loader(ABC):
                 self.dp.remove_resource(resource.name)
             self.save()
             return self._success_result("remove")
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 - operation API returns failures as data
             return self._failure_result("remove", error)
 
     @staticmethod
@@ -121,7 +121,7 @@ class Loader(ABC):
                 method=UpdateMethod.APPEND, resource_name=resource_name
             )
             return self._success_result("append", duplicates=duplicates)
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 - operation API returns failures as data
             return self._failure_result("append", error)
 
     def replace(self, resource_name: str | None = None) -> dict:
@@ -131,7 +131,7 @@ class Loader(ABC):
         try:
             self.update(method=UpdateMethod.REPLACE, resource_name=resource_name)
             return self._success_result("replace")
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 - operation API returns failures as data
             return self._failure_result("replace", error)
 
     @staticmethod
