@@ -67,12 +67,20 @@ class Resource(pydantic.BaseModel):
         return self._package
 
     def load_table(self, conn: duckdb.DuckDBPyConnection):
-        # db_fields = tuple(
-        #     f'"{field.name}"::{to_db_type(field)} AS "{field.name}"'
-        #     for field in self.schema.fields
-        # )
         query = f'CREATE VIEW "{self.name}" AS SELECT * FROM {prepare_path(self.package.get_path() / self.path)}'
         conn.execute(query)
+
+    def replace_primary_key(self, fields: list[str]) -> None:
+        field_names = {field.name for field in self.schema.fields}
+        missing_field = next((field for field in fields if field not in field_names), None)
+
+        if missing_field is not None:
+            raise ValueError(
+                f"The field {missing_field} is not present in the resource "
+                f"{self.name} schema and can't be defined as a primary key"
+            )
+
+        self.schema.primaryKey = fields
 
     def add_foreignkey(
         self, fields: list[str], foreign_fields: list[str], foreign_resource: str

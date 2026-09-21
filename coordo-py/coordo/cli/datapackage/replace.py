@@ -5,6 +5,7 @@ import typer
 
 from coordo.loaders import (
     KoboToolboxLoader,
+    Loader,
     get_file_loader,
 )
 
@@ -42,3 +43,13 @@ def file(
     get_file_loader(package, path, sep=sep, decimal_sep=decimal_sep).replace(
         resource_name
     )
+
+
+@app.command()
+def primarykey(
+    package: Package, resource: str, fields: list[str]
+):
+    """
+    Replace the primary key constraint in a resource.
+    """
+    Loader.replace_primary_key(package, resource, fields)

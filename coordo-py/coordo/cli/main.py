@@ -97,7 +97,7 @@ app.add_typer(
 app.add_typer(delete.app, name="delete", help="Delete the data of a resource")
 
 #################################################
-# Interaction with datapackage
+# Interaction with datapackage  
 ##################################################
 
 dp = typer.Typer()
