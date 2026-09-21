@@ -339,30 +339,6 @@ def test_007_add_append_kobotoolbox(
         shutil.rmtree(CATALOG_DIR)
 
 
-def test_008_append_file_deduplicates_rows(input_files: dict[str, str]):
-    """Do not append rows already present or repeated in the input file."""
-    try:
-        run_all(
-            [
-                ["add", "file", input_files["external_data.csv"]],
-                [
-                    "append",
-                    "file",
-                    input_files["external_data_duplicates.csv"],
-                    "--resource",
-                    "external_data",
-                ],
-            ]
-        )
-        file = f"{CATALOG_DIR}/external_data.parquet"
-        df = pd.read_parquet(file)
-        assert len(df) == 37
-        assert len(df.drop_duplicates()) == 37
-        assert len(df[df["ess_arb"] == 100]) == 1
-    finally:
-        logger.info(f"Removing package '{CATALOG_DIR}'")
-        shutil.rmtree(CATALOG_DIR)
-
 def test_008_replace_primary_key(
     input_files: dict[str, str], output_files: dict[str, str]
 ):
@@ -388,6 +364,31 @@ def test_008_replace_primary_key(
         check_files_are_identical(
             f"{CATALOG_DIR}/datapackage.json", output_files["008.datapackage.json"]
         )
+    finally:
+        logger.info(f"Removing package '{CATALOG_DIR}'")
+        shutil.rmtree(CATALOG_DIR)
+
+
+def test_009_append_file_deduplicates_rows(input_files: dict[str, str]):
+    """Do not append rows already present or repeated in the input file."""
+    try:
+        run_all(
+            [
+                ["add", "file", input_files["external_data.csv"]],
+                [
+                    "append",
+                    "file",
+                    input_files["external_data_duplicates.csv"],
+                    "--resource",
+                    "external_data",
+                ],
+            ]
+        )
+        file = f"{CATALOG_DIR}/external_data.parquet"
+        df = pd.read_parquet(file)
+        assert len(df) == 37
+        assert len(df.drop_duplicates()) == 37
+        assert len(df[df["ess_arb"] == 100]) == 1
     finally:
         logger.info(f"Removing package '{CATALOG_DIR}'")
         shutil.rmtree(CATALOG_DIR)

@@ -8,7 +8,7 @@
         "fields": [
           {
             "name": "_id",
-            "type": "integer"
+            "type": "string"
           },
           {
             "name": "gps",
@@ -593,11 +593,11 @@
         "fields": [
           {
             "name": "_id",
-            "type": "integer"
+            "type": "string"
           },
           {
             "name": "parent_id",
-            "type": "integer"
+            "type": "string"
           },
           {
             "name": "ess_reg",
@@ -1685,11 +1685,11 @@
         "fields": [
           {
             "name": "_id",
-            "type": "integer"
+            "type": "string"
           },
           {
             "name": "parent_id",
-            "type": "integer"
+            "type": "string"
           },
           {
             "name": "zon",
@@ -3038,11 +3038,11 @@
         "fields": [
           {
             "name": "_id",
-            "type": "integer"
+            "type": "string"
           },
           {
             "name": "parent_id",
-            "type": "integer"
+            "type": "string"
           },
           {
             "name": "tax1_tsbf",
@@ -3305,11 +3305,11 @@
         "fields": [
           {
             "name": "_id",
-            "type": "integer"
+            "type": "string"
           },
           {
             "name": "parent_id",
-            "type": "integer"
+            "type": "string"
           },
           {
             "name": "tax1_barbA",
@@ -3572,11 +3572,11 @@
         "fields": [
           {
             "name": "_id",
-            "type": "integer"
+            "type": "string"
           },
           {
             "name": "parent_id",
-            "type": "integer"
+            "type": "string"
           },
           {
             "name": "tax1_barbB",
@@ -3839,11 +3839,11 @@
         "fields": [
           {
             "name": "_id",
-            "type": "integer"
+            "type": "string"
           },
           {
             "name": "parent_id",
-            "type": "integer"
+            "type": "string"
           },
           {
             "name": "tax1_barbC",
@@ -4106,11 +4106,11 @@
         "fields": [
           {
             "name": "_id",
-            "type": "integer"
+            "type": "string"
           },
           {
             "name": "parent_id",
-            "type": "integer"
+            "type": "string"
           },
           {
             "name": "tax1_barbD",
