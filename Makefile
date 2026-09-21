@@ -9,6 +9,8 @@ catalog:
 	uv run coordo add kobotoolbox data/all4trees/inventaire_for/20260422_InventaireForestier_DonneesK.xlsx --form data/all4trees/inventaire_for/20260519_InventaireForestier_QuestionnaireK.xlsx --package catalog/inventaire_for
 	uv run coordo add file data/all4trees/inventaire_for/20260713_InventaireForestier_DonneesExternes.xlsx --package catalog/inventaire_for
 
+	uv run coordo replace primarykey inv_for proj year typ loc1 loc2 cod ecos --package catalog/inventaire_for
+
 	uv run coordo add foreignkey adu for_dw decay decay --package catalog/inventaire_for
 	uv run coordo add foreignkey inv_for for_samp proj proj --package catalog/inventaire_for
 	uv run coordo add foreignkey inv_for for_pop proj proj year year typ typ --package catalog/inventaire_for
@@ -20,12 +22,16 @@ catalog:
 	uv run coordo add kobotoolbox data/all4trees/inventaire_bio/20260710_InventaireBiologique_DonneesK.xlsx --form data/all4trees/inventaire_bio/20260709_InventaireBiologique_QuestionnaireK.xlsx --package catalog/inventaire_bio
 	uv run coordo add file data/all4trees/inventaire_bio/20260713_InventaireBiologique_DonneesExternes.xlsx --package catalog/inventaire_bio
 
+	uv run coordo replace primarykey inv_bio proj year typ loc1 loc2 cod ecos meth tax --package catalog/inventaire_bio
+
 	uv run coordo add foreignkey inv_bio bio_samp proj proj --package catalog/inventaire_bio
 	uv run coordo add foreignkey inv_bio bio_pop proj proj year year --package catalog/inventaire_bio
 
 	# All 4 Trees - Enquête ménage
 	uv run coordo add kobotoolbox data/all4trees/enquete/20260709_EnqueteMenage_DonneesK.xlsx --form data/all4trees/enquete/20260519_EnqueteMenage_QuestionnaireK.xlsx --package catalog/enquete
 	uv run coordo add file data/all4trees/enquete/20260713_EnqueteMenage_DonneesExternes.xlsx --package catalog/enquete
+
+	uv run coordo replace primarykey enquete_menage proj year typ loc1 loc2 --package catalog/enquete
 
 	uv run coordo add foreignkey enquete_menage hh_samp proj proj --package catalog/enquete
 	uv run coordo add foreignkey enquete_menage hh_pop proj proj year year typ typ --package catalog/enquete

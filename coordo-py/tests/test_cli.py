@@ -362,3 +362,32 @@ def test_008_append_file_deduplicates_rows(input_files: dict[str, str]):
     finally:
         logger.info(f"Removing package '{CATALOG_DIR}'")
         shutil.rmtree(CATALOG_DIR)
+
+def test_008_replace_primary_key(
+    input_files: dict[str, str], output_files: dict[str, str]
+):
+    """
+    Test the following workflow:
+    - Load data from a kobotoolbox inquiry
+    - Replace primary key from the main resource
+    """
+    try:
+        run_all(
+            [
+                [
+                    "add",
+                    "kobotoolbox",
+                    input_files["kobotoolbox_data.xlsx"],
+                    "--form",
+                    input_files["kobotoolbox_inquiry.xlsx"],
+                ],
+                ["replace", "primarykey", "inventaire_id", "nom", "for", "cod", "typ_inv"],
+            ]
+        )
+        # check that the datapackage was created as expected
+        check_files_are_identical(
+            f"{CATALOG_DIR}/datapackage.json", output_files["008.datapackage.json"]
+        )
+    finally:
+        logger.info(f"Removing package '{CATALOG_DIR}'")
+        shutil.rmtree(CATALOG_DIR)

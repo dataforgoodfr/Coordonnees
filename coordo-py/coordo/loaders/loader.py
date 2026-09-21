@@ -281,6 +281,22 @@ class Loader(ABC):
         logger.info(f"Writing parquet file to package at {target_path}")
         write_parquet(empty_df_with_same_schema, target_path)
 
+
+    ######################################
+    # HANDLE PRIMARY KEYS
+    ######################################
+
+    @staticmethod
+    def replace_primary_key(
+        package: Path | str,
+        resource_name: str,
+        fields: list[str],
+    ):
+        dp = DataPackage.from_path(package)
+        resource = dp.get_resource(resource_name)
+        resource.replace_primary_key(fields)
+        dp.save()
+
     ######################################
     # HANDLE FOREIGN KEYS
     ######################################
