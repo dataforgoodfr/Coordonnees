@@ -429,6 +429,10 @@ class KoboToolboxLoader(Loader):
         """
         Rename some Kobotoolbox columns to match with Schema
         field names as defined in :meth:`parse_questions`
+        Also use UUIDs as parent_id in data_sheets, instead of the default incremental 'parent_index'
+        We do this because when appending new data, we will certainly have the same incremental indexes 
+        in rows that have nothing in common.
+        Parent_id is used as a foreign-key reference and must be a unique identifier
         """
         for name, df in self.dataframes.items():
             df = (
@@ -444,7 +448,7 @@ class KoboToolboxLoader(Loader):
             df[self.INDEX_COLUMN] = df.index + 1
 
             # The column "_submission__id" is generated automatically by Kobotoolbox
-            # to match with parent's sheet UUID, but in some cases the metadata does not appear.
+            # to match with parent's sheet UUID, but in some cases it does not exist.
             # Therefore we recreate this column using _parent_index and _index values that are not uuids.
             if name != self.main_resource.name and "parent_id" not in df.columns:
                 df.insert(0, "parent_id", self.find_uuids(df))
@@ -454,16 +458,13 @@ class KoboToolboxLoader(Loader):
             self.dataframes[name] = df
 
     def change_df_ids(self):
+        """
+        Use Kobotoolbox generated UUIDs as Index instead of incremental indexes in the dataframe.
+        This guarantees that the indexes are unique, which is crucial even when appending new data
+        that may have indentical incremental indexes.
+        """
         for name, df in self.dataframes.items():
-            # Very Kobotoolbox specific. The main sheet has a column "_uuid",
-            # the other sheet have a column "_submission__id"
-            if name == self.main_resource.name:
-                df[self.INDEX_COLUMN] = df["_uuid"]
-            else:
-                df[self.INDEX_COLUMN] = (
-                    df["parent_id"].astype(str) + "_" + df["_index"].astype(str)
-                )
-
+            df[self.INDEX_COLUMN] = df["_uuid"] if name == self.main_resource.name else df["_submission__id"]
             self.dataframes[name] = df
 
     def find_uuids(self, df):
