@@ -410,8 +410,14 @@ class KoboToolboxLoader(Loader):
             self.dataframes[name] = df
 
     def append_data(self, resource_name: str | None = None):
+        duplicates = {}
         for resource in self.resources:
-            self.append_datafame_to_resource(self.dataframes[resource.name], resource)
+            rows = self.append_datafame_to_resource(
+                self.dataframes[resource.name], resource
+            )
+            if rows:
+                duplicates[resource.name] = rows
+        return duplicates
 
     def replace_data(self, resource_name: str | None = None):
         for resource in self.resources:

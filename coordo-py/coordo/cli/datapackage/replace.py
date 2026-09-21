@@ -16,6 +16,7 @@ from .annotations import (
     Sep,
     XlsData,
 )
+from .results import ensure_success
 
 app = typer.Typer()
 
@@ -25,7 +26,7 @@ def kobotoolbox(xlsdata: XlsData, package: Package):
     """
     Replace data of datapackage Kobotoolbox resources.
     """
-    KoboToolboxLoader(package, xlsdata).replace()
+    ensure_success(KoboToolboxLoader(package, xlsdata).replace())
 
 
 @app.command()
@@ -39,6 +40,8 @@ def file(
     """
     Replace data in a datapackage resource from a file. By default, the resource name is inferred from the file name.
     """
-    get_file_loader(package, path, sep=sep, decimal_sep=decimal_sep).replace(
-        resource_name
+    ensure_success(
+        get_file_loader(package, path, sep=sep, decimal_sep=decimal_sep).replace(
+            resource_name
+        )
     )

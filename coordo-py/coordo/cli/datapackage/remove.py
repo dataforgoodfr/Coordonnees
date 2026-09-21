@@ -10,13 +10,14 @@ from coordo.loaders import (
 )
 
 from .annotations import DecimalSep, FilePath, Package, Sep, XlsData, XlsForm
+from .results import ensure_success
 
 app = typer.Typer()
 
 
 @app.command()
 def kobotoolbox(xlsform: XlsForm, xlsdata: XlsData, package: Package):
-    KoboToolboxLoader(package, xlsdata, xlsform).remove()
+    ensure_success(KoboToolboxLoader(package, xlsdata, xlsform).remove())
 
 
 @app.command()
@@ -26,7 +27,7 @@ def file(
     sep: Sep = None,
     decimal_sep: DecimalSep = None,
 ):
-    get_file_loader(package, path, sep=sep, decimal_sep=decimal_sep).remove()
+    ensure_success(get_file_loader(package, path, sep=sep, decimal_sep=decimal_sep).remove())
 
 
 @app.command()

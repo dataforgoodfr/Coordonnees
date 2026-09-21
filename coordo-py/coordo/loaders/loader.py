@@ -1,6 +1,7 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
+import json
 import logging
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -70,25 +71,33 @@ class Loader(ABC):
     # ADD / REMOVE RESOURCES
     ######################################
 
-    def add(self):
+    def add(self) -> dict:
         """
         Extract the corresponding resources to add, transform, and load them into the package.
         """
-        self.parse_input()
-        for resource in self.resources:
-            self.dp.attach_resource(resource)
-        self.transform()
-        self.load()
-        self.save()
+        try:
+            self.parse_input()
+            for resource in self.resources:
+                self.dp.attach_resource(resource)
+            self.transform()
+            self.load()
+            self.save()
+            return self._success_result("add")
+        except Exception as error:
+            return self._failure_result("add", error)
 
-    def remove(self):
+    def remove(self) -> dict:
         """
         Extract the correct resources to remove, then remove them from the package.
         """
-        self.parse_input()
-        for resource in self.resources:
-            self.dp.remove_resource(resource.name)
-        self.save()
+        try:
+            self.parse_input()
+            for resource in self.resources:
+                self.dp.remove_resource(resource.name)
+            self.save()
+            return self._success_result("remove")
+        except Exception as error:
+            return self._failure_result("remove", error)
 
     @staticmethod
     def remove_one_resource(package: Path | str, resource_name: str):
@@ -103,19 +112,46 @@ class Loader(ABC):
     # UPDATE (APPEND / REPLACE)
     ######################################
 
-    def append(self, resource_name: str | None = None):
+    def append(self, resource_name: str | None = None) -> dict:
         """
         High level method that abstracts appending data to resources.
         """
-        self.update(method=UpdateMethod.APPEND, resource_name=resource_name)
+        try:
+            duplicates = self.update(
+                method=UpdateMethod.APPEND, resource_name=resource_name
+            )
+            return self._success_result("append", duplicates=duplicates)
+        except Exception as error:
+            return self._failure_result("append", error)
 
-    def replace(self, resource_name: str | None = None):
+    def replace(self, resource_name: str | None = None) -> dict:
         """
         High level method that abstracts replacing data from resources.
         """
-        self.update(method=UpdateMethod.REPLACE, resource_name=resource_name)
+        try:
+            self.update(method=UpdateMethod.REPLACE, resource_name=resource_name)
+            return self._success_result("replace")
+        except Exception as error:
+            return self._failure_result("replace", error)
 
-    def update(self, method: UpdateMethod, resource_name: str | None = None):
+    @staticmethod
+    def _success_result(operation: str, **extra) -> dict:
+        return {
+            "success": True,
+            "message": f"The {operation} operation has ended successfully",
+            **extra,
+        }
+
+    @staticmethod
+    def _failure_result(operation: str, error: Exception) -> dict:
+        logger.exception("The %s operation failed", operation)
+        return {
+            "success": False,
+            "message": f"The {operation} operation has failed",
+            "error": str(error),
+        }
+
+    def update(self, method: UpdateMethod, resource_name: str | None = None) -> dict:
         """
         Update the package with the current resources.
         The backbone of the method is common to both appending and replacing data.
@@ -126,9 +162,10 @@ class Loader(ABC):
         self.transform()
         match method:
             case UpdateMethod.APPEND:
-                self.append_data(resource_name)
+                return self.append_data(resource_name)
             case UpdateMethod.REPLACE:
                 self.replace_data(resource_name)
+                return {}
         # NOTE: there is no need to save here
         # as the modifications are done on the data only, not on the schema
 
@@ -156,14 +193,17 @@ class Loader(ABC):
         """
         raise NotImplementedError()
 
-    def append_datafame_to_resource(self, df: DataFrame, resource: Resource):
+    def append_datafame_to_resource(
+        self, df: DataFrame, resource: Resource
+    ) -> list[dict]:
         logger.info(f"Appending data to resource '{resource.name}'")
         current_df = self.dp.read_resource(resource.name)
         # concatenating current and new data
         new_df = pd.concat([current_df, df], ignore_index=True)
-        deduplicated_df = self.drop_duplicates(new_df, resource)
+        deduplicated_df, duplicates = self.drop_duplicates(new_df, resource)
         # saving concatenated & deduplicated data back to the current resource's path
         self.write_to_package(deduplicated_df, resource)
+        return self._dataframe_to_records(duplicates)
 
     def replace_resource_data_by_dataframe(self, df: DataFrame, resource: Resource):
         logger.info(f"Replacing data in resource '{resource.name}'")
@@ -189,7 +229,15 @@ class Loader(ABC):
         duplicates = df.loc[duplicate_mask]
         if len(duplicates) > 0:
             logger.warning(f"Found {len(duplicates)} duplicate(s) when appending data")
-        return df.loc[~duplicate_mask]
+        return df.loc[~duplicate_mask], duplicates
+
+    @staticmethod
+    def _dataframe_to_records(df: DataFrame) -> list[dict]:
+        return json.loads(
+            pd.DataFrame(df).to_json(
+                orient="records", date_format="iso", default_handler=str
+            )
+        )
 
     @staticmethod
     def _make_hashable(value):

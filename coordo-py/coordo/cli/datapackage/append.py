@@ -13,6 +13,7 @@ from .annotations import (
     Sep,
     XlsData,
 )
+from .results import ensure_success
 
 app = typer.Typer()
 
@@ -22,7 +23,7 @@ def kobotoolbox(xlsdata: XlsData, package: Package):
     """
     Append data to the datapackage Kobotoolbox resources.
     """
-    KoboToolboxLoader(package, xlsdata).append()
+    ensure_success(KoboToolboxLoader(package, xlsdata).append())
 
 
 @app.command()
@@ -36,6 +37,8 @@ def file(
     """
     Append data from a file to a datapackage resource. By default, the resource name is inferred from the file name.
     """
-    get_file_loader(package, path, sep=sep, decimal_sep=decimal_sep).append(
-        resource_name
+    ensure_success(
+        get_file_loader(package, path, sep=sep, decimal_sep=decimal_sep).append(
+            resource_name
+        )
     )
