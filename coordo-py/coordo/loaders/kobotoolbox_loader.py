@@ -454,7 +454,9 @@ class KoboToolboxLoader(Loader):
             if name == self.main_resource.name:
                 df[self.INDEX_COLUMN] = df["_uuid"]
             else:
-                df[self.INDEX_COLUMN] = df["_submission__id"]
+                df[self.INDEX_COLUMN] = (
+                    df["parent_id"].astype(str) + "_" + df["_index"].astype(str)
+                )
 
             self.dataframes[name] = df
 
