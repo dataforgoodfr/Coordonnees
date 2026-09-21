@@ -4,8 +4,8 @@
 import json
 import logging
 import shutil
-import uuid
 from datetime import date
+from enum import Enum
 from pathlib import Path
 from time import time
 from typing import Any, ClassVar, cast
@@ -53,9 +53,14 @@ def coords_to_point(coords):
     return Point(lon, lat, alt)
 
 
+class KOBOTOOLBOX_FIELDS(str, Enum):
+    MAIN_RESOURCE_UUID = "_uuid"
+    PARENT_UUID = "_submission__uuid"
+    SUBMISSION_TIME = "_submission_time"
+
+
 class KoboToolboxLoader(Loader):
     INDEX_COLUMN: ClassVar[str] = "_id"
-
     METADATA_TYPES: ClassVar[list[str]] = [
         "start",
         "end",
@@ -438,8 +443,8 @@ class KoboToolboxLoader(Loader):
             df = (
                 df.rename(
                     columns={
-                        "_submission__uuid": "parent_id",
-                        "_submission_time": "survey_date",
+                        KOBOTOOLBOX_FIELDS.PARENT_UUID: "parent_id",
+                        KOBOTOOLBOX_FIELDS.SUBMISSION_TIME: "survey_date",
                     }
                 )
                 .convert_dtypes()
@@ -447,24 +452,32 @@ class KoboToolboxLoader(Loader):
             )
             df[self.INDEX_COLUMN] = df.index + 1
 
-            # The column "_submission__id" is generated automatically by Kobotoolbox
+            # The column "_submission__uuid" is generated automatically by Kobotoolbox
             # to match with parent's sheet UUID, but in some cases it does not exist.
-            # Therefore we recreate this column using _parent_index and _index values that are not uuids.
+            # In that case we recreate this column by finding
+            # matching parent UUIDs in the main resource.
             if name != self.main_resource.name and "parent_id" not in df.columns:
                 df.insert(0, "parent_id", self.find_uuids(df))
-            if name != self.main_resource.name and "_submission__id" not in df.columns:
-                df.insert(0, "_submission__id", [uuid.uuid4() for _ in range(len(df))])
 
             self.dataframes[name] = df
 
     def change_df_ids(self):
         """
-        Use Kobotoolbox generated UUIDs as Index instead of incremental indexes in the dataframe.
-        This guarantees that the indexes are unique, which is crucial even when appending new data
-        that may have indentical incremental indexes.
+        Use stable UUID/index combinations as indexes in the dataframe.
+        By default, incremental indexes are used but they may identical between 2 submissions / append operaion.
+
+        For the main resource, use Kobotoolbox generated UUIDs.
+        Repeat resources can contain several rows for the same submission, so
+        ``_submission__id`` alone is not unique. Combining the parent UUID with
+        the repeat row index keeps each row unique and stable across appends.
         """
         for name, df in self.dataframes.items():
-            df[self.INDEX_COLUMN] = df["_uuid"] if name == self.main_resource.name else df["_submission__id"]
+            if name == self.main_resource.name:
+                df[self.INDEX_COLUMN] = df[KOBOTOOLBOX_FIELDS.MAIN_RESOURCE_UUID]
+            else:
+                df[self.INDEX_COLUMN] = (
+                    df["parent_id"].astype(str) + "_" + df["_index"].astype(str)
+                )
             self.dataframes[name] = df
 
     def find_uuids(self, df):
@@ -482,5 +495,5 @@ class KoboToolboxLoader(Loader):
                 f"{duplicate_indexes.tolist()}"
             )
 
-        uuid_by_index = main_df.set_index(self.INDEX_COLUMN)["_uuid"]
+        uuid_by_index = main_df.set_index(self.INDEX_COLUMN)[KOBOTOOLBOX_FIELDS.MAIN_RESOURCE_UUID]
         return df["_parent_index"].map(uuid_by_index)
