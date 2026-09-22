@@ -5,6 +5,7 @@ import json
 import logging
 import shutil
 from datetime import date
+from enum import Enum
 from pathlib import Path
 from time import time
 from typing import Any, ClassVar, cast
@@ -52,9 +53,14 @@ def coords_to_point(coords):
     return Point(lon, lat, alt)
 
 
-class KoboToolboxLoader(Loader):
-    PRIMARY_KEY: ClassVar[str] = "_id"
+class KOBOTOOLBOX_FIELDS(str, Enum):
+    MAIN_RESOURCE_UUID = "_uuid"
+    PARENT_UUID = "_submission__uuid"
+    SUBMISSION_TIME = "_submission_time"
 
+
+class KoboToolboxLoader(Loader):
+    INDEX_COLUMN: ClassVar[str] = "_id"
     METADATA_TYPES: ClassVar[list[str]] = [
         "start",
         "end",
@@ -172,8 +178,8 @@ class KoboToolboxLoader(Loader):
 
     def get_resource_schema(self) -> Schema:
         return Schema(
-            fields=[Field(name=self.PRIMARY_KEY, type="integer")],
-            primaryKey=[self.PRIMARY_KEY],
+            fields=[Field(name=self.INDEX_COLUMN, type="string")],
+            primaryKey=[self.INDEX_COLUMN],
         )
 
     @staticmethod
@@ -248,7 +254,7 @@ class KoboToolboxLoader(Loader):
             fields=["parent_id"],
             reference=ForeignKeyReference(
                 resource=parent_resource.name,
-                fields=[self.PRIMARY_KEY],
+                fields=[self.INDEX_COLUMN],
             ),
         )
 
@@ -300,7 +306,7 @@ class KoboToolboxLoader(Loader):
                 )
                 # Use a different variable name to not change the schema used in the for loop
                 child_schema = safe(child_resource, "schema")
-                child_schema.add_field(Field(name="parent_id", type="integer"))
+                child_schema.add_field(Field(name="parent_id", type="string"))
                 child_schema.foreignKeys = [self.get_foreignkey_to(resource)]
                 parsed_resources.append(child_resource)
                 # recursively parse questions and get children resources
@@ -346,21 +352,12 @@ class KoboToolboxLoader(Loader):
 
     def transform(self):
         logger.info("Processing sheets...")
+
+        self.rename_dataframes_columns()
+        self.change_df_ids()
         for name, df in self.dataframes.items():
             resource = self.dp.get_resource(name)
             schema = safe(resource, "schema")
-
-            df = (
-                df.rename(
-                    columns={
-                        "_parent_index": "parent_id",
-                        "_submission_time": "survey_date"
-                    },
-                )
-                .convert_dtypes()
-                .replace(np.nan, None)
-            )
-            df[self.PRIMARY_KEY] = df.index + 1
 
             # adapting pandas dtypes to schema field types
             fields = []
@@ -418,11 +415,76 @@ class KoboToolboxLoader(Loader):
             self.dataframes[name] = df
 
     def append_data(self, resource_name: str | None = None):
+        duplicates = {}
         for resource in self.resources:
-            self.append_datafame_to_resource(self.dataframes[resource.name], resource)
+            rows = self.append_datafame_to_resource(
+                self.dataframes[resource.name], resource
+            )
+            if rows:
+                duplicates[resource.name] = rows
+        return duplicates
 
     def replace_data(self, resource_name: str | None = None):
         for resource in self.resources:
             self.replace_resource_data_by_dataframe(
                 self.dataframes[resource.name], resource
             )
+
+    def rename_dataframes_columns(self):
+        """
+        Rename some Kobotoolbox columns to match with Schema
+        field names as defined in :meth:`parse_questions`
+        Also use UUIDs as parent_id in data_sheets, instead of the default incremental 'parent_index'
+        We do this because when appending new data, we will certainly have the same incremental indexes 
+        in rows that have nothing in common.
+        Parent_id is used as a foreign-key reference and must be a unique identifier
+        """
+        for name, df in self.dataframes.items():
+            df = (
+                df.rename(
+                    columns={
+                        KOBOTOOLBOX_FIELDS.PARENT_UUID: "parent_id",
+                        KOBOTOOLBOX_FIELDS.SUBMISSION_TIME: "survey_date",
+                    }
+                )
+                .convert_dtypes()
+                .replace(np.nan, None)
+            )
+            df[self.INDEX_COLUMN] = df.index + 1
+
+            # The column "_submission__uuid" is generated automatically by Kobotoolbox
+            # to match with parent's sheet UUID, but in some cases it does not exist.
+            # In that case we recreate this column by finding
+            # matching parent UUIDs in the main resource.
+            if name != self.main_resource.name and "parent_id" not in df.columns:
+                df.insert(0, "parent_id", self.find_uuids(df))
+
+            self.dataframes[name] = df
+
+    def change_df_ids(self):
+        """
+        Use stable UUID/index combinations as indexes in the dataframe.
+        By default, incremental indexes are used but they may identical between 2 submissions / append operaion.
+
+        For the main resource, use Kobotoolbox generated UUIDs.
+        Repeat resources can contain several rows for the same submission, so
+        ``_submission__id`` alone is not unique. Combining the parent UUID with
+        the repeat row index keeps each row unique and stable across appends.
+        """
+        for name, df in self.dataframes.items():
+            if name == self.main_resource.name:
+                df[self.INDEX_COLUMN] = df[KOBOTOOLBOX_FIELDS.MAIN_RESOURCE_UUID]
+            else:
+                df[self.INDEX_COLUMN] = (
+                    df["parent_id"].astype(str) + "_" + df["_index"].astype(str)
+                )
+            self.dataframes[name] = df
+
+    def find_uuids(self, df):
+        """
+        Map main_df UUIDs to df where df _parent_index matches with main_df _id
+        Used to generate a normally auto-generated column in Kobotoolbox
+        """
+        main_df = self.dataframes[self.main_resource.name]
+        uuid_by_index = main_df.set_index(self.INDEX_COLUMN)[KOBOTOOLBOX_FIELDS.MAIN_RESOURCE_UUID]
+        return df["_parent_index"].map(uuid_by_index)
