@@ -486,14 +486,5 @@ class KoboToolboxLoader(Loader):
         Used to generate a normally auto-generated column in Kobotoolbox
         """
         main_df = self.dataframes[self.main_resource.name]
-        duplicate_indexes = main_df.loc[
-            main_df[self.INDEX_COLUMN].duplicated(keep=False), self.INDEX_COLUMN
-        ].unique()
-        if len(duplicate_indexes) > 0:
-            raise ValueError(
-                "Main resource contains duplicate _id values: "
-                f"{duplicate_indexes.tolist()}"
-            )
-
         uuid_by_index = main_df.set_index(self.INDEX_COLUMN)[KOBOTOOLBOX_FIELDS.MAIN_RESOURCE_UUID]
         return df["_parent_index"].map(uuid_by_index)
