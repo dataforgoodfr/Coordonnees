@@ -12,6 +12,7 @@ from pandas.api.types import (
     is_string_dtype,
 )
 import geopandas as gpd
+from shapely import from_wkb
 
 
 def prepare_path(path: Path):
@@ -87,7 +88,24 @@ def convert_df_to_geodf(df, geo_cols):
     """
     for col in geo_cols[1:]:
         df[col] = df[col].apply(
-            lambda geom: geom.wkb if geom is not None else None
+            lambda geom: (
+                geom.wkb
+                if hasattr(geom, "wkb")
+                else bytes(geom)
+                if isinstance(geom, (bytes, bytearray, memoryview))
+                else None
+                if geom is None
+                else geom
+            )
         )
 
-    return gpd.GeoDataFrame(df, geometry=geo_cols[0], crs="EPSG:4326")
+    active_geometry = geo_cols[0]
+    df[active_geometry] = df[active_geometry].apply(
+        lambda geom: (
+            from_wkb(bytes(geom))
+            if isinstance(geom, (bytes, bytearray, memoryview))
+            else geom
+        )
+    )
+
+    return gpd.GeoDataFrame(df, geometry=active_geometry, crs="EPSG:4326")
