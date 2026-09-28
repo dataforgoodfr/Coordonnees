@@ -25,6 +25,7 @@ from coordo.datapackage import (
 )
 from coordo.helpers import safe
 from coordo.syntax_parsers import constraint_parser
+from coordo.datapackage.db_helpers import convert_df_to_geodf, find_geo_cols
 
 from .loader import Loader
 
@@ -394,25 +395,9 @@ class KoboToolboxLoader(Loader):
             df = df[fields]
             df = df.replace({np.nan: None})
 
-            # if some columns contain geometry data
-            # converting the pandas dataframe to a geopandas dataframe
-            geo_cols = [
-                f.name
-                for f in resource.schema.fields
-                if f.type == "geojson"
-                and f.name in df.columns
-                and df[f.name].notna().any()
-            ]
-
+            geo_cols = find_geo_cols(resource, df)
             if geo_cols:
-                # GeoPandas only supports one active geometry column in a GeoDataFrame.
-                # Convert any additional geo columns into WKB strings so parquet export can succeed.
-                for col in geo_cols[1:]:
-                    df[col] = df[col].apply(
-                        lambda geom: geom.wkb if geom is not None else None
-                    )
-
-                df = gpd.GeoDataFrame(df, geometry=geo_cols[0], crs="EPSG:4326")
+                df = convert_df_to_geodf(df, geo_cols)
 
             # storing transformed dataframe
             self.dataframes[name] = df
