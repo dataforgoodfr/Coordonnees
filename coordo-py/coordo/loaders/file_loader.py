@@ -8,7 +8,12 @@ from typing import ClassVar
 import pandas as pd
 
 from ..datapackage import Field, Resource, Schema
-from ..datapackage.db_helpers import duckdb_type_to_dp_type, prepare_path
+from ..datapackage.db_helpers import (
+    convert_df_to_geodf,
+    duckdb_type_to_dp_type,
+    find_geo_cols,
+    prepare_path,
+)
 from ..sql.helpers import load_conn
 from .loader import Loader
 
@@ -54,6 +59,10 @@ class FileLoader(Loader):
             resource = Resource.create(path.stem, schema)
             # parsing data from the file
             df = rel.to_df()
+            geo_cols = find_geo_cols(resource, df)
+            print(geo_cols)
+            if geo_cols:
+                df = convert_df_to_geodf(df, geo_cols)
 
         return resource, df
 

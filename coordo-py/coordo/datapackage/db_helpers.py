@@ -4,6 +4,7 @@
 import re
 from pathlib import Path
 
+import geopandas as gpd
 from duckdb.sqltypes import DuckDBPyType
 from pandas.api.types import (
     is_datetime64_dtype,
@@ -11,6 +12,7 @@ from pandas.api.types import (
     is_integer_dtype,
     is_string_dtype,
 )
+from shapely import from_wkb
 
 
 def prepare_path(path: Path):
@@ -60,3 +62,50 @@ def pandas_type_to_dp_type(type: str) -> dict:
 
 def clean_str(s: str) -> str:
     return re.sub(r"[^a-z0-9._-]", "", s.strip().lower())
+
+
+def find_geo_cols(resource, df): 
+    """
+    find geometry data in dataframe columns
+    returns an empty array if no geo_cols have been found
+    """
+    geo_cols = [
+        f.name
+        for f in resource.schema.fields
+        if f.type == "geojson"
+        and f.name in df.columns
+        and df[f.name].notna().any()
+    ]
+
+    return geo_cols
+
+
+def convert_df_to_geodf(df, geo_cols):
+    """
+    Convert a Dataframe into GeoDataframe
+    GeoPandas only supports one active geometry column in a GeoDataFrame.
+    Convert any additional geo columns into WKB strings so parquet export can succeed.
+    """
+    for col in geo_cols[1:]:
+        df[col] = df[col].apply(
+            lambda geom: (
+                geom.wkb
+                if hasattr(geom, "wkb")
+                else bytes(geom)
+                if isinstance(geom, (bytes, bytearray, memoryview))
+                else None
+                if geom is None
+                else geom
+            )
+        )
+
+    active_geometry = geo_cols[0]
+    df[active_geometry] = df[active_geometry].apply(
+        lambda geom: (
+            from_wkb(bytes(geom))
+            if isinstance(geom, (bytes, bytearray, memoryview))
+            else geom
+        )
+    )
+
+    return gpd.GeoDataFrame(df, geometry=active_geometry, crs="EPSG:4326")
