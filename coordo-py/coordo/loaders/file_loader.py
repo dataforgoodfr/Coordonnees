@@ -68,7 +68,7 @@ class FileLoader(Loader):
         resource_name = resource_name or self.resource.name
         resource = self.dp.get_resource(resource_name)
         df = self.dataframes[self.resource.name]
-        self.append_datafame_to_resource(df, resource)
+        return {resource.name: self.append_datafame_to_resource(df, resource)}
 
     def replace_data(self, resource_name: str | None = None):
         # if no resource name is provided, use the current resource's name

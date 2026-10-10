@@ -6,3 +6,5 @@ data/
 *.bak
 notebooks/
 __marimo__/
+
+*.log

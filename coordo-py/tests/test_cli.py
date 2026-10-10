@@ -4,6 +4,7 @@
 import logging
 import shutil
 import subprocess
+import traceback
 
 import pandas as pd
 from typer.testing import CliRunner
@@ -24,7 +25,8 @@ def run(command: list):
         f"Command '{' '.join(command)}' failed with exit code "
         f"{result.exit_code}:\n"
         f"output:\n{result.output}\n"
-        f"exception: {result.exception!r}"
+        f"exception: {result.exception!r}\n"
+        f"traceback:\n{''.join(traceback.format_exception(result.exception))}"
     )
 
 
@@ -236,7 +238,7 @@ def test_005_add_remove_delete_excel_file(
     - Remove resouces linked to Excel file
     - Add file again
     - Delete data from file
-    - Append data from the same file
+    - Append data from a second Excel file
     - Replace data with data from the ame file
     - Delete data
     """
@@ -247,7 +249,7 @@ def test_005_add_remove_delete_excel_file(
                 ["remove", "file", input_files["external_data.xlsx"]],
                 ["add", "file", input_files["external_data.xlsx"]],
                 ["replace", "file", input_files["external_data.xlsx"]],
-                ["append", "file", input_files["external_data.xlsx"]],
+                ["append", "file", input_files["external_data_append.xlsx"]],
                 ["delete", "resource", "bio_samp"],
             ]
         )
@@ -331,10 +333,11 @@ def test_007_add_append_kobotoolbox(
         file = f"{CATALOG_DIR}/barba_001.parquet"
         logger.info(f"Checking number of rows in {file}")
         df = pd.read_parquet(file)
-        assert len(df) == 138
+        assert len(df) == 69
     finally:
         logger.info(f"Removing package '{CATALOG_DIR}'")
         shutil.rmtree(CATALOG_DIR)
+
 
 def test_008_replace_primary_key(
     input_files: dict[str, str], output_files: dict[str, str]
@@ -361,6 +364,31 @@ def test_008_replace_primary_key(
         check_files_are_identical(
             f"{CATALOG_DIR}/datapackage.json", output_files["008.datapackage.json"]
         )
+    finally:
+        logger.info(f"Removing package '{CATALOG_DIR}'")
+        shutil.rmtree(CATALOG_DIR)
+
+
+def test_009_append_file_deduplicates_rows(input_files: dict[str, str]):
+    """Do not append rows already present or repeated in the input file."""
+    try:
+        run_all(
+            [
+                ["add", "file", input_files["external_data.csv"]],
+                [
+                    "append",
+                    "file",
+                    input_files["external_data_duplicates.csv"],
+                    "--resource",
+                    "external_data",
+                ],
+            ]
+        )
+        file = f"{CATALOG_DIR}/external_data.parquet"
+        df = pd.read_parquet(file)
+        assert len(df) == 37
+        assert len(df.drop_duplicates()) == 37
+        assert len(df[df["ess_arb"] == 100]) == 1
     finally:
         logger.info(f"Removing package '{CATALOG_DIR}'")
         shutil.rmtree(CATALOG_DIR)
