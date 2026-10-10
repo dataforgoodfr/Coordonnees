@@ -4,6 +4,7 @@
 import re
 from pathlib import Path
 
+import geopandas as gpd
 from duckdb.sqltypes import DuckDBPyType
 from pandas.api.types import (
     is_datetime64_dtype,
@@ -11,7 +12,6 @@ from pandas.api.types import (
     is_integer_dtype,
     is_string_dtype,
 )
-import geopandas as gpd
 from shapely import from_wkb
 
 

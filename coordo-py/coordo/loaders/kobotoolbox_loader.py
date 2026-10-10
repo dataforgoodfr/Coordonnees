@@ -10,7 +10,6 @@ from pathlib import Path
 from time import time
 from typing import Any, ClassVar, cast
 
-import geopandas as gpd
 import numpy as np
 import pandas as pd
 from lark.exceptions import LarkError
@@ -24,9 +23,9 @@ from coordo.datapackage import (
     Resource,
     Schema,
 )
+from coordo.datapackage.db_helpers import convert_df_to_geodf, find_geo_cols
 from coordo.helpers import safe
 from coordo.syntax_parsers import constraint_parser
-from coordo.datapackage.db_helpers import convert_df_to_geodf, find_geo_cols
 
 from .loader import Loader
 

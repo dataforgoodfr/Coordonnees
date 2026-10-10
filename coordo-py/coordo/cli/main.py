@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-
 from coordo.datapackage import DataPackage
 from coordo.sql.builder import build_query
 

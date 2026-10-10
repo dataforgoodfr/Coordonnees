@@ -6,10 +6,14 @@ from pathlib import Path
 from typing import ClassVar
 
 import pandas as pd
-import geopandas as gpd
 
 from ..datapackage import Field, Resource, Schema
-from ..datapackage.db_helpers import duckdb_type_to_dp_type, prepare_path, convert_df_to_geodf, find_geo_cols
+from ..datapackage.db_helpers import (
+    convert_df_to_geodf,
+    duckdb_type_to_dp_type,
+    find_geo_cols,
+    prepare_path,
+)
 from ..sql.helpers import load_conn
 from .loader import Loader
 
