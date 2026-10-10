@@ -1,7 +1,6 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
-from coordo.sql import builder
 from sqlalchemy import (
     Column,
     Integer,
@@ -10,6 +9,8 @@ from sqlalchemy import (
     column,
     text,
 )
+
+from coordo.sql import builder
 
 
 def _mk_metadata():

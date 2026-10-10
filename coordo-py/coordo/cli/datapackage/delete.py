@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import typer
+
 from coordo.loaders import Loader
 
 from .annotations import Package
