@@ -12,6 +12,7 @@ export {
   type LayerControlRenderAnchor,
   type LayerControlRenderLayerRow,
 } from "./layers/controls";
+export { setSourceFilter } from "./layers/source-filter";
 export { getLayerSymbolId } from "./layers/symbol";
 export { type CreateMapOptions, createMap } from "./map/map";
 export type {
