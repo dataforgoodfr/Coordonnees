@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
+import type { Map as MapLibreMap } from "maplibre-gl";
+
+import { setSourceData } from "./source-filter";
 
 export type SetLayerFiltersParams<T> = {
   layerId: string;
@@ -61,9 +63,8 @@ export function makeSetLayerFilters({
     });
     const data = await res.json();
 
-    // Update map internal state data
-    const source = map.getSource(layer?.source) as GeoJSONSource;
-    source?.setData(data);
+    // Update map internal state data, keeping any client-side source filter
+    setSourceData({ data, map, sourceId: layer.source });
   }
 
   return setLayerFilters;
