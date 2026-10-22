@@ -10,7 +10,8 @@ import "../index.css";
 
 import { EVENTS } from "../events";
 import type { LayerControlConstructorProps } from "../layers/controls";
-import { makeSetLayerFilters } from "../layers/filters";
+import type { LayerSchemas } from "../layers/cql";
+import { makeLayerFilters } from "../layers/filters";
 import { makeSetLayerPopup } from "../layers/popup";
 import { makeSetLayerSymbol } from "../layers/symbol";
 import { addStyleDataListener } from "./style-data";
@@ -28,7 +29,7 @@ export type CreateMapOptions = Partial<maplibregl.MapOptions> & {
   headers?: Record<string, string>;
 };
 
-export function createMap(
+export function createMap<TLayers extends LayerSchemas = LayerSchemas>(
   target: string | HTMLElement,
   styleUrl = "https://demotiles.maplibre.org/globe.json",
   options?: CreateMapOptions,
@@ -84,7 +85,11 @@ export function createMap(
 
   const addSprite = map.addSprite;
 
-  const setLayerFilters = makeSetLayerFilters({ baseUrl, map, options });
+  const { clearLayerFilters, setLayerFilters } = makeLayerFilters<TLayers>({
+    baseUrl,
+    headers: options?.headers,
+    map,
+  });
 
   const setLayerPopup = makeSetLayerPopup({ map });
 
@@ -118,6 +123,7 @@ export function createMap(
   return {
     addEventListener,
     addSprite,
+    clearLayerFilters,
     getCenter,
     getLayerMetadata,
     getZoom,
