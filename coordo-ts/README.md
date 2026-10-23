@@ -123,3 +123,99 @@ mapApiRef.current.setLayerPopup<MyDataType>({
 ```
 
 </details>
+
+---
+
+## Filters
+
+### Filter layer data with `setLayerFilters`
+
+`setLayerFilters` asks the backend for the data of a layer restricted by a filter, then replaces the layer data on the map. The backend applies the filter to the layer's resource **before** it is grouped or aggregated, so each feature is recomputed from the matching rows only (counts, averages, histograms…).
+
+> Filters use the **raw resource column names**, not the aliases defined in the layer `columns`.
+
+Use `setSourceFilter` instead to hide features client-side without a request; the two can be combined.
+
+#### With a `where` object
+
+Conditions are keyed by property and ANDed together. Each condition has exactly one operator. An `undefined` condition is skipped.
+
+```ts
+await mapApi.setLayerFilters({
+  layerId: "enquete",
+  where: {
+    age: undefined, // no restriction
+    coh: { between: ["2022", "2023"] },
+    sex: { eq: "2" },
+    typ: { in: ["1", "2"] },
+  },
+});
+```
+
+| Operator  | Example                       | Matches                                    |
+| --------- | ----------------------------- | ------------------------------------------ |
+| `eq`      | `{ eq: "2" }`                 | equal to                                   |
+| `neq`     | `{ neq: "0" }`                | different from                             |
+| `lt` `lte` `gt` `gte` | `{ gte: 10 }`     | compared to                                |
+| `in`      | `{ in: ["1", "2"] }`          | one of the values (`[]` matches nothing)   |
+| `between` | `{ between: [2022, 2023] }`   | between both bounds, inclusive             |
+| `like`    | `{ like: "Mak%" }`            | pattern, `%` for any characters            |
+| `isNull`  | `{ isNull: true }`            | empty (`false`: not empty)                 |
+
+#### With the `cql` builders
+
+For `or`, `not` or nested conditions. `and` and `or` skip `undefined` conditions, and return `undefined` (no restriction) when none is left.
+
+```ts
+import { cql } from "coordo";
+
+await mapApi.setLayerFilters({
+  filters: cql.and(
+    cql.inList("typ", ["1", "2"]),
+    cql.or(cql.eq("sex", "2"), cql.not(cql.isNull("coh"))),
+  ),
+  layerId: "enquete",
+});
+```
+
+`whereToCql(where)` compiles a `where` object into the same expressions, to compose it further. Any other [CQL2-JSON](https://docs.ogc.org/is/21-065r2/21-065r2.html) filter can be passed as `filters` as is.
+
+#### Type checking
+
+Describe the filterable properties of your layers to get autocompletion and type errors on layer ids, properties and values:
+
+```ts
+type Layers = {
+  enquete: { coh: string; sex: "1" | "2"; typ: "0" | "1" | "2" };
+};
+
+const mapApi = createMap<Layers>("#map", styleUrl);
+
+mapApi.setLayerFilters({ layerId: "enquete", where: { typ: { in: ["3"] } } });
+//                                                                  ^ type error
+```
+
+`createCql<Layers["enquete"]>()` returns the same builders, typed for one layer.
+
+#### Clearing, errors and overlapping calls
+
+- `clearLayerFilters(layerId)` restores the unfiltered data.
+- The returned promise resolves once the new data is on the map.
+- A filter on a property the layer's resource doesn't have is rejected before any request, with the list of available properties.
+- When the backend answers with an error, the promise rejects and the current data is kept.
+- A newer call for the same layer aborts the previous one, whose promise rejects with an `AbortError`:
+
+```ts
+try {
+  await mapApi.setLayerFilters({ layerId: "enquete", where });
+} catch (error) {
+  if (error instanceof DOMException && error.name === "AbortError") return;
+  throw error;
+}
+```
+
+### Tests
+
+```sh
+npm test
+```

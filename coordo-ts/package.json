@@ -16,7 +16,7 @@
   "scripts": {
     "compile": "tsc -b",
     "build": "tsc --noEmit && vite build",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
     "check:code": "npm run compile && biome check ./src --diagnostic-level=warn",
     "fix:code": "biome check ./src --write --diagnostic-level=warn",
     "format": "biome check ./src --write --linter-enabled=false",
@@ -34,6 +34,7 @@
     "@types/node": "^25.2.0",
     "maplibre-gl": "^5.16.0",
     "typescript": "^5.9.3",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^4.1.12"
   }
 }
