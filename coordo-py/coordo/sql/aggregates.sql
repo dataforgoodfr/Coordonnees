@@ -13,7 +13,7 @@ CREATE OR REPLACE MACRO gini(col) AS (
             2 * list_sum(
                 list_transform(
                     range(1, len(sorted) + 1),
-                    (i) -> i * sorted[i]
+                    lambda i: i * sorted[i]
                 )
             ) / (len(sorted) * list_sum(sorted))
             - ((len(sorted) + 1) / len(sorted))
