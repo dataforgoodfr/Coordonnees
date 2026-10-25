@@ -5,7 +5,7 @@ description = "A set of modules to help with using spatio-temporal data and crea
 requires-python = ">=3.11"
 dependencies = [
   "dplib-py>=1.1.0",
-  "duckdb>=1.5",
+  "duckdb>=1.5,<2",
   "flask>=3.1.2",
   "geojson>=3.2.0",
   "geopandas>=1.1.2",

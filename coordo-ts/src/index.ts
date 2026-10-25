@@ -12,6 +12,21 @@ export {
   type LayerControlRenderAnchor,
   type LayerControlRenderLayerRow,
 } from "./layers/controls";
+export {
+  type CqlBuilder,
+  type CqlExpression,
+  type CqlProperty,
+  type CqlScalar,
+  cql,
+  createCql,
+  type LayerProperties,
+  type LayerSchemas,
+  type RawCqlFilter,
+  type Where,
+  type WhereCondition,
+  whereToCql,
+} from "./layers/cql";
+export type { LayerId, SetLayerFiltersParams } from "./layers/filters";
 export { setSourceFilter } from "./layers/source-filter";
 export { getLayerSymbolId } from "./layers/symbol";
 export { type CreateMapOptions, createMap } from "./map/map";
