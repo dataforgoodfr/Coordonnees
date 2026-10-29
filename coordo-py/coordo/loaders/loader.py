@@ -233,8 +233,23 @@ class Loader(ABC):
 
     @staticmethod
     def _dataframe_to_records(df: DataFrame) -> list[dict]:
+        def sanitize(value):
+            if isinstance(value, str):
+                return value.encode("utf-8", errors="replace").decode("utf-8")
+            if isinstance(value, bytes):
+                return value.decode("utf-8", errors="replace")
+            if isinstance(value, dict):
+                return {sanitize(key): sanitize(item) for key, item in value.items()}
+            if isinstance(value, list):
+                return [sanitize(item) for item in value]
+            if isinstance(value, tuple):
+                return tuple(sanitize(item) for item in value)
+            return value
+
+        sanitized_df = pd.DataFrame(df).map(sanitize)
+        sanitized_df.columns = [sanitize(column) for column in sanitized_df.columns]
         return json.loads(
-            pd.DataFrame(df).to_json(
+            sanitized_df.to_json(
                 orient="records", date_format="iso", default_handler=str
             )
         )
