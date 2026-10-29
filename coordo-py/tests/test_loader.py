@@ -15,3 +15,11 @@ def test_dataframe_to_records_replaces_invalid_unicode():
     )
 
     assert Loader._dataframe_to_records(df) == [{"name": "forêt 🦉?", "number": 1}]
+
+
+def test_dataframe_to_records_replaces_invalid_utf8_bytes():
+    df = pd.DataFrame(
+        {"value": pd.Series([b"\xc0\xaf"], dtype=object)}
+    )
+
+    assert Loader._dataframe_to_records(df) == [{"value": "��"}]
