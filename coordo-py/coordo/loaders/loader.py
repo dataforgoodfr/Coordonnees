@@ -58,6 +58,8 @@ def write_parquet(df: DataFrame, path: Path | str):
         os.replace(temp_path, target_path)  # Move the temp file to the target path
     finally:
         temp_path.unlink(missing_ok=True)  # Clean up the temporary file if it still exists
+
+
 class Loader(ABC):
     _ACCEPTS_TARGET_RESOURCES: ClassVar[bool] = False
 
