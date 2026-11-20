@@ -1,19 +1,19 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
-import geopandas as gpd
 import json
 import logging
 import os
-import pandas as pd
-import pyarrow.parquet as pq
 import tempfile
-
 from abc import ABC, abstractmethod
 from enum import Enum
-from pandas import DataFrame
 from pathlib import Path
 from typing import ClassVar
+
+import geopandas as gpd
+import pandas as pd
+import pyarrow.parquet as pq
+from pandas import DataFrame
 
 from ..datapackage import DataPackage, Resource
 
