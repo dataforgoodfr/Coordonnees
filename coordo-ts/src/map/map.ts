@@ -8,6 +8,10 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 import "../index.css";
 
+// Needed so MapLibre workers are correctly served by Vite : https://github.com/geoql/v-maplibre/issues/160
+import { setWorkerUrl } from "maplibre-gl";
+import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
+
 import { EVENTS } from "../events";
 import type { LayerControlConstructorProps } from "../layers/controls";
 import type { LayerSchemas } from "../layers/cql";
@@ -15,10 +19,6 @@ import { makeLayerFilters } from "../layers/filters";
 import { makeSetLayerPopup } from "../layers/popup";
 import { makeSetLayerSymbol } from "../layers/symbol";
 import { addStyleDataListener } from "./style-data";
-
-// Needed so MapLibre workers are correctly served by Vite : https://github.com/geoql/v-maplibre/issues/160
-import { setWorkerUrl } from "maplibre-gl";
-import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 
 setWorkerUrl(maplibreWorkerUrl);
 
