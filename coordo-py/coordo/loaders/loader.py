@@ -1,16 +1,19 @@
 # Copyright COORDONNÉES 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
+import geopandas as gpd
 import json
 import logging
+import os
+import pandas as pd
+import pyarrow.parquet as pq
+import tempfile
+
 from abc import ABC, abstractmethod
 from enum import Enum
+from pandas import DataFrame
 from pathlib import Path
 from typing import ClassVar
-
-import geopandas as gpd
-import pandas as pd
-from pandas import DataFrame
 
 from ..datapackage import DataPackage, Resource
 
@@ -23,20 +26,38 @@ class UpdateMethod(str, Enum):
 
 
 def write_parquet(df: DataFrame, path: Path | str):
-    if isinstance(df, gpd.GeoDataFrame):
-        df.to_parquet(
-            path,
-            schema_version="1.1.0",
-            index=False,
-            write_covering_bbox=True,
-            geometry_encoding="WKB",  # We use this because duckdb can't open geoarrow as geometries
-        )
-    elif isinstance(df, DataFrame):
-        df.to_parquet(path, index=False)
-    else:
-        raise TypeError(f"Unknown dataframe type: {type(df)}")
+    target_path = Path(path)
 
+    if not target_path.parent.exists():
+        raise FileNotFoundError(f"Parent directory does not exist: {target_path.parent}")
 
+    # Create a temporary file where to write data
+    fd, temp_path = tempfile.mkstemp(
+        prefix=f".{target_path.stem}.",
+        suffix=".parquet",
+        dir=target_path.parent
+    )
+    os.close(fd)
+    temp_path = Path(temp_path)
+
+    try:
+        if isinstance(df, gpd.GeoDataFrame):
+            df.to_parquet(
+                temp_path,
+                schema_version="1.1.0",
+                index=False,
+                write_covering_bbox=True,
+                geometry_encoding="WKB",  # We use this because duckdb can't open geoarrow as geometries
+            )
+        elif isinstance(df, DataFrame):
+            df.to_parquet(temp_path, index=False)
+        else:
+            raise TypeError(f"Unknown dataframe type: {type(df)}")
+
+        pq.read_metadata(temp_path)  # Check if the parquet file is readable
+        os.replace(temp_path, target_path)  # Move the temp file to the target path
+    finally:
+        temp_path.unlink(missing_ok=True)  # Clean up the temporary file if it still exists
 class Loader(ABC):
     _ACCEPTS_TARGET_RESOURCES: ClassVar[bool] = False
 
