@@ -16,6 +16,12 @@ import { makeSetLayerPopup } from "../layers/popup";
 import { makeSetLayerSymbol } from "../layers/symbol";
 import { addStyleDataListener } from "./style-data";
 
+// Needed so MapLibre workers are correctly served by Vite : https://github.com/geoql/v-maplibre/issues/160
+import { setWorkerUrl } from "maplibre-gl";
+import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
+
+setWorkerUrl(maplibreWorkerUrl);
+
 const DEFAULT_MAP_OPTIONS: Partial<maplibregl.MapOptions> = {
   center: [0, 0],
   zoom: 1,

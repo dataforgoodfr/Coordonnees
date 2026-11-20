@@ -75,6 +75,10 @@ def serve(config_file: str):
     def static_files(filename):
         return send_from_directory(static_dir, filename)
 
+    @app.route("/assets/<path:filename>")
+    def static_assets(filename):
+        return send_from_directory(static_dir / "assets", filename)
+
     app.run(debug=True)
 
 
