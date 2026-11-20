@@ -5,7 +5,10 @@
   "license": "ISC",
   "author": "",
   "main": "coordo-ts/src/index.ts",
-  "dependencies": {
-    "maplibre-gl": "^5.16.0"
+  "peerDependencies": {
+    "maplibre-gl": "6.11.2"
+  },
+  "devDependencies": {
+    "maplibre-gl": "6.11.2"
   }
 }

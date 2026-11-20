@@ -3,10 +3,14 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import maplibregl from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 import "../index.css";
+
+// Needed so MapLibre workers are correctly served by Vite : https://github.com/geoql/v-maplibre/issues/160
+import { setWorkerUrl } from "maplibre-gl";
+import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 
 import { EVENTS } from "../events";
 import type { LayerControlConstructorProps } from "../layers/controls";
@@ -15,6 +19,8 @@ import { makeLayerFilters } from "../layers/filters";
 import { makeSetLayerPopup } from "../layers/popup";
 import { makeSetLayerSymbol } from "../layers/symbol";
 import { addStyleDataListener } from "./style-data";
+
+setWorkerUrl(maplibreWorkerUrl);
 
 const DEFAULT_MAP_OPTIONS: Partial<maplibregl.MapOptions> = {
   center: [0, 0],

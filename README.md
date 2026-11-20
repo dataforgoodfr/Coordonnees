@@ -268,6 +268,7 @@ Install
 
 ```
 uv sync
+make build
 ```
 
 Import data into catalog

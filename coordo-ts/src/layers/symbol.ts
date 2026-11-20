@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import type { Map as MapLibreMap } from "maplibre-gl";
+import type { ExpressionSpecification, Map as MapLibreMap } from "maplibre-gl";
 
 export function getLayerSymbolId({ layerId }: { layerId: string }) {
   return `${layerId}-symbol-layer`;
@@ -45,7 +45,7 @@ export function makeSetLayerSymbol({ map }: { map: MapLibreMap }) {
     | { svg: string; imageUrl?: null; spriteId?: null }
   )) {
     function setLayerIconImage(pictureId: string) {
-      const finalId = fallbackId
+      const finalId: string | ExpressionSpecification = fallbackId
         ? ["coalesce", ["image", pictureId], ["image", fallbackId]]
         : pictureId;
       map.setLayoutProperty(layerId, "icon-image", finalId);
