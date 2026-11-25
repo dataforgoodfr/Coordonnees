@@ -73,10 +73,16 @@ export function makeLayerFilters<TLayers extends LayerSchemas>({
   map,
   baseUrl,
   headers,
+  onDataReplaced,
 }: {
   map: MapLibreMap;
   baseUrl: URL;
   headers?: Record<string, string>;
+  /** Called once new data is on the map, e.g. to refresh the open popups. */
+  onDataReplaced?: (params: {
+    sourceId: string;
+    data: GeoJSON.GeoJSON;
+  }) => void;
 }) {
   // One request in flight per layer: a newer call supersedes the previous one.
   const pendingRequests = new Map<string, AbortController>();
@@ -89,7 +95,9 @@ export function makeLayerFilters<TLayers extends LayerSchemas>({
    * only. Properties are therefore the raw resource column names, not the
    * aliases of the layer `columns`.
    *
-   * The client-side filter set with `setSourceFilter` is kept.
+   * The client-side filter set with `setSourceFilter` is kept, and the open
+   * popups given a `featureKey` (see `setLayerPopup`) receive their feature's
+   * new properties.
    *
    * @returns A promise resolved once the new data is on the map. It rejects
    *   - when the filter refers to an unknown property (nothing is fetched);
@@ -152,6 +160,7 @@ export function makeLayerFilters<TLayers extends LayerSchemas>({
 
       // Update map internal state data, keeping any client-side source filter
       setSourceData({ data, map, sourceId: layer.source });
+      onDataReplaced?.({ data, sourceId: layer.source });
     } finally {
       if (pendingRequests.get(layerId) === controller) {
         pendingRequests.delete(layerId);

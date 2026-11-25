@@ -27,6 +27,7 @@ export {
   whereToCql,
 } from "./layers/cql";
 export type { LayerId, SetLayerFiltersParams } from "./layers/filters";
+export type { PopupContext, SetLayerPopupParams } from "./layers/popup";
 export { setSourceFilter } from "./layers/source-filter";
 export { getLayerSymbolId } from "./layers/symbol";
 export { type CreateMapOptions, createMap } from "./map/map";

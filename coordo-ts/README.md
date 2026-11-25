@@ -45,6 +45,23 @@ The `setLayerPopup` function allows you to attach a popup to a specific map laye
 - **`trigger`**: The event type that triggers the popup (e.g., `"click"`, `"mouseenter"`).
 - **`renderCallback`**: A function that takes the feature's properties and returns the popup content (as HTML string or DOM element).
 - **`popupConfig`** (optional): Configuration for the popup (e.g., `className`, `closeButton`, `anchor`).
+- **`featureKey`** (optional): Properties identifying a feature across data reloads, typically the layer's `groupby` columns. See [Keep an open popup up to date](#keep-an-open-popup-up-to-date).
+
+`renderCallback` receives `(properties, layerMetadata, context)`. The `context` is a handle on the open popup:
+
+- **`context.onClose(listener)`**: called once when the popup closes, however it is closed (map click, close button, `context.close()`). It's the place to unmount the content, e.g. a React root.
+- **`context.close()`**: closes the popup, e.g. from a custom close button.
+- **`context.onPropertiesChange(listener)`**: see below.
+
+Each of them returns a function removing the listener.
+
+#### Keep an open popup up to date
+
+`setLayerFilters` recomputes every feature of a layer, so the properties shown by an open popup go stale. With a `featureKey`, coordo finds the popup's feature again in the new data and calls `context.onPropertiesChange` listeners with its new properties, or with `null` when no feature matches anymore (e.g. no row left under the filters).
+
+Feature ids can't do this: they are the row index of the data, and change whenever it is re-aggregated. Key values are compared strictly (`"1" !== 1`).
+
+The popup stays where it was opened, even if the feature's geometry moved.
 
 #### Examples
 
@@ -101,16 +118,29 @@ mapApiRef.current.setLayerPopup({
 <summary><b>React</b></summary>
 
 ```tsx
-const renderPopup = (properties: MyDataType) => {
+const LivePopup = ({ initial, context }: { initial: MyDataType; context: PopupContext<MyDataType> }) => {
+  // `null` once the feature has no data under the current filters
+  const [data, setData] = useState<MyDataType | null>(initial);
+  useEffect(() => context.onPropertiesChange(setData), [context]);
+
+  return <MyReactPopupContent data={data} onClose={context.close} />;
+};
+
+const renderPopup = (
+  properties: MyDataType,
+  _metadata: LayerMetadata,
+  context: PopupContext<MyDataType>,
+) => {
   const container = document.createElement("div");
   const root = createRoot(container);
-  root.render(
-    <MyReactPopupContent data={properties} onClose={() => root.unmount()} />,
-  );
+  root.render(<LivePopup context={context} initial={properties} />);
+  // However the popup is closed, release the React root
+  context.onClose(() => root.unmount());
   return container;
 };
 
 mapApiRef.current.setLayerPopup<MyDataType>({
+  featureKey: ["project", "village"],
   layerId: "my-layer-id",
   trigger: "click",
   renderCallback: renderPopup,

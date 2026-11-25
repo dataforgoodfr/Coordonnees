@@ -15,15 +15,71 @@ import { Popup } from "maplibre-gl";
 
 import type { LayerMetadata } from "../types";
 
+/**
+ * Handle on an open popup, passed as the last argument of `renderCallback`.
+ *
+ * Lets the content follow the data of its feature, and clean up after itself
+ * however the popup is closed (map click, close button, `close()`).
+ */
+export type PopupContext<T> = {
+  /**
+   * Called each time `setLayerFilters` replaces the data of the popup's source,
+   * with the new properties of the feature the popup was opened on, or `null`
+   * when no feature matches its `featureKey` anymore.
+   *
+   * Never called when `setLayerPopup` was given no `featureKey`.
+   *
+   * @returns A function removing the listener.
+   */
+  onPropertiesChange: (listener: (properties: T | null) => void) => () => void;
+  /**
+   * Called once when the popup closes, however it is closed: the place to
+   * unmount the content (e.g. a React root).
+   *
+   * @returns A function removing the listener.
+   */
+  onClose: (listener: () => void) => () => void;
+  /** Close the popup, e.g. from a custom close button. */
+  close: () => void;
+};
+
 export type SetLayerPopupParams<T> = {
   layerId: string;
   trigger: keyof MapLayerEventType;
   renderCallback: (
     properties: T,
     layerMetadata: LayerMetadata,
+    context: PopupContext<T>,
   ) => HTMLElement | string;
   popupConfig?: PopupOptions;
   centerOnClick?: boolean;
+  /**
+   * Properties identifying a feature across data reloads, typically the
+   * `groupby` columns of the layer.
+   *
+   * Feature ids can't be used: they are the row index of the data, so they
+   * change as soon as `setLayerFilters` re-aggregates it. With a key, an open
+   * popup finds its feature again in the new data and is notified through
+   * {@link PopupContext.onPropertiesChange}. Without one, it keeps the
+   * properties it was opened with.
+   */
+  featureKey?: string[];
+};
+
+type FeatureProperties = Record<string, unknown>;
+
+/** An open popup that asked to follow the data of its feature. */
+type TrackedPopup = {
+  featureKey: string[];
+  keyValues: unknown[];
+  listeners: Set<(properties: FeatureProperties | null) => void>;
+};
+
+const getFeatures = (data: GeoJSON.GeoJSON): GeoJSON.Feature[] => {
+  if (data.type === "FeatureCollection") {
+    return data.features;
+  }
+  return data.type === "Feature" ? [data] : [];
 };
 
 export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
@@ -32,6 +88,109 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
    * a click listener, we need to remove it before setting the new one
    */
   const popupRemovers: { [layerId: string]: () => void } = {};
+
+  /** Open popups with a `featureKey`, by source id, until they are closed. */
+  const trackedPopups = new Map<string, Set<TrackedPopup>>();
+
+  /**
+   * Push the new data of a source to its open popups. Called once the data
+   * fetched by `setLayerFilters` is on the map.
+   */
+  function notifyDataReplaced({
+    sourceId,
+    data,
+  }: {
+    sourceId: string;
+    data: GeoJSON.GeoJSON;
+  }) {
+    const popups = trackedPopups.get(sourceId);
+    if (!popups || popups.size === 0) {
+      return;
+    }
+
+    const features = getFeatures(data);
+    for (const tracked of popups) {
+      // Strict equality: both loads come from the same backend columns, so a
+      // value keeps its type from one load to the next.
+      const match = features.find((feature) =>
+        tracked.featureKey.every(
+          (property, index) =>
+            feature.properties?.[property] === tracked.keyValues[index],
+        ),
+      );
+      const properties = (match?.properties as FeatureProperties) ?? null;
+      // Copied: a listener may unsubscribe while we iterate.
+      for (const listener of [...tracked.listeners]) {
+        listener(properties);
+      }
+    }
+  }
+
+  /**
+   * Build the context of a popup and start tracking it when it has a key.
+   * Everything is released on the popup `close` event.
+   */
+  function createPopupContext<T>({
+    popup,
+    sourceId,
+    featureKey,
+    properties,
+  }: {
+    popup: Popup;
+    sourceId: string;
+    featureKey: string[] | undefined;
+    properties: FeatureProperties;
+  }): PopupContext<T> {
+    const closeListeners = new Set<() => void>();
+    const tracked: TrackedPopup | undefined = featureKey
+      ? {
+          featureKey,
+          keyValues: featureKey.map((property) => properties[property]),
+          listeners: new Set(),
+        }
+      : undefined;
+
+    if (tracked) {
+      let popups = trackedPopups.get(sourceId);
+      if (!popups) {
+        popups = new Set();
+        trackedPopups.set(sourceId, popups);
+      }
+      popups.add(tracked);
+    }
+
+    popup.once("close", () => {
+      if (tracked) {
+        trackedPopups.get(sourceId)?.delete(tracked);
+        tracked.listeners.clear();
+      }
+      for (const listener of [...closeListeners]) {
+        listener();
+      }
+      closeListeners.clear();
+    });
+
+    return {
+      close: () => {
+        popup.remove();
+      },
+      onClose: (listener) => {
+        closeListeners.add(listener);
+        return () => {
+          closeListeners.delete(listener);
+        };
+      },
+      onPropertiesChange: (listener) => {
+        const untyped = listener as (
+          properties: FeatureProperties | null,
+        ) => void;
+        tracked?.listeners.add(untyped);
+        return () => {
+          tracked?.listeners.delete(untyped);
+        };
+      },
+    };
+  }
 
   /**
    * Sets up a popup for a specific map layer, triggered by user interaction.
@@ -46,6 +205,8 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
    *   Accepts the feature's properties and returns either a DOM element or a string of HTML.
    * @param {PopupOptions} [params.popupConfig] - Configuration for the popup (e.g., offset, anchor, className).
    * @param {boolean} params.centerOnClick - Whether to center the map after clicking on a popup symbol
+   * @param {string[]} [params.featureKey] - Properties identifying a feature across data reloads. With it,
+   *   the popup is notified (see {@link PopupContext.onPropertiesChange}) when `setLayerFilters` replaces the data.
    *
    * @example
    * // Example with HTML string
@@ -82,6 +243,26 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
    *   renderCallback: renderPopup,
    *   centerOnClick: true
    * });
+   *
+   * @example
+   * // Example following the data: the popup is refreshed when setLayerFilters
+   * // recomputes the layer, and unmounted however it is closed
+   * const renderPopup = (properties, metadata, context) => {
+   *   const div = document.createElement("div");
+   *   const render = (props) => {
+   *     div.textContent = props ? `${props.household_nb} households` : "No match";
+   *   };
+   *   render(properties);
+   *   context.onPropertiesChange(render);
+   *   return div;
+   * };
+   *
+   * mapApiRef.current.setLayerPopup({
+   *   featureKey: ["proj", "loc1", "loc2", "year"],
+   *   layerId: "enquete",
+   *   trigger: "click",
+   *   renderCallback: renderPopup,
+   * });
    */
   function setLayerPopup<T extends Record<string, unknown>>({
     layerId,
@@ -89,6 +270,7 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
     renderCallback,
     popupConfig,
     centerOnClick,
+    featureKey,
   }: SetLayerPopupParams<T>) {
     if (layerId in popupRemovers) {
       popupRemovers[layerId]?.(); // Cleanup precedent trigger
@@ -103,7 +285,9 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
         /** @todo Remove "any" casting  */
         const popup = new Popup(popupConfig).setLngLat(ev.lngLat);
 
-        const source = map.getSource(layerId) as GeoJSONSource;
+        const layer = map.getLayer(layerId);
+        const sourceId = layer?.source ?? layerId;
+        const source = map.getSource(sourceId) as GeoJSONSource;
         const data = await source.getData();
         const properties = Object.assign(eventProps, {
           /**
@@ -116,8 +300,14 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
             ?.properties,
         }) as T;
 
-        const layerMetadata = map.getLayer(layerId)?.metadata as LayerMetadata;
-        const content = renderCallback(properties as T, layerMetadata);
+        const layerMetadata = layer?.metadata as LayerMetadata;
+        const context = createPopupContext<T>({
+          featureKey,
+          popup,
+          properties,
+          sourceId,
+        });
+        const content = renderCallback(properties as T, layerMetadata, context);
         if (typeof content === "string") {
           popup.setHTML(content);
         } else {
@@ -214,5 +404,5 @@ export function makeSetLayerPopup({ map }: { map: MapLibreMap }) {
     popupRemovers[layerId] = removeListeners;
   }
 
-  return setLayerPopup;
+  return { notifyDataReplaced, setLayerPopup };
 }

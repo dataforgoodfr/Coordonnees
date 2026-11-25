@@ -91,13 +91,15 @@ export function createMap<TLayers extends LayerSchemas = LayerSchemas>(
 
   const addSprite = map.addSprite;
 
+  const { notifyDataReplaced, setLayerPopup } = makeSetLayerPopup({ map });
+
   const { clearLayerFilters, setLayerFilters } = makeLayerFilters<TLayers>({
     baseUrl,
     headers: options?.headers,
     map,
+    // Open popups follow the data their feature is recomputed from.
+    onDataReplaced: notifyDataReplaced,
   });
-
-  const setLayerPopup = makeSetLayerPopup({ map });
 
   const setLayerSymbol = makeSetLayerSymbol({ map });
 

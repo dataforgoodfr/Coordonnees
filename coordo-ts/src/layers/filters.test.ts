@@ -254,6 +254,28 @@ describe("setLayerFilters", () => {
     expect(setSourceData).toHaveBeenCalledTimes(2);
   });
 
+  it("reports the new data once it is on the map, only on success", async () => {
+    const onDataReplaced = vi.fn();
+    const { calls, setLayerFilters } = {
+      ...stubFetch(),
+      ...makeLayerFilters({ baseUrl: BASE_URL, map: MAP, onDataReplaced }),
+    };
+
+    const superseded = setLayerFilters({ layerId: "enquete", where: {} });
+    const failed = setLayerFilters({ layerId: "basemap", where: {} });
+    const succeeded = setLayerFilters({ layerId: "enquete", where: {} });
+    await expect(superseded).rejects.toMatchObject({ name: "AbortError" });
+    calls[1]?.respond({ detail: "boom" }, 500);
+    await expect(failed).rejects.toThrow("500");
+    calls[2]?.respond(featureCollection("enquete"));
+    await succeeded;
+
+    expect(onDataReplaced).toHaveBeenCalledExactlyOnceWith({
+      data: featureCollection("enquete"),
+      sourceId: "enquete-source",
+    });
+  });
+
   it("type-checks layers, properties and values when given the layer schemas", () => {
     const { setLayerFilters } = makeLayerFilters<{
       enquete: { sex: string; typ: "0" | "1" | "2" };
