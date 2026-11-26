@@ -201,6 +201,81 @@ class DataPackage(pydantic.BaseModel):
         columns: dict[str, AstType] | None = None,
         filter: AstType | None = None,
         groupby: list[str] | None = None,
+    ) -> pd.DataFrame:
+        total_start = time.perf_counter()
+
+        logger.info(
+            f"[PERF] read_resource START: "
+            f"resource={resource_name}, resources={len(self.resources)}"
+        )
+
+        start = time.perf_counter()
+        conn, metadata = self.prepare_db()
+        logger.info(
+            f"[PERF] prepare_db: {time.perf_counter() - start:.4f}s"
+        )
+
+        start = time.perf_counter()
+        query = build_query(metadata, resource_name, columns, filter, groupby)
+        query_str = compile_query(query)
+        logger.info(
+            f"[PERF] build_query + compile_query: "
+            f"{time.perf_counter() - start:.4f}s"
+        )
+
+        start = time.perf_counter()
+        relation = conn.sql(query_str)
+        logger.info(
+            f"[PERF] conn.sql: {time.perf_counter() - start:.4f}s"
+        )
+
+        start = time.perf_counter()
+        table: pa.Table = relation.arrow().read_all()
+        logger.info(
+            f"[PERF] arrow.read_all: {time.perf_counter() - start:.4f}s "
+            f"(rows={table.num_rows}, columns={table.num_columns})"
+        )
+
+        start = time.perf_counter()
+        conn.close()
+        logger.info(
+            f"[PERF] conn.close: {time.perf_counter() - start:.4f}s"
+        )
+
+        start = time.perf_counter()
+        if any(col[1].id == "geometry" for col in relation.description):
+            df = gpd.GeoDataFrame.from_arrow(
+                table,
+                to_pandas_kwargs={"maps_as_pydicts": "strict"},
+            )
+        else:
+            df = table.to_pandas()
+
+        list_cols = [
+            field.name for field in table.schema if pa.types.is_list(field.type)
+        ]
+        for col in list_cols:
+            df[col] = df[col].apply(lambda x: x.tolist() if x is not None else None)
+
+        logger.info(
+            f"[PERF] dataframe conversion: {time.perf_counter() - start:.4f}s"
+        )
+
+        logger.info(
+            f"[PERF] read_resource END: "
+            f"resource={resource_name}, "
+            f"total={time.perf_counter() - total_start:.4f}s"
+        )
+
+        return df
+
+
+    def read_resource__0(
+        self,
+        resource_name: str,
+        columns: dict[str, AstType] | None = None,
+        filter: AstType | None = None,
+        groupby: list[str] | None = None,
     ) -> pd.DataFrame:      
         start = time.perf_counter()
         logger.info(f"[PERF] prepare_db START: resources={len(self.resources)}")
