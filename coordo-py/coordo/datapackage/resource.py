@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import logging
+import time
 from typing import TYPE_CHECKING, Any, Self
 
 import duckdb
@@ -68,7 +69,19 @@ class Resource(pydantic.BaseModel):
 
     def load_table(self, conn: duckdb.DuckDBPyConnection):
         query = f'CREATE VIEW "{self.name}" AS SELECT * FROM {prepare_path(self.package.get_path() / self.path)}'
+
+        start = time.perf_counter()
+        logger.info(
+            f"[PERF] DuckDB CREATE VIEW START: "
+            f"resource={self.name} path={self.package.get_path() / self.path}"
+        )
+
         conn.execute(query)
+
+        logger.info(
+            f"[PERF] DuckDB CREATE VIEW END: "
+            f"resource={self.name} duration={time.perf_counter() - start:.4f}s"
+        )
 
     def replace_primary_key(self, fields: list[str]) -> None:
         field_names = {field.name for field in self.schema.fields}

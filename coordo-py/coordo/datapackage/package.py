@@ -10,6 +10,7 @@ import pandas as pd
 import pyarrow as pa
 import pydantic
 import sqlalchemy as sa
+import time
 from dplib import models
 from dplib.models import (
     Contributor,
@@ -71,11 +72,27 @@ class DataPackage(pydantic.BaseModel):
             path = path / "datapackage.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         if path.exists():
-            logger.info(f"Loading package from {path}")
-            return cls.model_validate_json(
-                path.read_bytes(),
+            start = time.perf_counter()
+            logger.info(f"[PERF] Loading datapackage: {path}")
+
+            raw = path.read_bytes()
+            logger.info(
+                f"[PERF] datapackage.json read: "
+                f"path={path} size={len(raw)} bytes "
+                f"duration={time.perf_counter() - start:.4f}s"
+            )
+
+            start = time.perf_counter()
+            package = cls.model_validate_json(
+                raw,
                 context={"_basepath": path.parent},
             )
+            logger.info(
+                f"[PERF] datapackage parsed: "
+                f"path={path} resources={len(package.resources)} "
+                f"duration={time.perf_counter() - start:.4f}s"
+            )
+            return package
         else:
             logger.info(f"Creating new package at {path}")
             return cls.model_validate(
@@ -157,6 +174,8 @@ class DataPackage(pydantic.BaseModel):
         conn = load_conn()
         metadata = sa.MetaData()
 
+        start = time.perf_counter()
+        logger.info(f"[PERF] prepare_db START: resources={len(self.resources)}")
         # load existing resources from datapackage into the schema
         for resource in self.resources:
             if resource.path and resource.schema:
@@ -170,7 +189,10 @@ class DataPackage(pydantic.BaseModel):
                     raise ValueError(
                         f"Error occurred while loading table for resource {resource.name}: {e}"
                     ) from e
-
+        logger.info(
+            f"[PERF] prepare_db END: "
+            f"duration={time.perf_counter() - start:.4f}s"
+)
         return conn, metadata
 
     def read_resource(
@@ -179,12 +201,18 @@ class DataPackage(pydantic.BaseModel):
         columns: dict[str, AstType] | None = None,
         filter: AstType | None = None,
         groupby: list[str] | None = None,
-    ) -> pd.DataFrame:
+    ) -> pd.DataFrame:      
+        start = time.perf_counter()
+        logger.info(f"[PERF] prepare_db START: resources={len(self.resources)}")
         conn, metadata = self.prepare_db()
         query = build_query(metadata, resource_name, columns, filter, groupby)
         query_str = compile_query(query)
         relation = conn.sql(query_str)
         table: pa.Table = relation.arrow().read_all()
+        logger.info(
+            f"[PERF] prepare_db END: "
+            f"duration={time.perf_counter() - start:.4f}s"
+        )
         conn.close()
 
         if any(col[1].id == "geometry" for col in relation.description):

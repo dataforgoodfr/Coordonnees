@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import tempfile
+import time
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
@@ -24,8 +25,65 @@ class UpdateMethod(str, Enum):
     APPEND = "append"
     REPLACE = "replace"
 
-
 def write_parquet(df: DataFrame, path: Path | str):
+    target_path = Path(path)
+    start = time.perf_counter()
+
+    logger.info(
+        f"[PERF] write_parquet START: path={target_path} rows={len(df)}"
+    )
+
+    if not target_path.parent.exists():
+        raise FileNotFoundError(f"Parent directory does not exist: {target_path.parent}")
+
+    fd, temp_path = tempfile.mkstemp(
+        prefix=f".{target_path.stem}.",
+        suffix=".parquet",
+        dir=target_path.parent
+    )
+    os.close(fd)
+    temp_path = Path(temp_path)
+
+    try:
+        write_start = time.perf_counter()
+
+        if isinstance(df, gpd.GeoDataFrame):
+            df.to_parquet(
+                temp_path,
+                schema_version="1.1.0",
+                index=False,
+                write_covering_bbox=True,
+                geometry_encoding="WKB",
+            )
+        elif isinstance(df, DataFrame):
+            df.to_parquet(temp_path, index=False)
+        else:
+            raise TypeError(f"Unknown dataframe type: {type(df)}")
+
+        logger.info(
+            f"[PERF] parquet serialization: path={target_path} "
+            f"duration={time.perf_counter() - write_start:.4f}s"
+        )
+
+        check_start = time.perf_counter()
+        pq.read_metadata(temp_path)
+        logger.info(
+            f"[PERF] parquet metadata check: path={target_path} "
+            f"duration={time.perf_counter() - check_start:.4f}s"
+        )
+
+        os.replace(temp_path, target_path)
+
+        logger.info(
+            f"[PERF] write_parquet END: path={target_path} "
+            f"size={target_path.stat().st_size} bytes "
+            f"total={time.perf_counter() - start:.4f}s"
+        )
+    finally:
+        temp_path.unlink(missing_ok=True)
+
+
+def write_parquet__0(df: DataFrame, path: Path | str):
     target_path = Path(path)
 
     if not target_path.parent.exists():
@@ -371,7 +429,18 @@ class Loader(ABC):
     def read_parquet(self, resource: Resource) -> DataFrame:
         target_filename = resource.name + ".parquet"
         target_path = self.dp.get_path() / target_filename
-        return pd.read_parquet(target_path)
+
+        start = time.perf_counter()
+        logger.info(f"[PERF] read_parquet START: path={target_path}")
+
+        df = pd.read_parquet(target_path)
+
+        logger.info(
+            f"[PERF] read_parquet END: path={target_path} "
+            f"rows={len(df)} columns={len(df.columns)} "
+            f"total={time.perf_counter() - start:.4f}s"
+        )
+        return df
 
     def write_to_package(self, df: DataFrame, resource: Resource):
         target_filename = resource.name + ".parquet"

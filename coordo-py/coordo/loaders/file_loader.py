@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import logging
+from os import path
+import time
 from pathlib import Path
 from typing import ClassVar
 
@@ -47,10 +49,18 @@ class FileLoader(Loader):
         Parses data from the file and writes it to the raw staging directory.
         """
         schema = Schema()
+        start = time.perf_counter()
+        logger.info(f"[PERF] FileLoader START: path={path}")
         with load_conn() as conn:
             sql_query = self.get_sql_query(path)
+            query_start = time.perf_counter()
             rel = conn.sql(sql_query)
 
+            logger.info(
+                f"[PERF] FileLoader DuckDB query: "
+                f"path={path} duration={time.perf_counter() - query_start:.4f}s"
+            )
+            
             # parse schema from the SQL query result
             for name, type in zip(rel.columns, rel.types):
                 schema.add_field(Field(name=name, **duckdb_type_to_dp_type(type)))
@@ -58,12 +68,24 @@ class FileLoader(Loader):
             # creating a new resource
             resource = Resource.create(path.stem, schema)
             # parsing data from the file
+            rows_start = time.perf_counter()
+            columns = rel.columns
+            types = rel.types
             df = rel.to_df()
+            logger.info(
+                f"[PERF] FileLoader to_df: "
+                f"path={path} rows={len(df)} columns={len(columns)} "
+                f"duration={time.perf_counter() - rows_start:.4f}s"
+            )
+
             geo_cols = find_geo_cols(resource, df)
-            print(geo_cols)
             if geo_cols:
                 df = convert_df_to_geodf(df, geo_cols)
 
+        logger.info(
+            f"[PERF] FileLoader TOTAL: "
+            f"path={path} duration={time.perf_counter() - start:.4f}s"
+        )
         return resource, df
 
     def parse_input(self):
